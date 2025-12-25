@@ -1,274 +1,378 @@
-## 📄 MANUAL.MD MIS À JOUR
+# 🚀 ACADEMVAULT - INTELLIGENT RESEARCH PLATFORM
 
-```markdown
-# 🚀 ACADEMVAULT - PLATEFORME DE RECHERCHE INTELLIGENTE
+## 📋 CURRENT STATE (JANUARY 2024)
 
-## 📋 ÉTAT ACTUEL (DÉCEMBRE 2024)
+### ✅ FRONTEND (Next.js 14) - MODERNIZED & ENHANCED
+- **Architecture**: App Router with modern structure
+- **Implemented Pages**:
+  - `/` - Beautiful homepage with gradient design and interactive features
+  - `/signup` - 5-step registration with animated illustrations and modal system
+  - `/login` - Modern login with security illustrations and social auth options
+  - `/dashboard` - Protected dashboard (basic structure)
+- **Authentication**: Complete system with localStorage + Modal integration
+- **Design**: Modern dark theme with glass morphism, gradients, and animations
+- **Responsive**: Fully optimized for mobile, tablet, and desktop
+- **UI/UX**: Professional spacing, icon-based navigation, smooth transitions
 
-### ✅ FRONTEND (Next.js 16) - FONCTIONNEL
-- **Architecture** : App Router avec structure moderne
-- **Pages implémentées** :
-  - `/` - Page d'accueil publique avec options Signup/Login
-  - `/signup` - Inscription multi-étapes (5 étapes)
-  - `/login` - Connexion avec validation
-  - `/dashboard` - Tableau de bord protégé
-- **Authentification** : Système complet avec localStorage
-- **Design** : Interface identique au design fourni (HTML/CSS/JS)
-- **Responsive** : Mobile et desktop optimisés
+### ✅ BACKEND (Laravel 11) - CONFIGURED
+- **Database**: MySQL with dedicated user
+- **Migrations**: 12 custom tables without conflicts
+- **Structure**: REST API ready for development
+- **Configuration**: .env environment configured
 
-### ✅ BACKEND (Laravel 11) - CONFIGURÉ
-- **Base de données** : MySQL avec utilisateur dédié
-- **Migrations** : 12 tables personnalisées sans conflits
-- **Structure** : API REST prête pour développement
-- **Configuration** : Environnement .env configuré
+### 🆕 RECENT MAJOR UPDATES
 
-### 🚧 PROCHAINES ÉTAPES
-1. Connecter le frontend à l'API Laravel
-2. Implémenter les appels API réels
-3. Développer les fonctionnalités CRUD
-4. Ajouter le système de fichiers
+#### 1. **Complete Modal System**
+- Custom alert, confirm, and prompt modals
+- No more browser default dialogs
+- Multiple variants (success, warning, danger, info)
+- Smooth animations and professional styling
+- Keyboard navigation support
 
-## 🛠️ DÉPANNAGE & SOLUTIONS COMMUNES
+#### 2. **Professional UI/UX Overhaul**
+- Modern glass morphism effects
+- Gradient backgrounds with animations
+- Icon-based navigation and reduced text clutter
+- Professional spacing and visual hierarchy
+- Hover effects and smooth transitions
 
-### Problème : 404 sur la page d'accueil
-**Solution** :
-- Vérifier que `src/app/page.jsx` existe
-- S'assurer qu'aucun fichier `pages/` n'existe (conflit App Router vs Pages Router)
-- Nettoyer le cache Next.js : `rm -rf .next && npm run dev`
+#### 3. **Illustration System**
+- Custom SVG illustrations on all pages
+- Animated floating elements
+- Mobile-optimized layout (illustrations on mobile top, desktop side)
+- Inverted layouts for visual balance
+- Particle effects and background blurs
 
-### Problème : Erreurs Tailwind CSS
-**Solution** :
-- L'erreur "@tailwind unknown rule" dans VS Code est un faux positif
-- Installer l'extension "Tailwind CSS IntelliSense"
-- Ajouter dans `.vscode/settings.json` :
-```json
-{
-  "css.lint.unknownAtRules": "ignore"
-}
-```
+#### 4. **Enhanced Forms**
+- Password strength indicators
+- Step-by-step registration with progress bars
+- Form validation with custom modals
+- Remember me functionality
+- Social login integration design
 
-### Problème : Authentification ne persiste pas
-**Solution** :
-- Vérifier que `localStorage` est accessible (client-side seulement)
-- Les services d'authentification sont dans `src/lib/auth.js`
-- Pour production, migrer vers des cookies sécurisés
-
-### Problème : Images non chargées
-**Solution** :
-- Vérifier `next.config.js` pour les domaines autorisés
-- Les avatars utilisent `ui-avatars.com`
-- Pour les uploads, configurer un service de stockage
-
-## 📁 STRUCTURE DU PROJET
+## 📁 PROJECT STRUCTURE UPDATED
 
 ```
 AcademVault/
-├── client/                    # Next.js 16 (PORT 3000)
+├── client/                    # Next.js 14 (PORT 3000)
 │   ├── src/
-│   │   ├── app/              # App Router
-│   │   │   ├── layout.jsx    # Layout racine
-│   │   │   ├── page.jsx      # Page d'accueil
-│   │   │   ├── signup/       # Inscription
-│   │   │   ├── login/        # Connexion
-│   │   │   └── dashboard/    # Tableau de bord
-│   │   ├── components/       # Composants React
-│   │   ├── lib/              # Services
-│   │   └── data/             # Données mockées
-│   ├── jsconfig.json         # Alias @/
-│   ├── tailwind.config.js    # Configuration Tailwind
-│   └── postcss.config.mjs    # PostCSS ES modules
+│   │   ├── app/
+│   │   │   ├── components/
+│   │   │   │   ├── UI/
+│   │   │   │   │   ├── Modal/
+│   │   │   │   │   │   ├── ModalContext.jsx    # Modal provider and hooks
+│   │   │   │   │   │   ├── ModalComponent.jsx  # Modal UI component
+│   │   │   │   │   │   └── index.jsx           # Exports
+│   │   │   │   │   └── Illustration.jsx        # Reusable illustration component
+│   │   │   │   ├── Auth/
+│   │   │   │   │   └── SignupForm.jsx          # Multi-step signup form
+│   │   │   │   └── Layout/
+│   │   │   │       └── MainLayout.jsx          # Dashboard layout
+│   │   │   ├── layout.jsx                      # Root layout with ModalProvider
+│   │   │   ├── page.jsx                        # Homepage (completely redesigned)
+│   │   │   ├── signup/
+│   │   │   │   └── page.jsx                    # Signup page (5-step, with illustration)
+│   │   │   ├── login/
+│   │   │   │   └── page.jsx                    # Login page (with security illustration)
+│   │   │   └── globals.css                     # Enhanced with animations
+│   │   ├── lib/
+│   │   │   ├── auth.js                         # Auth service (mock)
+│   │   │   └── modal.js                        # Modal utilities
+│   │   └── data/
+│   │       └── mockData.js                     # Mock data
+│   ├── jsconfig.json                           # Aliases
+│   ├── tailwind.config.js                      # Extended with animations
+│   └── postcss.config.mjs
 │
-└── server/                   # Laravel 11 (PORT 8000)
-    ├── database/migrations/  # 12 tables personnalisées
-    ├── app/Models/           # Modèles Eloquent
-    └── routes/api.php        # Routes API
+└── server/                    # Laravel 11 (PORT 8000)
+    ├── database/migrations/   # 12 custom tables
+    ├── app/Models/            # Eloquent models
+    └── routes/api.php         # API routes
 ```
 
-## 🔗 CONNEXION FRONTEND/BACKEND
+## 🎨 ENHANCED DESIGN SYSTEM
 
-### Configuration actuelle (Mock)
+### Color Palette
+```css
+--primary-color: #3b82f6;      /* Blue */
+--primary-hover: #2563eb;      /* Darker blue */
+--success-color: #10b981;      /* Green */
+--warning-color: #f59e0b;      /* Orange */
+--danger-color: #ef4444;       /* Red */
+--purple-color: #a855f7;       /* Purple */
+
+--bg-primary: #0a0a0a;         /* Main background */
+--bg-secondary: #111111;       /* Secondary background */
+--bg-card: #1e1e1e;           /* Card background */
+--border-color: #27272a;       /* Borders */
+
+--text-primary: #fafafa;       /* Primary text */
+--text-secondary: #a1a1aa;     /* Secondary text */
+--text-muted: #71717a;         /* Muted text */
+```
+
+### Typography
+- **Font Family**: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif`
+- **Base Size**: 16px
+- **Line Height**: 1.5
+- **Gradient Text**: Used for headings and accents
+
+### Animations
+```css
+/* Custom animations in globals.css */
+@keyframes fadeIn {}
+@keyframes scaleIn {}
+@keyframes float {}
+@keyframes pulse {}
+@keyframes shimmer {}
+```
+
+### Spacing & Shadows
+- **Border Radius**: sm(0.375rem), md(0.5rem), lg(0.75rem), xl(1rem), 2xl(1.5rem)
+- **Box Shadows**: Multiple levels with glow effects
+- **Transitions**: All 0.2s-0.3s cubic-bezier
+
+## 🔐 SECURITY
+
+### Current Implementation
+1. **Client-side Validation**: Enhanced with modal feedback
+2. **Secure Storage**: localStorage for development (to be upgraded)
+3. **Route Protection**: Automatic redirection for protected pages
+4. **Input Sanitization**: Before submission
+5. **Modal System**: Replaces insecure browser dialogs
+
+### To Implement
+1. **Server Validation**: Laravel Validation
+2. **JWT Tokens**: Laravel Sanctum/PHP JWT
+3. **HTTPS**: Required for production
+4. **Rate Limiting**: Brute force protection
+5. **CSRF Protection**: For form submissions
+
+## 📱 RESPONSIVE DESIGN
+
+### Layout Strategy
+- **Mobile (< 640px)**: Stacked layout, illustrations at top
+- **Tablet (640px-1024px)**: Grid layouts with adaptive spacing
+- **Desktop (> 1024px)**: Side-by-side layouts, illustrations on left/right
+
+### Component Behavior
+- **Navigation**: Hamburger menu on mobile, sidebar on desktop
+- **Forms**: Touch-optimized inputs and buttons
+- **Modals**: Full-screen on mobile, centered on desktop
+- **Illustrations**: Show/hide based on screen size with different placements
+
+## 🚀 DEPLOYMENT
+
+### Local Development
+```bash
+# Start backend (Laravel)
+cd server
+php artisan serve --port=8000
+
+# Start frontend (Next.js)
+cd client
+npm run dev
+
+# Access points:
+# Frontend: http://localhost:3000
+# Backend API: http://localhost:8000
+# Database: MySQL on localhost:3306
+```
+
+### Production Considerations
+- Update `.env.local` with production API URL
+- Replace localStorage with secure HTTP-only cookies
+- Enable HTTPS
+- Configure CORS properly
+- Set up database backups
+
+## 🛠️ TROUBLESHOOTING
+
+### Common Issues & Solutions
+
+#### 1. **Modal Not Showing**
 ```javascript
-// src/lib/auth.js - Service mocké
-// À remplacer par des appels API réels vers :
+// Ensure ModalProvider wraps your app in layout.jsx
+// Check that useModal() is called in client components only
+```
+
+#### 2. **Animations Not Working**
+```bash
+# Clear cache and restart
+cd client
+rm -rf .next node_modules/.cache
+npm run dev
+```
+
+#### 3. **Illustrations Missing**
+- Check that the illustration component is imported
+- Verify Tailwind CSS is properly configured
+- Ensure SVG paths are correct
+
+#### 4. **Form Validation Issues**
+- Check that form fields have proper `name` attributes
+- Verify that validation functions are properly async/await
+- Ensure modal calls are properly awaited
+
+#### 5. **Build Errors**
+```bash
+# Clear all caches
+rm -rf .next node_modules/.cache
+npm cache clean --force
+npm install
+npm run dev
+```
+
+## 🔗 FRONTEND/BACKEND CONNECTION
+
+### Current Mock Configuration
+```javascript
+// src/lib/auth.js - Mock service
+// Replace with real API calls to:
 // POST http://localhost:8000/api/auth/register
 // POST http://localhost:8000/api/auth/login
 ```
 
-### Configuration API réelle (À implémenter)
+### API Integration (To Implement)
 ```javascript
-// Dans .env.local du client
+// In .env.local of client
 NEXT_PUBLIC_API_URL=http://localhost:8000/api
 
-// Dans les services, remplacer par :
+// In services, replace mock with:
 const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+  headers: { 
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  },
   body: JSON.stringify({ email, password })
 });
 ```
 
-## 🎨 DESIGN SYSTEM
-
-### Couleurs principales
-```css
---primary-color: #3b82f6;      /* Bleu */
---success-color: #10b981;      /* Vert */
---warning-color: #f59e0b;      /* Orange */
---danger-color: #ef4444;       /* Rouge */
---purple-color: #a855f7;       /* Violet */
-
---bg-primary: #0a0a0a;         /* Fond principal */
---bg-secondary: #111111;       /* Fond secondaire */
---bg-card: #1e1e1e;           /* Cartes */
---border-color: #27272a;       /* Bordures */
-```
-
-### Typographie
-- Police système : `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu`
-- Taille de base : 16px
-- Hauteur de ligne : 1.5
-
-## 🔐 SÉCURITÉ
-
-### Mesures implémentées
-1. **Validation des formulaires** : Côté client avec messages d'erreur
-2. **Stockage sécurisé** : localStorage pour le développement
-3. **Protection des routes** : Redirection automatique pour les pages protégées
-4. **Nettoyage des inputs** : Avant soumission
-
-### À implémenter
-1. **Validation côté serveur** : Laravel Validation
-2. **Tokens JWT** : Laravel Sanctum/PHP JWT
-3. **HTTPS** : Obligatoire en production
-4. **Rate limiting** : Protection contre les attaques brute force
-
-## 📱 RESPONSIVE DESIGN
-
-### Breakpoints
-```css
-/* Mobile : < 640px (par défaut) */
-/* Tablet : 640px - 1024px */
-/* Desktop : > 1024px */
-```
-
-### Composants responsives
-- **Header** : Transforme en menu hamburger sur mobile
-- **Sidebar** : Cache sur mobile, accessible via menu
-- **Formulaires** : Adaptés aux écrans tactiles
-- **Grilles** : Flexbox/Grid avec media queries
-
-## 🚀 DÉPLOIEMENT LOCAL
-
-### 1. Démarrer le backend
-```bash
-cd server
-php artisan serve --port=8000
-```
-
-### 2. Démarrer le frontend
-```bash
-cd client
-npm run dev
-```
-
-### 3. Accès
-- Frontend : http://localhost:3000
-- Backend API : http://localhost:8000
-- Base de données : MySQL sur localhost:3306
-
-## 🐛 DEBUGGING
-
-### Erreurs courantes
-1. **Module non trouvé** : Vérifier les alias dans jsconfig.json
-2. **Styles non appliqués** : Vérifier l'ordre des imports dans globals.css
-3. **État non mis à jour** : S'assurer d'utiliser `useState` et `useEffect` correctement
-4. **Problèmes de routage** : Vérifier la structure des dossiers app/
-
-### Outils de développement
-1. **React DevTools** : Inspection des composants
-2. **Redux DevTools** : Pour le state management (si ajouté)
-3. **Network tab** : Surveillance des appels API
-4. **Console** : Logs et erreurs JavaScript
-
 ## 📈 ROADMAP
 
-### Version 1.0 (Actuelle)
-- [x] Interface d'inscription/connexion
-- [x] Dashboard de base
-- [x] Authentification mockée
-- [x] Design responsive
+### ✅ Version 1.1 - COMPLETED (January 2024)
+- [x] Complete modal system implementation
+- [x] Professional UI/UX overhaul
+- [x] Custom illustration system
+- [x] Responsive design improvements
+- [x] Animation system with CSS
+- [x] Form validation with modal feedback
+- [x] Icon-based navigation
+- [x] Gradient and glass morphism effects
 
-### Version 1.1 (Prochaine)
-- [ ] Connexion à l'API Laravel
-- [ ] CRUD des documents
-- [ ] Système de recherche
-- [ ] Gestion des catégories
+### 🚀 Version 1.2 - IN PROGRESS
+- [ ] Connect frontend to Laravel API
+- [ ] Implement real authentication (JWT/Sanctum)
+- [ ] CRUD operations for documents
+- [ ] Advanced search functionality
+- [ ] File upload system
+- [ ] Real-time notifications
+- [ ] User profile management
 
-### Version 1.2
-- [ ] Système d'amis
-- [ ] Discussions en temps réel
-- [ ] Upload de fichiers
-- [ ] Notifications
+### 🔮 Version 1.3 - PLANNED
+- [ ] Collaboration features
+- [ ] Real-time chat/discussions
+- [ ] Research paper recommendations
+- [ ] Analytics dashboard
+- [ ] Export functionality
+- [ ] Mobile app (React Native)
+- [ ] API documentation
 
-## 🤝 CONTRIBUTION
+## 🎯 KEY FEATURES
 
-### Workflow Git
+### 1. **Advanced Modal System**
+- Custom alert/confirm/prompt dialogs
+- Multiple variants and sizes
+- Keyboard navigation
+- Smooth animations
+- Accessible design
+
+### 2. **Modern UI Components**
+- Glass morphism cards
+- Gradient buttons with hover effects
+- Animated form steps
+- Interactive illustrations
+- Professional spacing
+
+### 3. **Responsive Design**
+- Mobile-first approach
+- Adaptive illustrations
+- Touch-optimized inputs
+- Flexible layouts
+- Performance optimized
+
+### 4. **Developer Experience**
+- Clean component structure
+- Reusable UI components
+- Comprehensive error handling
+- Easy to extend and modify
+- Well-documented code
+
+## 🤝 CONTRIBUTION GUIDELINES
+
+### Git Workflow
 ```bash
-# Créer une branche
-git checkout -b feature/nouvelle-fonctionnalite
+# Create feature branch
+git checkout -b feature/feature-name
 
-# Développer
-# Tester
-# Commiter
+# Develop and test
+# Commit changes
 git add .
-git commit -m "feat: description claire"
+git commit -m "feat: descriptive message"
 
-# Pousser
-git push origin feature/nouvelle-fonctionnalite
-
-# Créer Pull Request
+# Push and create PR
+git push origin feature/feature-name
 ```
 
-### Standards de code
-- **JavaScript** : ES6+ avec conventions camelCase
-- **React** : Fonctions composants avec hooks
-- **CSS** : Classes BEM-like avec Tailwind
-- **Nommage** : Descriptive en anglais
+### Code Standards
+- **JavaScript**: ES6+ with modern syntax
+- **React**: Functional components with hooks
+- **CSS**: Tailwind CSS with custom classes
+- **Naming**: Descriptive, English, camelCase
+- **Structure**: Modular and reusable
+
+### Commit Convention
+- `feat:` New features
+- `fix:` Bug fixes
+- `docs:` Documentation
+- `style:` Formatting
+- `refactor:` Code restructuring
+- `test:` Testing related
 
 ## 📞 SUPPORT
 
-### Ressources
-- **Documentation** : Ce fichier manual.md
-- **Code source** : Commentaires dans les fichiers
-- **Issues** : GitHub Issues pour le suivi
-- **Communauté** : Forum de développement
+### Resources
+- **Documentation**: This manual.md file
+- **Code Comments**: Comprehensive in-code documentation
+- **Issue Tracking**: GitHub Issues
+- **Development Forum**: Internal discussion platform
 
-### Contacts
-- **Développeur principal** : [Ton nom]
-- **Email** : [Ton email]
-- **Repository** : [Lien GitHub]
+### Contact Points
+- **Lead Developer**: [Your Name]
+- **Email**: [Your Email]
+- **Repository**: [GitHub Repository URL]
+- **Documentation**: [Documentation URL]
+
+## 🏆 RECENT ACHIEVEMENTS
+
+### UI/UX Milestones
+1. **Eliminated Browser Dialogs**: Full custom modal system
+2. **Professional Design**: Modern, enterprise-grade interface
+3. **Mobile Optimization**: Perfect experience on all devices
+4. **Animation System**: Smooth, performant animations
+5. **Illustration Integration**: Custom SVG graphics throughout
+
+### Technical Improvements
+1. **Component Architecture**: Clean, reusable components
+2. **State Management**: Context-based modal system
+3. **Performance**: Optimized animations and images
+4. **Maintainability**: Well-structured, documented code
+5. **Extensibility**: Easy to add new features
 
 ---
 
-**Dernière mise à jour** : Décembre 2024  
-**Version** : 1.0.0  
-**Statut** : Frontend fonctionnel, Backend prêt  
-**Prochaine version** : Intégration API complète  
-
-*Document maintenu par l'équipe de développement AcademVault*
-```
-
-## ✅ VÉRIFICATION
-
-Exécute maintenant :
-```bash
-cd client
-npm run dev
-```
-
-Accède à :
-- http://localhost:3000 - Page d'accueil publique
-- http://localhost:3000/signup - Formulaire d'inscription
-- http://localhost:3000/dashboard - Tableau de bord (après connexion)
-
-Le problème de 404 devrait être résolu ! 🎉
+**Last Updated**: January 2024  
+**Current Version**: 1.1.0  
+**Status**: Frontend modernized, Backend ready  
+**Next Release**: API Integration (v1.2)  
