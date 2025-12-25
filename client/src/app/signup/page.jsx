@@ -1,4 +1,4 @@
-// client/src/app/signup/page.jsx - COMPLETE VERSION WITH API INTEGRATION
+// client/src/app/signup/page.jsx - UPDATED VERSION
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -28,6 +28,7 @@ export default function SignupPage() {
   const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
   const [isClient, setIsClient] = useState(false);
   const codeInputsRef = useRef([]);
+  const [devModeCode, setDevModeCode] = useState('');
 
   // Updated form data to match database schema
   const [formData, setFormData] = useState({
@@ -236,17 +237,24 @@ export default function SignupPage() {
       if (result.success) {
         setVerificationSent(true);
         
-        // In development, show the code
+        // In development, store the code but don't show modal
         if (result.data && result.data.code) {
+          setDevModeCode(result.data.code);
+          console.log('📧 Development Mode: Verification Code:', result.data.code);
+          
+          // Auto-fill code for testing (optional)
+          // setVerificationCode(result.data.code.split(''));
+          
+          // Show a subtle notification instead of modal
           await alert({
-            title: 'Verification Code (Development Mode)',
-            message: `Code: ${result.data.code}\n\nIn production, this would be sent via email to ${formData.email}`,
+            title: 'Verification Code Sent',
+            message: `Check your inbox at ${formData.email} for the verification code. (Development mode: code logged to console)`,
             variant: 'info',
             confirmText: 'Got it'
           });
         } else {
           await alert({
-            title: 'Verification Code Sent',
+            title: 'Verification Code Sent! ✅',
             message: `A 6-digit code has been sent to ${formData.email}. Please check your inbox.`,
             variant: 'success',
             confirmText: 'Got it'
@@ -283,14 +291,7 @@ export default function SignupPage() {
       const result = await AuthService.verifyEmail(formData.email, code);
       
       if (result.success) {
-        await alert({
-          title: 'Email Verified! ✅',
-          message: 'Your email has been verified successfully. Now creating your account...',
-          variant: 'success',
-          confirmText: 'Continue'
-        });
-        
-        // Now register the user
+        // Auto-register after verification
         await registerUser();
       }
     } catch (error) {
@@ -328,13 +329,14 @@ export default function SignupPage() {
       if (result.success) {
         await alert({
           title: 'Registration Successful! 🎉',
-          message: 'Your account has been created successfully. Welcome to AcademVault!',
+          message: 'Your account has been created successfully. Please login to continue.',
           variant: 'success',
-          confirmText: 'Go to Dashboard'
+          confirmText: 'Go to Login'
         });
         
-        // Redirect to dashboard
-        router.push('/dashboard');
+        // Clear auth data and redirect to login
+        AuthService.clearAuthData();
+        router.push('/login');
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -687,6 +689,16 @@ export default function SignupPage() {
                     <h3 className="text-2xl font-bold text-white mb-2">Verify Your Email</h3>
                     <p className="text-gray-400 mb-2">Enter the 6-digit code sent to:</p>
                     <p className="font-medium text-blue-400 mb-8">{formData.email}</p>
+                    
+                    {/* Development mode hint */}
+                    {devModeCode && (
+                      <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                        <p className="text-yellow-400 text-sm">
+                          <i className="fas fa-code mr-2"></i>
+                          Development Mode: Check console for verification code
+                        </p>
+                      </div>
+                    )}
                     
                     <div className="flex justify-center gap-3 mb-8">
                       {[0,1,2,3,4,5].map(i => (

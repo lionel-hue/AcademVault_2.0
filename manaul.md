@@ -1,7 +1,4 @@
-## 📋 UPDATED MANUAL.MD FILE
-
-```markdown
-# 🚀 ACADEMVAULT - INTELLIGENT RESEARCH PLATFORM
+## 🚀 ACADEMVAULT - INTELLIGENT RESEARCH PLATFORM
 
 ## 📋 CURRENT STATE (JANUARY 2024)
 
@@ -17,9 +14,11 @@
 - **Responsive**: Fully optimized for mobile, tablet, and desktop
 - **UI/UX**: Professional spacing, icon-based navigation, smooth transitions
 
-### ✅ BACKEND (Laravel 11) - COMPLETE API WITH JWT
+### ✅ BACKEND (Laravel 12.44.0) - COMPLETE API WITH JWT ⚠️ **UPDATED VERSION**
+- **Version**: Laravel 12.44.0 (Latest)
 - **Database**: MySQL with 13 custom tables including email_verifications
 - **API Endpoints**:
+  - `POST /api/auth/check-email` - Check if email exists ✅ **NEW**
   - `POST /api/auth/send-verification` - Send 6-digit verification code
   - `POST /api/auth/verify-email` - Verify email with code
   - `POST /api/auth/register` - Register new user (requires verified email)
@@ -31,16 +30,33 @@
 - **Email Verification**: 6-digit code system with database storage
 - **CORS**: Configured for frontend communication
 
-### 🆕 RECENT MAJOR UPDATES (BACKEND COMPLETION)
+## 🆕 **LARAVEL 12 SPECIFIC UPDATES**
 
-#### 1. **Complete Authentication System**
-- JWT token generation and validation
-- Email verification with 6-digit codes
-- Database-driven verification storage
-- Token refresh mechanism
-- Protected API routes
+### Key Differences from Laravel 11:
+1. **Middleware Classes** in `Illuminate` namespace (not `App`):
+   ```php
+   // Laravel 12
+   \Illuminate\Auth\Middleware\Authenticate::class
+   // NOT \App\Http\Middleware\Authenticate::class
+   ```
 
-#### 2. **Database Schema**
+2. **Application Configuration** in `bootstrap/app.php`:
+   ```php
+   return Application::configure(basePath: dirname(__DIR__))
+       ->withRouting(
+           web: __DIR__.'/../routes/web.php',
+           api: __DIR__.'/../routes/api.php',  // ← Must exist
+           commands: __DIR__.'/../routes/console.php',
+           health: '/up',
+       )
+       ->withMiddleware(function (Middleware $middleware) {
+           // Different syntax
+       })
+   ```
+
+3. **Default Project Structure** - Slimmed down, more minimal
+
+### Database Schema:
 ```sql
 users
 ├── id
@@ -121,7 +137,9 @@ AcademVault/
 │   ├── tailwind.config.js
 │   └── package.json
 │
-└── server/                    # Laravel 11 (PORT 8000)
+└── server/                    # Laravel 12.44.0 (PORT 8000)
+    ├── bootstrap/
+    │   └── app.php           # ✅ Laravel 12 configuration with API routes
     ├── app/
     │   ├── Http/
     │   │   └── Controllers/
@@ -132,8 +150,6 @@ AcademVault/
     │   │   └── EmailVerification.php       # Verification model
     │   └── Mail/
     │       └── VerificationEmail.php       # Email template
-    ├── bootstrap/
-    │   └── app.php                         # CORS middleware
     ├── config/
     │   ├── auth.php                        # JWT guard configured
     │   └── jwt.php                         # JWT configuration
@@ -147,7 +163,7 @@ AcademVault/
     │           └── verification.blade.php  # Email template
     ├── routes/
     │   ├── api.php                         # All API routes defined
-    │   └── web.php                         # Web routes
+    │   └── web.php                         # Web routes (API routes added here temporarily)
     ├── .env                                # Gmail SMTP configured
     └── composer.json                       # JWT dependencies
 ```
@@ -172,10 +188,16 @@ AcademVault/
    - Frontend stores JWT token in localStorage
    - Redirects to dashboard
 
-## ⚙️ ENVIRONMENT SETUP
+## ⚙️ **LARAVEL 12 ENVIRONMENT SETUP**
 
 ### Backend Environment (.env):
 ```env
+# Application
+APP_ENV=local
+APP_KEY=base64:your_app_key
+APP_DEBUG=true
+APP_URL=http://localhost:8000
+
 # Database
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
@@ -207,11 +229,11 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api
 NEXT_PUBLIC_APP_NAME=AcademVault
 ```
 
-## 🚀 DEPLOYMENT COMMANDS
+## 🚀 **LARAVEL 12 DEPLOYMENT COMMANDS**
 
 ### Local Development Setup:
 ```bash
-# Terminal 1: Start Laravel Backend
+# Terminal 1: Start Laravel Backend (12.44.0)
 cd server
 php artisan serve --port=8000
 
@@ -219,27 +241,30 @@ php artisan serve --port=8000
 cd client
 npm run dev
 
-# Terminal 3: Monitor Backend Logs (optional)
+# Check Laravel version
 cd server
-php artisan queue:work  # If using queues for emails
+php artisan --version  # Should show "Laravel Framework 12.44.0"
 ```
 
-### Database Setup:
+### **Laravel 12 Database Setup**:
 ```bash
 # Fresh migration with all tables
 cd server
 php artisan migrate:fresh
 
-# Generate JWT secret
+# Generate JWT secret (if using tymon/jwt-auth)
 php artisan jwt:secret --force
 
-# Clear caches
+# ⚠️ Laravel 12 Clear Caches (different commands)
+php artisan optimize:clear  # Clears all: config, route, cache, view
+# OR individually:
 php artisan config:clear
-php artisan cache:clear
 php artisan route:clear
+php artisan cache:clear
+php artisan view:clear
 ```
 
-## 🔐 SECURITY IMPLEMENTATION
+## 🔐 **LARAVEL 12 SECURITY IMPLEMENTATION**
 
 ### ✅ COMPLETED:
 1. **JWT Authentication**: Token-based stateless auth
@@ -249,13 +274,50 @@ php artisan route:clear
 5. **CORS Protection**: Configured for frontend only
 6. **Database Security**: Prepared statements via Eloquent
 7. **Environment Variables**: Sensitive data protected
+8. **Laravel 12 Middleware**: Using Illuminate namespace classes
 
-### 🔄 TO IMPLEMENT:
-1. **Rate Limiting**: API request limits
-2. **HTTPS**: SSL certificates
-3. **SQL Injection**: Additional protection
-4. **XSS Protection**: Output encoding
-5. **CSRF Tokens**: For web forms
+### **Laravel 12 Bootstrap/app.php Configuration**:
+```php
+<?php
+
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
+
+return Application::configure(basePath: dirname(__DIR__))
+    ->withRouting(
+        web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',  // ✅ API routes loaded
+        commands: __DIR__.'/../routes/console.php',
+        health: '/up',
+    )
+    ->withMiddleware(function (Middleware $middleware) {
+        $middleware->api([
+            \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+        ]);
+        
+        // Custom CORS middleware
+        $middleware->append(\App\Http\Middleware\Cors::class);
+        
+        // ⚠️ Laravel 12 uses Illuminate namespace
+        $middleware->alias([
+            'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
+            'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
+            'auth.session' => \Illuminate\Session\Middleware\AuthenticateSession::class,
+            'cache.headers' => \Illuminate\Http\Middleware\SetCacheHeaders::class,
+            'can' => \Illuminate\Auth\Middleware\Authorize::class,
+            'guest' => \Illuminate\Auth\Middleware\RedirectIfAuthenticated::class,
+            'password.confirm' => \Illuminate\Auth\Middleware\RequirePassword::class,
+            'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
+            'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
+            'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+        ]);
+    })
+    ->withExceptions(function (Exceptions $exceptions) {
+        //
+    })->create();
+```
 
 ## 📧 EMAIL VERIFICATION SYSTEM
 
@@ -286,97 +348,123 @@ Schema::create('email_verifications', function (Blueprint $table) {
 
 ### API Test Commands:
 ```bash
-# Test 1: Send Verification Code
+# Test 1: API Health
+curl -X GET http://localhost:8000/api/health
+
+# Test 2: Check Email
+curl -X POST http://localhost:8000/api/auth/check-email \
+  -H "Content-Type: application/json" \
+  -d '{"email": "test@example.com"}'
+
+# Test 3: Send Verification Code
 curl -X POST http://localhost:8000/api/auth/send-verification \
   -H "Content-Type: application/json" \
   -d '{"email": "test@example.com"}'
 
-# Test 2: Verify Email (replace CODE with actual code)
-curl -X POST http://localhost:8000/api/auth/verify-email \
-  -H "Content-Type: application/json" \
-  -d '{"email": "test@example.com", "code": "123456"}'
-
-# Test 3: Register User
-curl -X POST http://localhost:8000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Test User",
-    "type": "student",
-    "email": "test@example.com",
-    "password": "Password123!",
-    "password_confirmation": "Password123!",
-    "registration_date": "2024-01-15",
-    "institution": "MIT",
-    "department": "Computer Science"
-  }'
-
-# Test 4: Login
-curl -X POST http://localhost:8000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "test@example.com", "password": "Password123!"}'
-
-# Test 5: Get User Profile (replace TOKEN)
-curl -X GET http://localhost:8000/api/auth/me \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-### Frontend Test Flow:
-1. Open http://localhost:3000/signup
-2. Complete steps 1-4 (fill all required fields)
-3. At step 5, email verification code will be shown in modal (development mode)
-4. Enter the 6-digit code
-5. Account created, JWT stored, redirect to dashboard
-
-## 🛠️ TROUBLESHOOTING GUIDE
-
-### Common Issues & Solutions:
-
-#### 1. **Email Not Sending**
-```bash
-# Check mail configuration
-php artisan config:show mail
-
-# Test email sending
-php artisan tinker
->>> Mail::raw('Test', function($msg) { $msg->to('test@test.com')->subject('Test'); });
-```
-
-#### 2. **JWT Token Issues**
-```bash
-# Generate new JWT secret
-php artisan jwt:secret --force
-
-# Clear configuration cache
-php artisan config:clear
-```
-
-#### 3. **CORS Errors**
-```bash
-# Check CORS middleware is registered
+# Test 4: List Routes (Laravel 12)
 php artisan route:list
-
-# Clear route cache
-php artisan route:clear
 ```
 
-#### 4. **Database Migration Issues**
+### **Laravel 12 Route List Output**:
 ```bash
-# Reset database
-php artisan migrate:fresh
+lionel@lionelZorin:~/Documents/1_Software_Dev/AcademVault/server$ php artisan route:list
 
-# Check migration status
-php artisan migrate:status
+  GET|HEAD   / ................................................................................................................... 
+  GET|HEAD   api ................................................................................................................. 
+  POST       api/auth/check-email .................................................................. Api\AuthController@checkEmail
+  POST       api/auth/login ............................................................................. Api\AuthController@login
+  POST       api/auth/logout ........................................................................... Api\AuthController@logout
+  GET|HEAD   api/auth/me ................................................................................... Api\AuthController@me
+  POST       api/auth/refresh ......................................................................... Api\AuthController@refresh
+  POST       api/auth/register ....................................................................... Api\AuthController@register
+  POST       api/auth/resend-verification .............................................. Api\AuthController@resendVerificationCode
+  POST       api/auth/send-verification .................................................. Api\AuthController@sendVerificationCode
+  POST       api/auth/verify-email ................................................................ Api\AuthController@verifyEmail
+  GET|HEAD   api/health .......................................................................................................... 
+  GET|HEAD   sanctum/csrf-cookie ............................... sanctum.csrf-cookie › Laravel\Sanctum › CsrfCookieController@show
+  GET|HEAD   storage/{path} ........................................................................................ storage.local
+  GET|HEAD   up .................................................................................................................. 
+
+                                                                                                               Showing [15] routes
 ```
 
-#### 5. **Frontend API Connection**
-```javascript
-// Check .env.local has correct API URL
-NEXT_PUBLIC_API_URL=http://localhost:8000/api
+## 🛠️ **LARAVEL 12 TROUBLESHOOTING GUIDE**
 
-// Test connection in browser console
-fetch('http://localhost:8000/api/health')
-  .then(r => r.json())
-  .then(console.log)
+### **Common Laravel 12 Issues & Solutions**:
+
+#### 1. **Routes Not Working (404 Errors)**
+```bash
+# Temporary fix: Add API routes to web.php
+# routes/web.php
+Route::prefix('api')->group(function () {
+    Route::post('auth/check-email', [Api\AuthController::class, 'checkEmail']);
+    // ... other routes
+});
+
+# Clear all caches
+php artisan optimize:clear
+```
+
+#### 2. **Middleware Errors "Undefined type"**
+```php
+// Laravel 12 uses Illuminate namespace, not App
+// bootstrap/app.php
+$middleware->alias([
+    'auth' => \Illuminate\Auth\Middleware\Authenticate::class, // ✅ Correct
+    // NOT: \App\Http\Middleware\Authenticate::class           // ❌ Wrong
+]);
+```
+
+#### 3. **Port Already in Use**
+```bash
+# Kill process on port 8000
+sudo lsof -ti:8000 | xargs kill -9
+
+# Or use fuser
+sudo fuser -k 8000/tcp
+```
+
+#### 4. **API Routes Not Loading**
+```bash
+# Check if API routes are defined in bootstrap/app.php
+# bootstrap/app.php must have:
+->withRouting(
+    web: __DIR__.'/../routes/web.php',
+    api: __DIR__.'/../routes/api.php', // ← THIS LINE
+    commands: __DIR__.'/../routes/console.php',
+    health: '/up',
+)
+
+# Test if routes are registered
+php artisan route:list | grep api
+```
+
+#### 5. **Missing check-email Method**
+```php
+// Add to AuthController.php if missing:
+public function checkEmail(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'email' => 'required|email'
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Invalid email'
+        ], 422);
+    }
+
+    $exists = User::where('email', $request->email)->exists();
+
+    return response()->json([
+        'success' => true,
+        'data' => [
+            'exists' => $exists,
+            'email' => $request->email
+        ]
+    ]);
+}
 ```
 
 ## 📈 ROADMAP STATUS
@@ -389,12 +477,13 @@ fetch('http://localhost:8000/api/health')
 - [x] Animation system with CSS
 
 ### ✅ Version 1.2 - COMPLETED (JANUARY 2024)
-- [x] Complete Laravel backend with JWT authentication
+- [x] Complete Laravel **12.44.0** backend with JWT authentication ⚠️ **UPDATED**
 - [x] Email verification system with 6-digit codes
 - [x] Database migration for all core tables
 - [x] API endpoints for auth and user management
 - [x] Frontend-backend integration
 - [x] Gmail SMTP configuration
+- [x] Laravel 12 middleware configuration
 
 ### 🚀 Version 1.3 - IN PROGRESS
 - [ ] Document upload and management
@@ -410,7 +499,7 @@ fetch('http://localhost:8000/api/health')
 - [ ] Export functionality
 - [ ] Mobile app (React Native)
 
-## 🎯 KEY FEATURES LIVE
+## 🎯 **LARAVEL 12 KEY FEATURES LIVE**
 
 ### 1. **Complete Authentication**
 - JWT token-based authentication
@@ -436,7 +525,7 @@ fetch('http://localhost:8000/api/health')
 - Proper HTTP status codes
 - Comprehensive error handling
 
-## 🤝 CONTRIBUTION WORKFLOW
+## 🤝 **LARAVEL 12 CONTRIBUTION WORKFLOW**
 
 ### Development Commands:
 ```bash
@@ -446,11 +535,12 @@ npm run dev          # Start development server
 npm run build        # Production build
 npm run lint         # Code linting
 
-# Backend Development
+# Backend Development (Laravel 12)
 cd server
 php artisan serve    # Start server
 php artisan test     # Run tests
 php artisan migrate  # Run migrations
+php artisan optimize:clear  # Clear all caches
 ```
 
 ### Git Workflow:
@@ -460,7 +550,7 @@ git checkout -b feature/auth-integration
 
 # Commit changes
 git add .
-git commit -m "feat: complete JWT authentication with email verification"
+git commit -m "feat: complete Laravel 12 JWT authentication with email verification"
 
 # Push and create PR
 git push origin feature/auth-integration
@@ -473,10 +563,11 @@ git push origin feature/auth-integration
 - **Backend API**: http://localhost:8000/api
 - **API Documentation**: http://localhost:8000/api (JSON docs)
 - **Database**: MySQL on localhost:3306
+- **Laravel Version**: 12.44.0
 
 ### Monitoring:
 ```bash
-# Check backend logs
+# Check Laravel 12 logs
 cd server
 tail -f storage/logs/laravel.log
 
@@ -491,17 +582,17 @@ tail -f .next/server/server.log
 cd client
 npm run analyze
 
-# Backend optimization
+# Laravel 12 optimization
 cd server
-php artisan optimize
+php artisan optimize  # Cache for production
 php artisan route:cache
 php artisan config:cache
 ```
 
-## 🏆 SYSTEM REQUIREMENTS
+## 🏆 **LARAVEL 12 SYSTEM REQUIREMENTS**
 
 ### Minimum:
-- PHP 8.2+
+- PHP 8.2+ (Required for Laravel 12)
 - MySQL 8.0+
 - Node.js 18+
 - Composer 2.5+
@@ -518,42 +609,60 @@ php artisan config:cache
 
 **Last Updated**: January 2024  
 **Current Version**: 1.2.0 (Complete Authentication)  
+**Laravel Version**: 12.44.0  
 **Status**: Production Ready - Full Stack Operational  
 **Next Release**: Document Management System (v1.3)
 
-## 🎉 NEXT STEPS
+## 🎉 **LARAVEL 12 NEXT STEPS**
 
 1. **Test the complete flow** - Signup, verification, login
-2. **Implement login page** - Connect to backend API
-3. **Create dashboard** - Protected route with JWT
-4. **Add document upload** - File management system
-5. **Implement search** - Full-text search functionality
+2. **Fix any Laravel 12 specific issues** - Middleware, routing
+3. **Implement login page** - Connect to backend API
+4. **Create dashboard** - Protected route with JWT
+5. **Add document upload** - File management system
+6. **Implement search** - Full-text search functionality
 
-The system is now ready for user registration and authentication! 🚀
+## ⚠️ **LARAVEL 12 IMPORTANT NOTES**
+
+### Configuration Differences:
+1. **No `app/Http/Kernel.php`** - Middleware configured in `bootstrap/app.php`
+2. **No `config/cors.php`** - CORS handled in middleware
+3. **Slimmed down structure** - Minimal default files
+4. **New `Application::configure()`** - Bootstrap pattern
+
+### Quick Fix for API Routes:
+If API routes return 404 in Laravel 12, temporarily add them to `routes/web.php`:
+```php
+// routes/web.php (temporary solution)
+Route::prefix('api')->group(function () {
+    Route::post('auth/check-email', [Api\AuthController::class, 'checkEmail']);
+    Route::post('auth/send-verification', [Api\AuthController::class, 'sendVerificationCode']);
+    // ... other API routes
+});
 ```
+
+The system is now complete with Laravel 12.44.0 backend! 🚀
 
 ## 🚀 Quick Start Commands
 
-Copy these to get everything running:
-
 ```bash
 # Start both servers
-# Terminal 1: Backend
+# Terminal 1: Laravel 12 Backend
 cd server
 php artisan serve --port=8000
 
-# Terminal 2: Frontend  
+# Terminal 2: Next.js Frontend  
 cd client
 npm run dev
 
-# Test email setup
-curl -X POST http://localhost:8000/api/auth/send-verification \
-  -H "Content-Type: application/json" \
-  -d '{"email": "your_email@gmail.com"}'
+# Test Laravel 12 setup
+cd server
+php artisan --version  # Should show "Laravel Framework 12.44.0"
+php artisan route:list # Should show all API routes
 ```
 
 Your system is now complete with:
-1. ✅ Gmail SMTP configuration
+1. ✅ Laravel 12.44.0 backend
 2. ✅ Complete authentication flow
 3. ✅ Email verification system
 4. ✅ JWT token management
