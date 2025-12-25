@@ -9,9 +9,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use App\Mail\VerificationEmail;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -70,32 +71,53 @@ class AuthController extends Controller
                 'expires_at' => Carbon::now()->addHours(24) // 24 hours expiration
             ]);
 
-            // TODO: In production, send email with code
-            // For now, return code in development
-            if (app()->environment('local', 'development')) {
+            // Try to send email
+            try {
+                Mail::to($email)->send(new VerificationEmail($code, $email));
+                
+                if (app()->environment('local', 'development')) {
+                    // In development, return the code for testing
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Verification code sent to your email',
+                        'data' => [
+                            'code' => $code, // Only in development for testing
+                            'expires_at' => Carbon::now()->addHours(24)->toISOString()
+                        ]
+                    ]);
+                }
+                
                 return response()->json([
                     'success' => true,
-                    'message' => 'Verification code generated (development mode)',
-                    'data' => [
-                        'code' => $code,
-                        'expires_at' => Carbon::now()->addHours(24)->toISOString()
-                    ]
+                    'message' => 'Verification code sent to your email'
                 ]);
+                
+            } catch (\Exception $mailException) {
+                // If email fails, return code in development for testing
+                if (app()->environment('local', 'development')) {
+                    Log::error('Email sending failed: ' . $mailException->getMessage());
+                    
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Verification code generated (email sending failed in development)',
+                        'data' => [
+                            'code' => $code,
+                            'email_error' => $mailException->getMessage(),
+                            'expires_at' => Carbon::now()->addHours(24)->toISOString()
+                        ]
+                    ]);
+                }
+                
+                throw $mailException;
             }
 
-            // In production, send email
-            // Mail::to($email)->send(new \App\Mail\VerificationCode($code));
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Verification code sent to your email'
-            ]);
-
         } catch (\Exception $e) {
+            Log::error('Send verification code error: ' . $e->getMessage());
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to send verification code',
-                'error' => $e->getMessage()
+                'error' => app()->environment('local') ? $e->getMessage() : 'Please try again later'
             ], 500);
         }
     }
@@ -144,6 +166,8 @@ class AuthController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            Log::error('Verify email error: ' . $e->getMessage());
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Verification failed',
@@ -203,7 +227,9 @@ class AuthController extends Controller
                 'department' => $request->department,
                 'phone' => $request->phone,
                 'bio' => $request->bio,
-                'email_verified_at' => now() // Mark as verified
+                'email_verified_at' => now(),
+                'is_active' => true,
+                'role' => 'user'
             ]);
 
             // Generate JWT token
@@ -213,7 +239,14 @@ class AuthController extends Controller
                 'success' => true,
                 'message' => 'Registration successful',
                 'data' => [
-                    'user' => $user,
+                    'user' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'type' => $user->type,
+                        'institution' => $user->institution,
+                        'role' => $user->role
+                    ],
                     'token' => $token,
                     'token_type' => 'bearer',
                     'expires_in' => config('jwt.ttl') * 60
@@ -221,10 +254,12 @@ class AuthController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
+            Log::error('Registration error: ' . $e->getMessage());
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Registration failed',
-                'error' => $e->getMessage()
+                'error' => app()->environment('local') ? $e->getMessage() : 'Please try again'
             ], 500);
         }
     }
@@ -281,7 +316,14 @@ class AuthController extends Controller
                 'success' => true,
                 'message' => 'Login successful',
                 'data' => [
-                    'user' => $user,
+                    'user' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'type' => $user->type,
+                        'institution' => $user->institution,
+                        'role' => $user->role
+                    ],
                     'token' => $token,
                     'token_type' => 'bearer',
                     'expires_in' => config('jwt.ttl') * 60
@@ -289,6 +331,8 @@ class AuthController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            Log::error('Login error: ' . $e->getMessage());
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Login failed',
@@ -302,10 +346,27 @@ class AuthController extends Controller
      */
     public function me()
     {
-        return response()->json([
-            'success' => true,
-            'data' => JWTAuth::user()
-        ]);
+        try {
+            $user = JWTAuth::user();
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not found'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $user
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch user data'
+            ], 500);
+        }
     }
 
     /**
