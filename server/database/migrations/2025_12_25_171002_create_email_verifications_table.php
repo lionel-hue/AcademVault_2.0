@@ -6,20 +6,24 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('email_verifications', function (Blueprint $table) {
             $table->id();
+            $table->string('email');
+            $table->string('code', 6);
+            $table->enum('type', ['signup', 'reset', 'change'])->default('signup');
+            $table->timestamp('expires_at');
+            $table->timestamp('verified_at')->nullable();
             $table->timestamps();
+            
+            // Indexes for faster queries
+            $table->index(['email', 'code']);
+            $table->index(['email', 'type', 'expires_at']);
+            $table->index('expires_at');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('email_verifications');
