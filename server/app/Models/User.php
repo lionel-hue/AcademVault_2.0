@@ -76,9 +76,45 @@ class User extends Authenticatable implements JWTSubject
 
         static::creating(function ($user) {
             if (empty($user->registration_date)) {
-                $user->registration_date = now();
+                $user->registration_date = now()->format('Y-m-d');
             }
         });
+    }
+
+    /**
+     * Relationship with email verifications
+     */
+    public function emailVerifications()
+    {
+        return $this->hasMany(EmailVerification::class, 'email', 'email');
+    }
+
+    /**
+     * Get active signup verification
+     */
+    public function getActiveSignupVerification()
+    {
+        return $this->emailVerifications()
+            ->where('type', 'signup')
+            ->valid()
+            ->latest()
+            ->first();
+    }
+
+    /**
+     * Check if email is verified
+     */
+    public function isEmailVerified(): bool
+    {
+        return !is_null($this->email_verified_at);
+    }
+
+    /**
+     * Mark email as verified
+     */
+    public function markEmailAsVerified(): bool
+    {
+        return $this->update(['email_verified_at' => now()]);
     }
 
     /**
@@ -112,12 +148,4 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->type === 'student';
     }
-
-    /**
-     * Generate email verification token
-     */
-    public function generateVerificationToken(): string
-    {
-        return sha1($this->email . time() . config('app.key'));
-    }
-}
+}   

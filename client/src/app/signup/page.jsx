@@ -1,4 +1,4 @@
-// client/src/app/signup/page.jsx - FULL FIXED VERSION
+// client/src/app/signup/page.jsx - COMPLETE VERSION WITH API INTEGRATION
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -217,24 +217,44 @@ export default function SignupPage() {
   const sendVerificationCode = async () => {
     setLoading(true);
     try {
-      // TODO: Replace with real API call
-      // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/send-verification`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email: formData.email })
-      // });
+      // First check if email already exists
+      const checkResult = await AuthService.checkEmail(formData.email);
       
-      // Mock API call for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (checkResult.data && checkResult.data.exists) {
+        await alert({
+          title: 'Email Already Exists',
+          message: 'This email is already registered. Please use a different email or login.',
+          variant: 'warning',
+          confirmText: 'OK'
+        });
+        return;
+      }
       
-      setVerificationSent(true);
-      await alert({
-        title: 'Verification Code Sent',
-        message: `A 6-digit code has been sent to ${formData.email}. Please check your inbox.`,
-        variant: 'success',
-        confirmText: 'Got it'
-      });
+      // Send verification code
+      const result = await AuthService.sendVerificationCode(formData.email);
+      
+      if (result.success) {
+        setVerificationSent(true);
+        
+        // In development, show the code
+        if (result.data && result.data.code) {
+          await alert({
+            title: 'Verification Code (Development Mode)',
+            message: `Code: ${result.data.code}\n\nIn production, this would be sent via email to ${formData.email}`,
+            variant: 'info',
+            confirmText: 'Got it'
+          });
+        } else {
+          await alert({
+            title: 'Verification Code Sent',
+            message: `A 6-digit code has been sent to ${formData.email}. Please check your inbox.`,
+            variant: 'success',
+            confirmText: 'Got it'
+          });
+        }
+      }
     } catch (error) {
+      console.error('Send verification error:', error);
       await alert({
         title: 'Failed to Send Code',
         message: error.message || 'Unable to send verification code. Please try again.',
@@ -260,22 +280,21 @@ export default function SignupPage() {
 
     setLoading(true);
     try {
-      // TODO: Replace with real API call
-      // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/verify-email`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ 
-      //     email: formData.email, 
-      //     code 
-      //   })
-      // });
+      const result = await AuthService.verifyEmail(formData.email, code);
       
-      // Mock verification
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // If verification successful, register user
-      await registerUser();
+      if (result.success) {
+        await alert({
+          title: 'Email Verified! ✅',
+          message: 'Your email has been verified successfully. Now creating your account...',
+          variant: 'success',
+          confirmText: 'Continue'
+        });
+        
+        // Now register the user
+        await registerUser();
+      }
     } catch (error) {
+      console.error('Verify email error:', error);
       await alert({
         title: 'Verification Failed',
         message: error.message || 'Invalid verification code. Please try again.',
@@ -296,43 +315,27 @@ export default function SignupPage() {
         type: formData.type,
         email: formData.email,
         password: formData.password,
+        password_confirmation: formData.confirmPassword,
         registration_date: formData.registration_date,
         institution: formData.institution || null,
         department: formData.department || null,
         phone: formData.phone || null,
-        bio: formData.bio || null,
-        is_active: true,
-        role: 'user'
+        bio: formData.bio || null
       };
 
-      // TODO: Replace with real API call to Laravel backend
-      // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
-      //   method: 'POST',
-      //   headers: { 
-      //     'Content-Type': 'application/json',
-      //     'Accept': 'application/json'
-      //   },
-      //   body: JSON.stringify(userData)
-      // });
-
-      // const data = await response.json();
+      const result = await AuthService.register(userData);
       
-      // if (!response.ok) {
-      //   throw new Error(data.message || 'Registration failed');
-      // }
-
-      // Mock successful registration
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      await alert({
-        title: 'Registration Successful! 🎉',
-        message: 'Your account has been created successfully. Please login to continue.',
-        variant: 'success',
-        confirmText: 'Go to Login'
-      });
-
-      // Redirect to login page
-      router.push('/login');
+      if (result.success) {
+        await alert({
+          title: 'Registration Successful! 🎉',
+          message: 'Your account has been created successfully. Welcome to AcademVault!',
+          variant: 'success',
+          confirmText: 'Go to Dashboard'
+        });
+        
+        // Redirect to dashboard
+        router.push('/dashboard');
+      }
     } catch (error) {
       console.error('Registration error:', error);
       await alert({
