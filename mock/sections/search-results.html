@@ -1,0 +1,171 @@
+<div class="content-section">
+    <div class="search-results-header">
+        <div class="back-action">
+            <button class="btn btn-text" data-action="back-to-search">
+                <i class="fas fa-arrow-left"></i> Back to Search
+            </button>
+        </div>
+        <div class="search-query">
+            <h2>Search Results for: <span id="searchQueryText">"Quantum Computing"</span></h2>
+            <p id="resultsCount">127 results found</p>
+        </div>
+        <div class="search-actions">
+            <button class="btn btn-outline" data-action="save-search">
+                <i class="fas fa-bookmark"></i> Save Search
+            </button>
+            <button class="btn btn-primary" data-action="new-search">
+                <i class="fas fa-search-plus"></i> New Search
+            </button>
+        </div>
+    </div>
+
+    <div class="search-filters">
+        <div class="filter-categories">
+            <button class="filter-category active" data-type="all">All</button>
+            <button class="filter-category" data-type="pdf">
+                <i class="fas fa-file-pdf"></i> PDFs
+                <span class="filter-count">45</span>
+            </button>
+            <button class="filter-category" data-type="video">
+                <i class="fas fa-video"></i> Videos
+                <span class="filter-count">23</span>
+            </button>
+            <button class="filter-category" data-type="article">
+                <i class="fas fa-newspaper"></i> Articles
+                <span class="filter-count">34</span>
+            </button>
+            <button class="filter-category" data-type="website">
+                <i class="fas fa-globe"></i> Websites
+                <span class="filter-count">25</span>
+            </button>
+        </div>
+
+        <div class="advanced-filters">
+            <div class="filter-group">
+                <label>Sort by:</label>
+                <select class="filter-select">
+                    <option value="relevance">Relevance</option>
+                    <option value="date">Date</option>
+                    <option value="title">Title</option>
+                    <option value="author">Author</option>
+                    <option value="rating">Rating</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Date range:</label>
+                <select class="filter-select">
+                    <option value="all">All time</option>
+                    <option value="year">Past year</option>
+                    <option value="month">Past month</option>
+                    <option value="week">Past week</option>
+                    <option value="day">Past 24 hours</option>
+                </select>
+            </div>
+            <button class="btn btn-text" data-action="more-filters">
+                <i class="fas fa-filter"></i> More Filters
+            </button>
+        </div>
+    </div>
+
+    <div class="search-results-container">
+        <div class="results-sidebar">
+            <div class="sidebar-section">
+                <h4>Related Topics</h4>
+                <div class="topic-tags">
+                    <button class="topic-tag">Quantum Algorithms</button>
+                    <button class="topic-tag">Quantum Physics</button>
+                    <button class="topic-tag">Machine Learning</button>
+                    <button class="topic-tag">AI Research</button>
+                    <button class="topic-tag">Computing</button>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h4>Top Sources</h4>
+                <div class="source-list">
+                    <label class="source-checkbox">
+                        <input type="checkbox" checked> arXiv
+                        <span class="source-count">23</span>
+                    </label>
+                    <label class="source-checkbox">
+                        <input type="checkbox" checked> Nature
+                        <span class="source-count">15</span>
+                    </label>
+                    <label class="source-checkbox">
+                        <input type="checkbox" checked> Science
+                        <span class="source-count">12</span>
+                    </label>
+                    <label class="source-checkbox">
+                        <input type="checkbox" checked> YouTube
+                        <span class="source-count">8</span>
+                    </label>
+                    <label class="source-checkbox">
+                        <input type="checkbox"> IEEE
+                        <span class="source-count">6</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h4>Quick Actions</h4>
+                <button class="sidebar-action">
+                    <i class="fas fa-download"></i> Export Results
+                </button>
+                <button class="sidebar-action">
+                    <i class="fas fa-folder-plus"></i> Add to Category
+                </button>
+                <button class="sidebar-action">
+                    <i class="fas fa-share-alt"></i> Share Results
+                </button>
+                <button class="sidebar-action">
+                    <i class="fas fa-chart-bar"></i> Analyze Trends
+                </button>
+            </div>
+        </div>
+
+        <div class="results-main">
+            <div class="results-list" id="searchResultsList">
+                <!-- Search results will be loaded here -->
+            </div>
+
+            <div class="pagination">
+                <button class="pagination-btn" disabled>
+                    <i class="fas fa-chevron-left"></i> Previous
+                </button>
+                <div class="pagination-pages">
+                    <button class="page-btn active">1</button>
+                    <button class="page-btn">2</button>
+                    <button class="page-btn">3</button>
+                    <span>...</span>
+                    <button class="page-btn">10</button>
+                </div>
+                <button class="pagination-btn">
+                    Next <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-header">
+            <h3><i class="fas fa-lightbulb"></i> Search Insights</h3>
+        </div>
+        <div class="insights-grid">
+            <div class="insight-card">
+                <i class="fas fa-chart-line"></i>
+                <h4>Popular Topics</h4>
+                <p>Most searched terms: "machine learning", "neural networks", "quantum algorithms"</p>
+            </div>
+            <div class="insight-card">
+                <i class="fas fa-calendar"></i>
+                <h4>Trend Analysis</h4>
+                <p>Quantum computing searches increased by 45% this month</p>
+            </div>
+            <div class="insight-card">
+                <i class="fas fa-users"></i>
+                <h4>Collaborative Research</h4>
+                <p>12 of your friends are researching similar topics</p>
+            </div>
+        </div>
+    </div>
+</div>

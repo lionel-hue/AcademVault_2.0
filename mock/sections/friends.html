@@ -1,0 +1,98 @@
+<div class="content-section">
+    <div class="page-header">
+        <div class="header-content">
+            <h2><i class="fas fa-users"></i> Research Network</h2>
+            <p>Connect and collaborate with fellow researchers</p>
+        </div>
+        <button class="btn btn-primary" data-action="find-friends">
+            <i class="fas fa-user-plus"></i> Find Friends
+        </button>
+    </div>
+
+    <div class="friends-tabs">
+        <div class="tab-nav">
+            <button class="tab-btn active" data-tab="all">All Friends <span class="tab-badge" id="allCount">23</span></button>
+            <button class="tab-btn" data-tab="online">Online <span class="tab-badge" id="onlineCount">8</span></button>
+            <button class="tab-btn" data-tab="pending">Pending <span class="tab-badge" id="pendingCount">3</span></button>
+            <button class="tab-btn" data-tab="suggestions">Suggestions <span class="tab-badge" id="suggestionsCount">12</span></button>
+            <button class="tab-btn" data-tab="groups">Groups <span class="tab-badge" id="groupsCount">5</span></button>
+        </div>
+
+        <div class="tab-content active" id="tab-all">
+            <div class="friends-header">
+                <div class="search-input-group">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search friends...">
+                </div>
+                <div class="friend-filters">
+                    <select class="filter-select">
+                        <option value="all">All Fields</option>
+                        <option value="cs">Computer Science</option>
+                        <option value="physics">Physics</option>
+                        <option value="biology">Biology</option>
+                        <option value="engineering">Engineering</option>
+                    </select>
+                    <select class="filter-select">
+                        <option value="all">All Institutions</option>
+                        <option value="mit">MIT</option>
+                        <option value="stanford">Stanford</option>
+                        <option value="harvard">Harvard</option>
+                        <option value="oxford">Oxford</option>
+                    </select>
+                </div>
+            </div>
+            <div class="friends-grid" id="friendsGrid">
+                <!-- Friends will be loaded here -->
+            </div>
+        </div>
+
+        <div class="tab-content" id="tab-online">
+            <div class="online-friends">
+                <!-- Online friends will be loaded here -->
+            </div>
+        </div>
+
+        <div class="tab-content" id="tab-pending">
+            <div class="pending-requests">
+                <!-- Pending requests will be loaded here -->
+            </div>
+        </div>
+
+        <div class="tab-content" id="tab-suggestions">
+            <div class="friend-suggestions">
+                <!-- Friend suggestions will be loaded here -->
+            </div>
+        </div>
+
+        <div class="tab-content" id="tab-groups">
+            <div class="research-groups">
+                <!-- Research groups will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="fas fa-share-alt"></i> Shared Resources</h3>
+                </div>
+                <div class="shared-resources" id="sharedResources">
+                    <!-- Shared resources will be loaded here -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="fas fa-calendar-alt"></i> Upcoming Collaborations</h3>
+                    <button class="btn btn-text" data-action="new-collab">+ Add</button>
+                </div>
+                <div class="collaborations-list">
+                    <!-- Collaborations will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

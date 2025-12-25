@@ -1,0 +1,146 @@
+<div class="content-section">
+    <div class="welcome-banner">
+        <div class="banner-content">
+            <h2>Welcome back, <span id="userDisplayName">John</span>!</h2>
+            <p>Continue your research journey with <span id="userInstitution">MIT</span></p>
+        </div>
+        <div class="banner-actions">
+            <button class="btn btn-outline" data-action="quick-search">
+                <i class="fas fa-search"></i> Quick Search
+            </button>
+            <button class="btn btn-primary" data-action="new-resource">
+                <i class="fas fa-plus"></i> Add Resource
+            </button>
+        </div>
+    </div>
+
+    <div class="quick-stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--primary-color);">
+                <i class="fas fa-book"></i>
+            </div>
+            <div class="stat-info">
+                <h3 id="totalDocuments">45</h3>
+                <p>Documents</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success-color);">
+                <i class="fas fa-folder"></i>
+            </div>
+            <div class="stat-info">
+                <h3 id="totalCategories">12</h3>
+                <p>Categories</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(139, 92, 246, 0.1); color: var(--purple-color);">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-info">
+                <h3 id="totalFriends">23</h3>
+                <p>Friends</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning-color);">
+                <i class="fas fa-comments"></i>
+            </div>
+            <div class="stat-info">
+                <h3 id="totalDiscussions">8</h3>
+                <p>Discussions</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="fas fa-clock"></i> Recent Activity</h3>
+                    <button class="btn btn-text" data-action="view-all-activity">View All</button>
+                </div>
+                <div class="activity-feed" id="activityFeed">
+                    <!-- Activity items will be loaded here -->
+                </div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="fas fa-star"></i> Favorite Resources</h3>
+                    <button class="btn btn-text" data-action="view-all-favorites">View All</button>
+                </div>
+                <div class="favorites-grid" id="favoritesGrid">
+                    <!-- Favorite items will be loaded here -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                </div>
+                <div class="quick-actions">
+                    <button class="quick-action-btn" data-action="new-document">
+                        <i class="fas fa-file-upload"></i>
+                        <span>Upload Document</span>
+                    </button>
+                    <button class="quick-action-btn" data-action="new-category">
+                        <i class="fas fa-folder-plus"></i>
+                        <span>Create Category</span>
+                    </button>
+                    <button class="quick-action-btn" data-action="start-discussion">
+                        <i class="fas fa-comment-medical"></i>
+                        <span>Start Discussion</span>
+                    </button>
+                    <button class="quick-action-btn" data-action="invite-friend">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Invite Friend</span>
+                    </button>
+                    <button class="quick-action-btn" data-action="import-resources">
+                        <i class="fas fa-file-import"></i>
+                        <span>Import Resources</span>
+                    </button>
+                    <button class="quick-action-btn" data-action="export-data">
+                        <i class="fas fa-file-export"></i>
+                        <span>Export Data</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="fas fa-chart-line"></i> Research Stats</h3>
+                </div>
+                <div class="stats-chart">
+                    <canvas id="researchChart" width="300" height="200"></canvas>
+                    <div class="chart-stats">
+                        <div class="chart-stat">
+                            <span class="stat-label">This Week</span>
+                            <span class="stat-value">12</span>
+                        </div>
+                        <div class="chart-stat">
+                            <span class="stat-label">This Month</span>
+                            <span class="stat-value">45</span>
+                        </div>
+                        <div class="chart-stat">
+                            <span class="stat-label">Total</span>
+                            <span class="stat-value">127</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-header">
+            <h3><i class="fas fa-history"></i> Recent Searches</h3>
+            <button class="btn btn-text" data-action="clear-searches">Clear History</button>
+        </div>
+        <div class="search-history" id="searchHistory">
+            <!-- Search history items will be loaded here -->
+        </div>
+    </div>
+</div>

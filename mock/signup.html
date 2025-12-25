@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - AcademVault</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <i class="fas fa-graduation-cap"></i>
+                    <h1>AcademVault</h1>
+                </div>
+                <h2>Create Account</h2>
+                <p>Start your research journey with us</p>
+            </div>
+
+            <div class="signup-steps">
+                <div class="step-indicator">
+                    <div class="step active" data-step="1">
+                        <div class="step-number">1</div>
+                        <span class="step-label">Account</span>
+                    </div>
+                    <div class="step" data-step="2">
+                        <div class="step-number">2</div>
+                        <span class="step-label">Profile</span>
+                    </div>
+                    <div class="step" data-step="3">
+                        <div class="step-number">3</div>
+                        <span class="step-label">Preferences</span>
+                    </div>
+                    <div class="step" data-step="4">
+                        <div class="step-number">4</div>
+                        <span class="step-label">Complete</span>
+                    </div>
+                </div>
+
+                <div class="step-progress">
+                    <div class="progress-bar" id="stepProgress"></div>
+                </div>
+            </div>
+
+            <form id="signupForm" class="auth-form">
+                <!-- Step 1: Account Details -->
+                <div class="form-step active" id="step1">
+                    <div class="form-group">
+                        <label for="userType">I am a</label>
+                        <div class="role-selector">
+                            <input type="radio" name="userType" id="typeStudent" value="student" checked>
+                            <label for="typeStudent" class="role-option">
+                                <i class="fas fa-graduation-cap"></i>
+                                <span>Student</span>
+                            </label>
+                            
+                            <input type="radio" name="userType" id="typeTeacher" value="teacher">
+                            <label for="typeTeacher" class="role-option">
+                                <i class="fas fa-chalkboard-teacher"></i>
+                                <span>Teacher/Professor</span>
+                            </label>
+                            
+                            <input type="radio" name="userType" id="typeResearcher" value="researcher">
+                            <label for="typeResearcher" class="role-option">
+                                <i class="fas fa-flask"></i>
+                                <span>Researcher</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fullName">
+                            <i class="fas fa-user"></i> Full Name
+                        </label>
+                        <input type="text" id="fullName" placeholder="John Doe" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">
+                            <i class="fas fa-envelope"></i> Email Address
+                        </label>
+                        <input type="email" id="email" placeholder="you@university.edu" required>
+                        <div class="input-hint">Use your academic email for verification</div>
+                    </div>
+
+                    <button type="button" class="btn btn-primary btn-block" onclick="nextStep(2)">
+                        Continue <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                <!-- Step 2: Profile Details -->
+                <div class="form-step" id="step2">
+                    <div class="form-group">
+                        <label for="institution">
+                            <i class="fas fa-university"></i> Institution
+                        </label>
+                        <input type="text" id="institution" placeholder="e.g., MIT, Stanford, etc." required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fieldOfStudy">
+                            <i class="fas fa-book"></i> Field of Study
+                        </label>
+                        <select id="fieldOfStudy" required>
+                            <option value="">Select your field</option>
+                            <option value="computer-science">Computer Science</option>
+                            <option value="engineering">Engineering</option>
+                            <option value="medicine">Medicine & Health Sciences</option>
+                            <option value="business">Business & Economics</option>
+                            <option value="natural-sciences">Natural Sciences</option>
+                            <option value="social-sciences">Social Sciences</option>
+                            <option value="humanities">Humanities</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">
+                            <i class="fas fa-lock"></i> Password
+                        </label>
+                        <div class="password-input">
+                            <input type="password" id="password" placeholder="Create a strong password" required>
+                            <button type="button" class="toggle-password">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="password-strength">
+                            <div class="strength-bar" id="strengthBar"></div>
+                            <span class="strength-text" id="strengthText">Password strength</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirmPassword">
+                            <i class="fas fa-lock"></i> Confirm Password
+                        </label>
+                        <input type="password" id="confirmPassword" placeholder="Repeat your password" required>
+                    </div>
+
+                    <div class="step-navigation">
+                        <button type="button" class="btn btn-outline" onclick="prevStep(1)">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="nextStep(3)">
+                            Continue <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Research Preferences -->
+                <div class="form-step" id="step3">
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-heart"></i> Research Interests
+                        </label>
+                        <div class="interests-grid" id="interestsGrid">
+                            <!-- Interests will be dynamically added -->
+                        </div>
+                        <input type="text" id="customInterest" placeholder="Add custom interest...">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notificationPrefs">
+                            <i class="fas fa-bell"></i> Notification Preferences
+                        </label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" checked> New research in my fields
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" checked> Friend requests
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" checked> Discussion updates
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox"> Weekly digest
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="terms" required>
+                            <span>I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></span>
+                        </label>
+                    </div>
+
+                    <div class="step-navigation">
+                        <button type="button" class="btn btn-outline" onclick="prevStep(2)">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="nextStep(4)">
+                            Continue <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 4: Email Verification -->
+                <div class="form-step" id="step4">
+                    <div class="verification-step">
+                        <div class="verification-icon">
+                            <i class="fas fa-envelope-open-text"></i>
+                        </div>
+                        <h3>Verify Your Email</h3>
+                        <p>We've sent a verification code to:</p>
+                        <p class="verification-email" id="verificationEmail">john.doe@mit.edu</p>
+                        
+                        <div class="verification-input">
+                            <input type="text" maxlength="1" class="code-input">
+                            <input type="text" maxlength="1" class="code-input">
+                            <input type="text" maxlength="1" class="code-input">
+                            <input type="text" maxlength="1" class="code-input">
+                            <input type="text" maxlength="1" class="code-input">
+                            <input type="text" maxlength="1" class="code-input">
+                        </div>
+                        
+                        <p class="verification-hint">
+                            Didn't receive the code? 
+                            <button type="button" class="resend-link" onclick="resendCode()">Resend</button>
+                        </p>
+                        
+                        <div class="timer" id="resendTimer">Resend available in 60s</div>
+                    </div>
+
+                    <div class="step-navigation">
+                        <button type="button" class="btn btn-outline" onclick="prevStep(3)">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="verifyEmail()">
+                            Verify Email
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 5: Welcome -->
+                <div class="form-step" id="step5">
+                    <div class="welcome-step">
+                        <div class="welcome-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h3>Welcome to AcademVault!</h3>
+                        <p>Your account has been successfully created.</p>
+                        <p class="welcome-text">Get ready to explore, discover, and collaborate on groundbreaking research.</p>
+                        
+                        <div class="welcome-features">
+                            <div class="welcome-feature">
+                                <i class="fas fa-search"></i>
+                                <span>Start searching research materials</span>
+                            </div>
+                            <div class="welcome-feature">
+                                <i class="fas fa-users"></i>
+                                <span>Connect with fellow researchers</span>
+                            </div>
+                            <div class="welcome-feature">
+                                <i class="fas fa-folder"></i>
+                                <span>Organize your research collection</span>
+                            </div>
+                        </div>
+                        
+                        <button type="button" class="btn btn-primary btn-block" onclick="completeSignup()">
+                            Go to Dashboard
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        const totalSteps = 5;
+        
+        // Sample research interests
+        const researchInterests = [
+            'Quantum Computing', 'Machine Learning', 'Artificial Intelligence',
+            'Neuroscience', 'Renewable Energy', 'Biotechnology',
+            'Data Science', 'Robotics', 'Climate Science',
+            'Materials Science', 'Genetics', 'Astrophysics',
+            'Cybersecurity', 'Blockchain', 'Internet of Things'
+        ];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize interests grid
+            const interestsGrid = document.getElementById('interestsGrid');
+            researchInterests.forEach(interest => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'interest-btn';
+                button.textContent = interest;
+                button.addEventListener('click', function() {
+                    this.classList.toggle('selected');
+                });
+                interestsGrid.appendChild(button);
+            });
+
+            // Password strength checker
+            const passwordInput = document.getElementById('password');
+            const strengthBar = document.getElementById('strengthBar');
+            const strengthText = document.getElementById('strengthText');
+            
+            passwordInput.addEventListener('input', function() {
+                const password = this.value;
+                let strength = 0;
+                
+                if (password.length >= 8) strength++;
+                if (/[A-Z]/.test(password)) strength++;
+                if (/[0-9]/.test(password)) strength++;
+                if (/[^A-Za-z0-9]/.test(password)) strength++;
+                
+                strengthBar.className = 'strength-bar';
+                if (strength === 0) {
+                    strengthBar.classList.add('strength-0');
+                    strengthText.textContent = 'Very weak';
+                } else if (strength === 1) {
+                    strengthBar.classList.add('strength-1');
+                    strengthText.textContent = 'Weak';
+                } else if (strength === 2) {
+                    strengthBar.classList.add('strength-2');
+                    strengthText.textContent = 'Fair';
+                } else if (strength === 3) {
+                    strengthBar.classList.add('strength-3');
+                    strengthText.textContent = 'Good';
+                } else {
+                    strengthBar.classList.add('strength-4');
+                    strengthText.textContent = 'Strong';
+                }
+            });
+
+            // Verification code auto-focus
+            const codeInputs = document.querySelectorAll('.code-input');
+            codeInputs.forEach((input, index) => {
+                input.addEventListener('input', function() {
+                    if (this.value && index < codeInputs.length - 1) {
+                        codeInputs[index + 1].focus();
+                    }
+                });
+                
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && !this.value && index > 0) {
+                        codeInputs[index - 1].focus();
+                    }
+                });
+            });
+        });
+
+        function nextStep(step) {
+            if (!validateStep(currentStep)) return;
+            
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            document.getElementById(`step${step}`).classList.add('active');
+            
+            // Update step indicator
+            document.querySelectorAll('.step').forEach(s => {
+                s.classList.remove('active');
+                if (parseInt(s.dataset.step) === step) {
+                    s.classList.add('active');
+                }
+            });
+            
+            // Update progress bar
+            const progress = ((step - 1) / (totalSteps - 1)) * 100;
+            document.getElementById('stepProgress').style.width = `${progress}%`;
+            
+            currentStep = step;
+        }
+
+        function prevStep(step) {
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            document.getElementById(`step${step}`).classList.add('active');
+            
+            // Update step indicator
+            document.querySelectorAll('.step').forEach(s => {
+                s.classList.remove('active');
+                if (parseInt(s.dataset.step) === step) {
+                    s.classList.add('active');
+                }
+            });
+            
+            // Update progress bar
+            const progress = ((step - 1) / (totalSteps - 1)) * 100;
+            document.getElementById('stepProgress').style.width = `${progress}%`;
+            
+            currentStep = step;
+        }
+
+        function validateStep(step) {
+            if (step === 1) {
+                const fullName = document.getElementById('fullName').value;
+                const email = document.getElementById('email').value;
+                
+                if (!fullName.trim()) {
+                    alert('Please enter your full name');
+                    return false;
+                }
+                
+                if (!email.includes('@') || !email.includes('.')) {
+                    alert('Please enter a valid email address');
+                    return false;
+                }
+                
+                return true;
+            }
+            
+            if (step === 2) {
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                
+                if (password.length < 6) {
+                    alert('Password must be at least 6 characters');
+                    return false;
+                }
+                
+                if (password !== confirmPassword) {
+                    alert('Passwords do not match');
+                    return false;
+                }
+                
+                return true;
+            }
+            
+            if (step === 3) {
+                const terms = document.getElementById('terms');
+                if (!terms.checked) {
+                    alert('Please agree to the Terms of Service');
+                    return false;
+                }
+                return true;
+            }
+            
+            return true;
+        }
+
+        function verifyEmail() {
+            // Simulate verification
+            nextStep(5);
+        }
+
+        function resendCode() {
+            alert('Verification code resent!');
+            // Start timer
+            startResendTimer(60);
+        }
+
+        function startResendTimer(seconds) {
+            const timerElement = document.getElementById('resendTimer');
+            const resendLink = document.querySelector('.resend-link');
+            
+            resendLink.style.display = 'none';
+            timerElement.style.display = 'block';
+            
+            let remaining = seconds;
+            
+            const interval = setInterval(() => {
+                timerElement.textContent = `Resend available in ${remaining}s`;
+                remaining--;
+                
+                if (remaining < 0) {
+                    clearInterval(interval);
+                    resendLink.style.display = 'inline';
+                    timerElement.style.display = 'none';
+                }
+            }, 1000);
+        }
+
+        function completeSignup() {
+            // Get form data
+            const userType = document.querySelector('input[name="userType"]:checked').value;
+            const fullName = document.getElementById('fullName').value;
+            const email = document.getElementById('email').value;
+            const institution = document.getElementById('institution').value;
+            
+            // Store user data
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('userEmail', email);
+            localStorage.setItem('userName', fullName);
+            localStorage.setItem('userAvatar', `https://ui-avatars.com/api/?name=${fullName}&background=3b82f6&color=fff`);
+            localStorage.setItem('userRole', userType);
+            localStorage.setItem('userInstitution', institution);
+            
+            // Redirect to dashboard
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
