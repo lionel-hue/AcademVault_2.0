@@ -1,4 +1,3 @@
-// client/jsconfig.json
 {
   "compilerOptions": {
     "target": "es5",

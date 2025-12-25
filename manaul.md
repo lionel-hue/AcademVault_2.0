@@ -270,3 +270,5 @@ Accède à :
 - http://localhost:3000 - Page d'accueil publique
 - http://localhost:3000/signup - Formulaire d'inscription
 - http://localhost:3000/dashboard - Tableau de bord (après connexion)
+
+Le problème de 404 devrait être résolu ! 🎉
