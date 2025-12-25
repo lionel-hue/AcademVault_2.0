@@ -3,24 +3,13 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
-|
-*/
-
-// Public routes
 Route::prefix('auth')->group(function () {
+    // Public routes
     Route::post('send-verification', [AuthController::class, 'sendVerificationCode']);
     Route::post('verify-email', [AuthController::class, 'verifyEmail']);
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
-    Route::post('check-email', [AuthController::class, 'checkEmail']);
+    Route::post('check-email', [AuthController::class, 'checkEmail']); // ← ADD THIS LINE
     Route::post('resend-verification', [AuthController::class, 'resendVerificationCode']);
     
     // Protected routes
@@ -52,7 +41,7 @@ Route::get('/', function () {
                 'POST /api/auth/verify-email' => 'Verify email with code',
                 'POST /api/auth/register' => 'Register new user',
                 'POST /api/auth/login' => 'Login user',
-                'POST /api/auth/check-email' => 'Check if email exists',
+                'POST /api/auth/check-email' => 'Check if email exists', // ← ADD THIS
                 'POST /api/auth/resend-verification' => 'Resend verification code',
                 'POST /api/auth/logout' => 'Logout user (protected)',
                 'POST /api/auth/refresh' => 'Refresh token (protected)',
