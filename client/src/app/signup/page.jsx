@@ -1,28 +1,65 @@
-// client/src/app/signup/page.jsx - UPDATED WITHOUT FRAMER-MOTION
+// client/src/app/signup/page.jsx - FULL FIXED VERSION
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AuthService from '@/lib/auth';
 import { useModal } from '@/app/components/UI/Modal/ModalContext';
 
+// Fixed SVG circle positions to avoid hydration mismatch
+const FIXED_CIRCLE_POSITIONS = [
+  { cx: '10%', cy: '20%', delay: '0s' },
+  { cx: '90%', cy: '80%', delay: '0.2s' },
+  { cx: '50%', cy: '60%', delay: '0.4s' },
+  { cx: '30%', cy: '40%', delay: '0.6s' },
+  { cx: '70%', cy: '30%', delay: '0.8s' },
+  { cx: '20%', cy: '70%', delay: '1s' },
+  { cx: '80%', cy: '10%', delay: '1.2s' },
+  { cx: '40%', cy: '50%', delay: '1.4s' },
+];
+
 export default function SignupPage() {
   const router = useRouter();
   const { alert, confirm, prompt } = useModal();
   const [currentStep, setCurrentStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
+  const [isClient, setIsClient] = useState(false);
+  const codeInputsRef = useRef([]);
+
+  // Updated form data to match database schema
   const [formData, setFormData] = useState({
-    userType: 'student',
-    fullName: '',
+    // Required fields
+    name: '',
+    type: 'student', // 'teacher' or 'student' (matches database enum)
     email: '',
-    institution: '',
-    fieldOfStudy: '',
     password: '',
     confirmPassword: '',
+    registration_date: '', // Will be set on client side
+    
+    // Optional fields
+    institution: '',
+    department: '',
+    phone: '',
+    bio: '',
+    
+    // Terms acceptance
     termsAccepted: false
   });
+
   const [passwordStrength, setPasswordStrength] = useState(0);
-  const [loading, setLoading] = useState(false);
+
+  // Set client-side flag and registration date
+  useEffect(() => {
+    setIsClient(true);
+    // Set registration_date on client side only
+    setFormData(prev => ({
+      ...prev,
+      registration_date: new Date().toISOString().split('T')[0]
+    }));
+  }, []);
 
   // Calculate password strength
   useEffect(() => {
@@ -40,6 +77,14 @@ export default function SignupPage() {
     setPasswordStrength(strength);
   }, [formData.password]);
 
+  // Handle verification code input
+  useEffect(() => {
+    if (currentStep === 5 && verificationCode.join('').length === 6) {
+      // Auto-submit verification
+      handleVerifyEmail();
+    }
+  }, [verificationCode]);
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -48,10 +93,29 @@ export default function SignupPage() {
     }));
   };
 
+  const handleCodeChange = (index, value) => {
+    if (value.length <= 1 && /^\d*$/.test(value)) {
+      const newCode = [...verificationCode];
+      newCode[index] = value;
+      setVerificationCode(newCode);
+
+      // Auto-focus next input
+      if (value && index < 5) {
+        codeInputsRef.current[index + 1]?.focus();
+      }
+    }
+  };
+
+  const handleCodeKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !verificationCode[index] && index > 0) {
+      codeInputsRef.current[index - 1]?.focus();
+    }
+  };
+
   const validateStep = async (step) => {
     switch (step) {
       case 1:
-        if (!formData.fullName.trim()) {
+        if (!formData.name.trim()) {
           await alert({
             title: 'Missing Information',
             message: 'Please enter your full name',
@@ -72,10 +136,31 @@ export default function SignupPage() {
         return true;
       
       case 2:
-        if (formData.password.length < 6) {
+        if (!formData.institution.trim()) {
+          await alert({
+            title: 'Missing Information',
+            message: 'Please enter your institution',
+            variant: 'warning',
+            confirmText: 'Got it'
+          });
+          return false;
+        }
+        return true;
+      
+      case 3:
+        if (formData.password.length < 8) {
           await alert({
             title: 'Weak Password',
-            message: 'Password must be at least 6 characters long',
+            message: 'Password must be at least 8 characters long',
+            variant: 'warning',
+            confirmText: 'Got it'
+          });
+          return false;
+        }
+        if (passwordStrength < 50) {
+          await alert({
+            title: 'Weak Password',
+            message: 'Please use a stronger password with uppercase, numbers, and special characters',
             variant: 'warning',
             confirmText: 'Got it'
           });
@@ -92,7 +177,7 @@ export default function SignupPage() {
         }
         return true;
       
-      case 3:
+      case 4:
         if (!formData.termsAccepted) {
           await alert({
             title: 'Terms Required',
@@ -115,6 +200,11 @@ export default function SignupPage() {
     
     if (currentStep < 5) {
       setCurrentStep(currentStep + 1);
+      
+      // When moving to verification step, send verification code
+      if (currentStep === 4) {
+        await sendVerificationCode();
+      }
     }
   };
 
@@ -124,22 +214,129 @@ export default function SignupPage() {
     }
   };
 
-  const handleSubmit = async () => {
+  const sendVerificationCode = async () => {
     setLoading(true);
     try {
-      const result = await AuthService.signup(formData);
-      if (result.success) {
-        await alert({
-          title: 'Welcome to AcademVault! 🎉',
-          message: 'Your account has been successfully created. You can now access all features.',
-          variant: 'success',
-          confirmText: 'Go to Dashboard'
-        });
-        router.push('/dashboard');
-      }
+      // TODO: Replace with real API call
+      // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/send-verification`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ email: formData.email })
+      // });
+      
+      // Mock API call for now
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setVerificationSent(true);
+      await alert({
+        title: 'Verification Code Sent',
+        message: `A 6-digit code has been sent to ${formData.email}. Please check your inbox.`,
+        variant: 'success',
+        confirmText: 'Got it'
+      });
     } catch (error) {
       await alert({
-        title: 'Signup Failed',
+        title: 'Failed to Send Code',
+        message: error.message || 'Unable to send verification code. Please try again.',
+        variant: 'danger',
+        confirmText: 'Try Again'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyEmail = async () => {
+    const code = verificationCode.join('');
+    if (code.length !== 6) {
+      await alert({
+        title: 'Incomplete Code',
+        message: 'Please enter the complete 6-digit verification code',
+        variant: 'warning',
+        confirmText: 'Got it'
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // TODO: Replace with real API call
+      // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/verify-email`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ 
+      //     email: formData.email, 
+      //     code 
+      //   })
+      // });
+      
+      // Mock verification
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // If verification successful, register user
+      await registerUser();
+    } catch (error) {
+      await alert({
+        title: 'Verification Failed',
+        message: error.message || 'Invalid verification code. Please try again.',
+        variant: 'danger',
+        confirmText: 'Try Again'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const registerUser = async () => {
+    setLoading(true);
+    try {
+      // Prepare data for backend
+      const userData = {
+        name: formData.name,
+        type: formData.type,
+        email: formData.email,
+        password: formData.password,
+        registration_date: formData.registration_date,
+        institution: formData.institution || null,
+        department: formData.department || null,
+        phone: formData.phone || null,
+        bio: formData.bio || null,
+        is_active: true,
+        role: 'user'
+      };
+
+      // TODO: Replace with real API call to Laravel backend
+      // const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
+      //   method: 'POST',
+      //   headers: { 
+      //     'Content-Type': 'application/json',
+      //     'Accept': 'application/json'
+      //   },
+      //   body: JSON.stringify(userData)
+      // });
+
+      // const data = await response.json();
+      
+      // if (!response.ok) {
+      //   throw new Error(data.message || 'Registration failed');
+      // }
+
+      // Mock successful registration
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      await alert({
+        title: 'Registration Successful! 🎉',
+        message: 'Your account has been created successfully. Please login to continue.',
+        variant: 'success',
+        confirmText: 'Go to Login'
+      });
+
+      // Redirect to login page
+      router.push('/login');
+    } catch (error) {
+      console.error('Registration error:', error);
+      await alert({
+        title: 'Registration Failed',
         message: error.message || 'Unable to create account. Please try again.',
         variant: 'danger',
         confirmText: 'Try Again'
@@ -149,32 +346,44 @@ export default function SignupPage() {
     }
   };
 
+  const resendVerificationCode = async () => {
+    const confirmed = await confirm({
+      title: 'Resend Verification Code?',
+      message: `Send a new 6-digit code to ${formData.email}?`,
+      variant: 'default'
+    });
+    
+    if (confirmed) {
+      await sendVerificationCode();
+    }
+  };
+
   const renderStep = () => {
     const steps = [
       {
         number: 1,
-        title: 'Account Type',
-        icon: 'fas fa-user-plus'
+        title: 'Basic Info',
+        icon: 'fas fa-user-circle'
       },
       {
         number: 2,
-        title: 'Credentials',
-        icon: 'fas fa-lock'
+        title: 'Academic Info',
+        icon: 'fas fa-university'
       },
       {
         number: 3,
+        title: 'Security',
+        icon: 'fas fa-lock'
+      },
+      {
+        number: 4,
         title: 'Terms',
         icon: 'fas fa-file-contract'
       },
       {
-        number: 4,
-        title: 'Verification',
-        icon: 'fas fa-envelope'
-      },
-      {
         number: 5,
-        title: 'Complete',
-        icon: 'fas fa-check-circle'
+        title: 'Verify Email',
+        icon: 'fas fa-envelope'
       }
     ];
 
@@ -200,33 +409,32 @@ export default function SignupPage() {
 
         {/* Step Content */}
         <div className="space-y-6">
-          {/* Step 1: Account Type */}
+          {/* Step 1: Basic Information */}
           {currentStep === 1 && (
             <>
-              <h3 className="text-2xl font-bold text-white mb-6">Create Your Account</h3>
+              <h3 className="text-2xl font-bold text-white mb-6">Basic Information</h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 {[
                   { id: 'student', icon: 'fas fa-graduation-cap', label: 'Student', desc: 'Access course materials and research' },
                   { id: 'teacher', icon: 'fas fa-chalkboard-teacher', label: 'Teacher', desc: 'Share resources and collaborate' },
-                  { id: 'researcher', icon: 'fas fa-flask', label: 'Researcher', desc: 'Advanced tools and publications' },
                 ].map((type) => (
                   <label key={type.id} className="cursor-pointer group">
                     <input
                       type="radio"
-                      name="userType"
+                      name="type"
                       value={type.id}
-                      checked={formData.userType === type.id}
+                      checked={formData.type === type.id}
                       onChange={handleInputChange}
                       className="sr-only"
                     />
                     <div className={`p-6 rounded-2xl border-2 transition-all duration-300 group-hover:scale-105 ${
-                      formData.userType === type.id 
+                      formData.type === type.id 
                         ? 'border-blue-500 bg-blue-500/10' 
                         : 'border-gray-700 bg-gray-800/30 hover:border-gray-600'
                     }`}>
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${
-                        formData.userType === type.id 
+                        formData.type === type.id 
                           ? 'bg-gradient-to-br from-blue-500 to-purple-600' 
                           : 'bg-gray-700'
                       }`}>
@@ -243,22 +451,23 @@ export default function SignupPage() {
                 <div className="group">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
                     <i className="fas fa-user text-blue-400"></i>
-                    Full Name
+                    Full Name *
                   </label>
                   <input
                     type="text"
-                    name="fullName"
-                    value={formData.fullName}
+                    name="name"
+                    value={formData.name}
                     onChange={handleInputChange}
                     placeholder="John Doe"
                     className="w-full bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-xl py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
+                    required
                   />
                 </div>
 
                 <div className="group">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
                     <i className="fas fa-envelope text-blue-400"></i>
-                    Email Address
+                    Email Address *
                   </label>
                   <input
                     type="email"
@@ -267,68 +476,104 @@ export default function SignupPage() {
                     onChange={handleInputChange}
                     placeholder="you@university.edu"
                     className="w-full bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-xl py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
+                    required
                   />
                 </div>
               </div>
             </>
           )}
 
-          {/* Step 2: Credentials */}
+          {/* Step 2: Academic Information */}
           {currentStep === 2 && (
             <>
-              <h3 className="text-2xl font-bold text-white mb-6">Account Details</h3>
+              <h3 className="text-2xl font-bold text-white mb-6">Academic Information</h3>
               
               <div className="space-y-6">
+                <div className="group">
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                    <i className="fas fa-university text-blue-400"></i>
+                    Institution *
+                  </label>
+                  <input
+                    type="text"
+                    name="institution"
+                    value={formData.institution}
+                    onChange={handleInputChange}
+                    placeholder="e.g., MIT, Stanford University"
+                    className="w-full bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-xl py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
+                    required
+                  />
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="group">
                     <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-                      <i className="fas fa-university text-blue-400"></i>
-                      Institution
+                      <i className="fas fa-book text-blue-400"></i>
+                      Department
                     </label>
                     <input
                       type="text"
-                      name="institution"
-                      value={formData.institution}
+                      name="department"
+                      value={formData.department}
                       onChange={handleInputChange}
-                      placeholder="e.g., MIT, Stanford"
+                      placeholder="e.g., Computer Science"
                       className="w-full bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-xl py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
                     />
                   </div>
 
                   <div className="group">
                     <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
-                      <i className="fas fa-book text-blue-400"></i>
-                      Field of Study
+                      <i className="fas fa-phone text-blue-400"></i>
+                      Phone Number
                     </label>
-                    <select
-                      name="fieldOfStudy"
-                      value={formData.fieldOfStudy}
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
                       onChange={handleInputChange}
-                      className="w-full bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
-                    >
-                      <option value="">Select your field</option>
-                      <option value="computer-science">Computer Science</option>
-                      <option value="engineering">Engineering</option>
-                      <option value="medicine">Medicine & Health</option>
-                      <option value="business">Business</option>
-                      <option value="sciences">Natural Sciences</option>
-                      <option value="other">Other</option>
-                    </select>
+                      placeholder="+1 (123) 456-7890"
+                      className="w-full bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-xl py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
+                    />
                   </div>
                 </div>
 
                 <div className="group">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
+                    <i className="fas fa-info-circle text-blue-400"></i>
+                    Bio (Optional)
+                  </label>
+                  <textarea
+                    name="bio"
+                    value={formData.bio}
+                    onChange={handleInputChange}
+                    placeholder="Tell us about your research interests, projects, or background..."
+                    rows="3"
+                    className="w-full bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-xl py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300 resize-none"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Step 3: Security */}
+          {currentStep === 3 && (
+            <>
+              <h3 className="text-2xl font-bold text-white mb-6">Account Security</h3>
+              
+              <div className="space-y-6">
+                <div className="group">
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
                     <i className="fas fa-lock text-blue-400"></i>
-                    Password
+                    Password *
                   </label>
                   <input
                     type="password"
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    placeholder="Create a strong password"
+                    placeholder="Create a strong password (min. 8 characters)"
                     className="w-full bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-xl py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
+                    required
                   />
                   {formData.password && (
                     <div className="mt-2">
@@ -352,6 +597,9 @@ export default function SignupPage() {
                           style={{ width: `${passwordStrength}%` }}
                         ></div>
                       </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Include uppercase, numbers, and special characters for better security
+                      </div>
                     </div>
                   )}
                 </div>
@@ -359,7 +607,7 @@ export default function SignupPage() {
                 <div className="group">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
                     <i className="fas fa-lock text-blue-400"></i>
-                    Confirm Password
+                    Confirm Password *
                   </label>
                   <input
                     type="password"
@@ -368,14 +616,15 @@ export default function SignupPage() {
                     onChange={handleInputChange}
                     placeholder="Repeat your password"
                     className="w-full bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-xl py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
+                    required
                   />
                 </div>
               </div>
             </>
           )}
 
-          {/* Step 3: Terms */}
-          {currentStep === 3 && (
+          {/* Step 4: Terms */}
+          {currentStep === 4 && (
             <>
               <h3 className="text-2xl font-bold text-white mb-6">Terms & Conditions</h3>
               
@@ -402,6 +651,7 @@ export default function SignupPage() {
                     checked={formData.termsAccepted}
                     onChange={handleInputChange}
                     className="sr-only"
+                    required
                   />
                   <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
                     formData.termsAccepted 
@@ -414,130 +664,139 @@ export default function SignupPage() {
                   </div>
                 </div>
                 <div>
-                  <span className="font-medium text-white">I agree to the Terms of Service and Privacy Policy</span>
+                  <span className="font-medium text-white">I agree to the Terms of Service and Privacy Policy *</span>
                   <p className="text-sm text-gray-400 mt-1">Required to create your account</p>
                 </div>
               </label>
             </>
           )}
 
-          {/* Step 4: Verification */}
-          {currentStep === 4 && (
+          {/* Step 5: Email Verification */}
+          {currentStep === 5 && (
             <>
               <div className="text-center">
                 <div className="w-20 h-20 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
                   <i className="fas fa-envelope-open-text text-3xl text-blue-400"></i>
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-2">Verify Your Email</h3>
-                <p className="text-gray-400 mb-2">We&apos;ve sent a 6-digit code to:</p>
-                <p className="font-medium text-blue-400 mb-8">{formData.email}</p>
                 
-                <div className="flex justify-center gap-3 mb-8">
-                  {[1,2,3,4,5,6].map(i => (
-                    <input
-                      key={i}
-                      type="text"
-                      maxLength="1"
-                      className="w-14 h-14 text-center text-2xl font-bold bg-gray-900/50 backdrop-blur-sm border-2 border-gray-700 rounded-xl focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    />
-                  ))}
-                </div>
-                
-                <button
-                  onClick={async () => {
-                    const confirmed = await confirm({
-                      title: 'Resend Code?',
-                      message: 'Send a new verification code to your email?',
-                      variant: 'default'
-                    });
-                    if (confirmed) {
-                      await alert({
-                        title: 'Code Sent',
-                        message: 'A new verification code has been sent to your email.',
-                        variant: 'success'
-                      });
-                    }
-                  }}
-                  className="text-blue-400 hover:text-blue-300 text-sm font-medium"
-                >
-                  <i className="fas fa-redo mr-2"></i>
-                  Resend code
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* Step 5: Complete */}
-          {currentStep === 5 && (
-            <>
-              <div className="text-center">
-                <div className="w-24 h-24 bg-gradient-to-br from-green-500/20 to-emerald-600/20 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                  <i className="fas fa-check-circle text-4xl text-green-400"></i>
-                </div>
-                <h3 className="text-3xl font-bold text-white mb-4">Account Created! 🎉</h3>
-                <p className="text-gray-400 mb-8 max-w-md mx-auto">
-                  Welcome to AcademVault! Your account has been successfully created and is ready to use.
-                </p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                  <div className="p-4 bg-gray-900/30 backdrop-blur-sm rounded-xl border border-gray-700">
-                    <i className="fas fa-search text-blue-400 text-xl mb-2"></i>
-                    <p className="text-sm text-gray-300">Start searching research</p>
-                  </div>
-                  <div className="p-4 bg-gray-900/30 backdrop-blur-sm rounded-xl border border-gray-700">
-                    <i className="fas fa-users text-purple-400 text-xl mb-2"></i>
-                    <p className="text-sm text-gray-300">Connect with researchers</p>
-                  </div>
-                  <div className="p-4 bg-gray-900/30 backdrop-blur-sm rounded-xl border border-gray-700">
-                    <i className="fas fa-folder text-green-400 text-xl mb-2"></i>
-                    <p className="text-sm text-gray-300">Organize your work</p>
-                  </div>
-                </div>
-
-                <button 
-                  onClick={handleSubmit}
-                  disabled={loading}
-                  className="w-full max-w-md mx-auto group relative overflow-hidden bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 rounded-xl font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? (
-                    <>
-                      <i className="fas fa-spinner fa-spin mr-2"></i>
-                      Setting up your account...
-                    </>
-                  ) : (
-                    <>
-                      Go to Dashboard
-                      <i className="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
-                    </>
-                  )}
-                </button>
+                {verificationSent ? (
+                  <>
+                    <h3 className="text-2xl font-bold text-white mb-2">Verify Your Email</h3>
+                    <p className="text-gray-400 mb-2">Enter the 6-digit code sent to:</p>
+                    <p className="font-medium text-blue-400 mb-8">{formData.email}</p>
+                    
+                    <div className="flex justify-center gap-3 mb-8">
+                      {[0,1,2,3,4,5].map(i => (
+                        <input
+                          key={i}
+                          ref={el => codeInputsRef.current[i] = el}
+                          type="text"
+                          maxLength="1"
+                          value={verificationCode[i]}
+                          onChange={(e) => handleCodeChange(i, e.target.value)}
+                          onKeyDown={(e) => handleCodeKeyDown(i, e)}
+                          className="w-14 h-14 text-center text-2xl font-bold bg-gray-900/50 backdrop-blur-sm border-2 border-gray-700 rounded-xl text-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
+                        />
+                      ))}
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <button
+                        onClick={handleVerifyEmail}
+                        disabled={loading || verificationCode.join('').length !== 6}
+                        className="w-full max-w-md mx-auto group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 rounded-xl font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {loading ? (
+                          <>
+                            <i className="fas fa-spinner fa-spin mr-2"></i>
+                            Verifying...
+                          </>
+                        ) : (
+                          <>
+                            Verify & Create Account
+                            <i className="fas fa-check-circle ml-2"></i>
+                          </>
+                        )}
+                      </button>
+                      
+                      <button
+                        onClick={resendVerificationCode}
+                        disabled={loading}
+                        className="text-blue-400 hover:text-blue-300 text-sm font-medium disabled:opacity-50"
+                      >
+                        <i className="fas fa-redo mr-2"></i>
+                        Resend verification code
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-2xl font-bold text-white mb-4">Email Verification Required</h3>
+                    <p className="text-gray-400 mb-8 max-w-md mx-auto">
+                      We need to verify your email address before creating your account.
+                      A 6-digit code will be sent to {formData.email}
+                    </p>
+                    
+                    <button
+                      onClick={sendVerificationCode}
+                      disabled={loading}
+                      className="w-full max-w-md mx-auto group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 rounded-xl font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loading ? (
+                        <>
+                          <i className="fas fa-spinner fa-spin mr-2"></i>
+                          Sending Code...
+                        </>
+                      ) : (
+                        <>
+                          Send Verification Code
+                          <i className="fas fa-paper-plane ml-2"></i>
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
               </div>
             </>
           )}
         </div>
 
         {/* Navigation Buttons */}
-        <div className="flex gap-4 pt-6 border-t border-gray-800">
-          {currentStep > 1 && currentStep < 5 && (
-            <button
-              onClick={prevStep}
-              className="flex-1 py-3 bg-gray-800/50 backdrop-blur-sm border border-gray-700 text-white rounded-xl font-medium hover:bg-gray-700/50 transition-all duration-300"
-            >
-              <i className="fas fa-arrow-left mr-2"></i>
-              Back
-            </button>
-          )}
-          
-          {currentStep < 5 && (
+        {currentStep < 5 && (
+          <div className="flex gap-4 pt-6 border-t border-gray-800">
+            {currentStep > 1 && (
+              <button
+                onClick={prevStep}
+                className="flex-1 py-3 bg-gray-800/50 backdrop-blur-sm border border-gray-700 text-white rounded-xl font-medium hover:bg-gray-700/50 transition-all duration-300"
+              >
+                <i className="fas fa-arrow-left mr-2"></i>
+                Back
+              </button>
+            )}
+            
             <button
               onClick={nextStep}
-              className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
+              disabled={loading}
+              className={`flex-1 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 ${
+                currentStep === 4 
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white' 
+                  : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              {currentStep === 4 ? 'Verify & Continue' : 'Continue'}
-              <i className="fas fa-arrow-right ml-2"></i>
+              {loading ? (
+                <>
+                  <i className="fas fa-spinner fa-spin mr-2"></i>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  {currentStep === 4 ? 'Register & Verify' : 'Continue'}
+                  <i className="fas fa-arrow-right ml-2"></i>
+                </>
+              )}
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -552,7 +811,7 @@ export default function SignupPage() {
 
       <div className="relative container mx-auto px-4 py-8 md:py-16">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Left Column - Illustration (Now on left) */}
+          {/* Left Column - Illustration */}
           <div className="order-2 lg:order-1 animate-fade-in">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-3xl blur-2xl"></div>
@@ -573,22 +832,22 @@ export default function SignupPage() {
                   <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 w-24 h-24">
                     <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full blur-xl"></div>
                     <div className="relative w-24 h-24 bg-gradient-to-br from-blue-500/30 to-purple-600/30 rounded-2xl flex items-center justify-center">
-                      <i className="fas fa-rocket text-white text-3xl"></i>
+                      <i className="fas fa-check-circle text-white text-3xl"></i>
                     </div>
                   </div>
                   
-                  {/* Connecting Dots */}
+                  {/* Connecting Dots - FIXED POSITIONS */}
                   <svg className="absolute inset-0 w-full h-full">
-                    {[...Array(8)].map((_, i) => (
+                    {FIXED_CIRCLE_POSITIONS.map((pos, i) => (
                       <circle
                         key={i}
-                        cx={`${Math.random() * 100}%`}
-                        cy={`${Math.random() * 100}%`}
+                        cx={pos.cx}
+                        cy={pos.cy}
                         r="2"
                         fill="#3b82f6"
                         opacity="0.3"
                         className="animate-pulse"
-                        style={{ animationDelay: `${i * 0.2}s` }}
+                        style={{ animationDelay: pos.delay }}
                       />
                     ))}
                   </svg>
@@ -596,35 +855,35 @@ export default function SignupPage() {
                 
                 {/* Benefits */}
                 <div className="space-y-4">
-                  <h4 className="text-xl font-bold text-white mb-4">Join Our Community</h4>
+                  <h4 className="text-xl font-bold text-white mb-4">Join Our Academic Community</h4>
                   
                   <div className="flex items-center gap-3 p-4 bg-gray-800/30 rounded-xl backdrop-blur-sm">
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-lg flex items-center justify-center">
                       <i className="fas fa-database text-blue-400"></i>
                     </div>
                     <div>
-                      <h4 className="font-semibold text-white">10M+ Resources</h4>
-                      <p className="text-sm text-gray-400">Access millions of academic papers</p>
+                      <h4 className="font-semibold text-white">Secure Registration</h4>
+                      <p className="text-sm text-gray-400">Your data is protected with encryption</p>
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-3 p-4 bg-gray-800/30 rounded-xl backdrop-blur-sm">
                     <div className="w-10 h-10 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg flex items-center justify-center">
-                      <i className="fas fa-user-friends text-green-400"></i>
+                      <i className="fas fa-shield-alt text-green-400"></i>
                     </div>
                     <div>
-                      <h4 className="font-semibold text-white">Global Network</h4>
-                      <p className="text-sm text-gray-400">Connect with researchers worldwide</p>
+                      <h4 className="font-semibold text-white">Email Verification</h4>
+                      <p className="text-sm text-gray-400">Secure account with email confirmation</p>
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-3 p-4 bg-gray-800/30 rounded-xl backdrop-blur-sm">
                     <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg flex items-center justify-center">
-                      <i className="fas fa-chart-line text-purple-400"></i>
+                      <i className="fas fa-rocket text-purple-400"></i>
                     </div>
                     <div>
-                      <h4 className="font-semibold text-white">AI Insights</h4>
-                      <p className="text-sm text-gray-400">Smart recommendations and analytics</p>
+                      <h4 className="font-semibold text-white">Quick Setup</h4>
+                      <p className="text-sm text-gray-400">Get started in just 5 simple steps</p>
                     </div>
                   </div>
                 </div>
@@ -632,7 +891,7 @@ export default function SignupPage() {
             </div>
           </div>
 
-          {/* Right Column - Form (Now on right) */}
+          {/* Right Column - Form */}
           <div className="order-1 lg:order-2 animate-fade-in">
             {/* Header */}
             <div className="mb-8">
@@ -649,9 +908,9 @@ export default function SignupPage() {
               </div>
               
               <h2 className="text-4xl font-bold text-white mb-4">
-                Create Account
+                Create Your Account
                 <div className="text-lg font-normal text-gray-400 mt-2">
-                  Join our research community in just 5 steps
+                  Join our research community in {currentStep === 5 ? 'final verification' : `${5 - currentStep} more step${5 - currentStep === 1 ? '' : 's'}`}
                 </div>
               </h2>
             </div>
@@ -667,6 +926,9 @@ export default function SignupPage() {
                   <Link href="/login" className="text-blue-400 hover:text-blue-300 font-medium">
                     Sign In
                   </Link>
+                </p>
+                <p className="text-center text-gray-500 text-sm mt-2">
+                  * Required fields
                 </p>
               </div>
             </div>
