@@ -1,0 +1,103 @@
+<div class="content-section">
+    <div class="page-header">
+        <div class="header-content">
+            <h2><i class="fas fa-comments"></i> Discussions</h2>
+            <p>Collaborate on research topics with peers</p>
+        </div>
+        <button class="btn btn-primary" data-action="new-discussion">
+            <i class="fas fa-plus"></i> New Discussion
+        </button>
+    </div>
+
+    <div class="discussions-container">
+        <div class="discussions-sidebar">
+            <div class="sidebar-header">
+                <h4>Active Discussions</h4>
+                <button class="btn btn-text" data-action="create-group">+ New Group</button>
+            </div>
+            
+            <div class="discussions-list" id="discussionsList">
+                <!-- Discussions list will be loaded here -->
+            </div>
+
+            <div class="sidebar-footer">
+                <h4>Quick Groups</h4>
+                <div class="quick-groups">
+                    <button class="group-tag">Quantum Computing</button>
+                    <button class="group-tag">Machine Learning</button>
+                    <button class="group-tag">Neuroscience</button>
+                    <button class="group-tag">Renewable Energy</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="discussions-main">
+            <div class="chat-header">
+                <div class="chat-info">
+                    <div class="chat-avatar">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div>
+                        <h4 id="currentChatTitle">Select a discussion</h4>
+                        <p id="currentChatMembers">Choose from the list</p>
+                    </div>
+                </div>
+                <div class="chat-actions">
+                    <button class="btn-icon" data-action="chat-info">
+                        <i class="fas fa-info-circle"></i>
+                    </button>
+                    <button class="btn-icon" data-action="chat-members">
+                        <i class="fas fa-user-friends"></i>
+                    </button>
+                    <button class="btn-icon" data-action="chat-settings">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="chat-welcome">
+                        <i class="fas fa-comments"></i>
+                        <h3>Welcome to Discussions</h3>
+                        <p>Select a conversation from the sidebar to start chatting</p>
+                        <p>or create a new discussion about your research</p>
+                    </div>
+                </div>
+
+                <div class="chat-input-container">
+                    <div class="input-tools">
+                        <button class="btn-icon" data-action="attach-file">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
+                        <button class="btn-icon" data-action="attach-image">
+                            <i class="fas fa-image"></i>
+                        </button>
+                        <button class="btn-icon" data-action="attach-document">
+                            <i class="fas fa-file"></i>
+                        </button>
+                        <button class="btn-icon" data-action="emoji-picker">
+                            <i class="fas fa-smile"></i>
+                        </button>
+                    </div>
+                    <div class="message-input">
+                        <input type="text" id="messageInput" placeholder="Type your message..." disabled>
+                        <button class="btn btn-primary" id="sendMessage" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-header">
+            <h3><i class="fas fa-lightbulb"></i> Discussion Topics</h3>
+            <button class="btn btn-secondary" data-action="suggest-topic">Suggest Topic</button>
+        </div>
+        <div class="topics-grid">
+            <!-- Discussion topics will be loaded here -->
+        </div>
+    </div>
+</div>

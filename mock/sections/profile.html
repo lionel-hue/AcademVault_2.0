@@ -1,0 +1,191 @@
+<div class="content-section">
+    <div class="profile-header-card">
+        <div class="profile-cover">
+            <div class="cover-actions">
+                <button class="btn btn-outline btn-sm">
+                    <i class="fas fa-camera"></i> Change Cover
+                </button>
+            </div>
+        </div>
+        <div class="profile-main">
+            <div class="profile-avatar">
+                <img src="https://ui-avatars.com/api/?name=John+Doe&background=3b82f6&color=fff" alt="Profile" id="profileAvatar">
+                <button class="avatar-edit" data-action="edit-avatar">
+                    <i class="fas fa-camera"></i>
+                </button>
+            </div>
+            <div class="profile-info">
+                <h2 id="profileName">John Doe</h2>
+                <p class="profile-title" id="profileTitle">Student Researcher</p>
+                <p class="profile-institution" id="profileInstitution">
+                    <i class="fas fa-university"></i> Massachusetts Institute of Technology
+                </p>
+                <div class="profile-badges">
+                    <span class="badge"><i class="fas fa-star"></i> Premium Member</span>
+                    <span class="badge"><i class="fas fa-medal"></i> Top Contributor</span>
+                    <span class="badge"><i class="fas fa-bolt"></i> Active Researcher</span>
+                </div>
+            </div>
+            <div class="profile-actions">
+                <button class="btn btn-primary" data-action="edit-profile">
+                    <i class="fas fa-edit"></i> Edit Profile
+                </button>
+                <button class="btn btn-outline" data-action="share-profile">
+                    <i class="fas fa-share"></i> Share Profile
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="fas fa-user-circle"></i> About Me</h3>
+                    <button class="btn btn-text" data-action="edit-about">Edit</button>
+                </div>
+                <div class="profile-about" id="profileAbout">
+                    <p>Passionate about quantum computing and machine learning research. Currently working on quantum algorithms for optimization problems at MIT's Computer Science Department.</p>
+                    <div class="about-details">
+                        <div class="detail-item">
+                            <i class="fas fa-graduation-cap"></i>
+                            <div>
+                                <strong>Education</strong>
+                                <p>PhD Candidate in Computer Science, MIT (2022-Present)</p>
+                                <p>MSc in Computer Science, Stanford University (2020-2022)</p>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-briefcase"></i>
+                            <div>
+                                <strong>Research Focus</strong>
+                                <p>Quantum Computing, Machine Learning, Algorithms, AI Ethics</p>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <div>
+                                <strong>Location</strong>
+                                <p>Cambridge, Massachusetts, United States</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="fas fa-chart-bar"></i> Research Statistics</h3>
+                    <select class="filter-select">
+                        <option value="month">This Month</option>
+                        <option value="quarter">This Quarter</option>
+                        <option value="year">This Year</option>
+                        <option value="all">All Time</option>
+                    </select>
+                </div>
+                <div class="research-stats">
+                    <div class="stat-charts">
+                        <canvas id="documentsChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="stat-breakdown">
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Documents Added</span>
+                            <span class="breakdown-value">45</span>
+                            <div class="breakdown-bar" style="width: 90%"></div>
+                        </div>
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Categories Created</span>
+                            <span class="breakdown-value">12</span>
+                            <div class="breakdown-bar" style="width: 60%"></div>
+                        </div>
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Discussions Started</span>
+                            <span class="breakdown-value">8</span>
+                            <div class="breakdown-bar" style="width: 40%"></div>
+                        </div>
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Friends Added</span>
+                            <span class="breakdown-value">23</span>
+                            <div class="breakdown-bar" style="width: 70%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="fas fa-cog"></i> Account Settings</h3>
+                </div>
+                <div class="settings-list">
+                    <button class="setting-item" data-action="privacy-settings">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Privacy & Security</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <button class="setting-item" data-action="notification-settings">
+                        <i class="fas fa-bell"></i>
+                        <span>Notifications</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <button class="setting-item" data-action="appearance-settings">
+                        <i class="fas fa-palette"></i>
+                        <span>Appearance</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <button class="setting-item" data-action="data-settings">
+                        <i class="fas fa-database"></i>
+                        <span>Data Management</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <button class="setting-item" data-action="subscription-settings">
+                        <i class="fas fa-crown"></i>
+                        <span>Subscription</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <button class="setting-item" data-action="help-support">
+                        <i class="fas fa-question-circle"></i>
+                        <span>Help & Support</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-header">
+                    <h3><i class="fas fa-trophy"></i> Achievements</h3>
+                </div>
+                <div class="achievements-grid">
+                    <div class="achievement">
+                        <div class="achievement-icon gold">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="achievement-info">
+                            <h5>Research Pioneer</h5>
+                            <p>Added 100+ documents</p>
+                        </div>
+                    </div>
+                    <div class="achievement">
+                        <div class="achievement-icon silver">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="achievement-info">
+                            <h5>Social Scholar</h5>
+                            <p>Connected with 20+ friends</p>
+                        </div>
+                    </div>
+                    <div class="achievement">
+                        <div class="achievement-icon bronze">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <div class="achievement-info">
+                            <h5>Discussion Leader</h5>
+                            <p>Started 10+ discussions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

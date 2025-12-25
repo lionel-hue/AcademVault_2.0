@@ -1,0 +1,62 @@
+<div class="content-section">
+    <div class="page-header">
+        <div class="header-content">
+            <h2><i class="fas fa-folder"></i> Categories</h2>
+            <p>Organize your research materials by topic</p>
+        </div>
+        <button class="btn btn-primary" data-action="create-category">
+            <i class="fas fa-plus"></i> New Category
+        </button>
+    </div>
+
+    <div class="search-bar with-filters">
+        <div class="search-input-group">
+            <i class="fas fa-search"></i>
+            <input type="text" id="categorySearch" placeholder="Search categories...">
+        </div>
+        <div class="filter-options">
+            <select id="sortCategories" class="filter-select">
+                <option value="name">Sort by Name</option>
+                <option value="date">Sort by Date</option>
+                <option value="documents">Sort by Documents</option>
+                <option value="priority">Sort by Priority</option>
+            </select>
+            <button class="btn btn-text" data-action="toggle-view">
+                <i class="fas fa-th"></i> Grid View
+            </button>
+        </div>
+    </div>
+
+    <div class="categories-container">
+        <div class="categories-grid" id="categoriesGrid">
+            <!-- Categories will be loaded here -->
+        </div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-header">
+            <h3><i class="fas fa-tags"></i> Tag Management</h3>
+            <button class="btn btn-secondary" data-action="add-tag">
+                <i class="fas fa-plus"></i> Add Tag
+            </button>
+        </div>
+        <div class="tag-management">
+            <div class="tag-input-group">
+                <input type="text" id="newTagInput" placeholder="Enter new tag name...">
+                <select id="tagColorSelect" class="color-select">
+                    <option value="#3b82f6">Blue</option>
+                    <option value="#10b981">Green</option>
+                    <option value="#8b5cf6">Purple</option>
+                    <option value="#f59e0b">Orange</option>
+                    <option value="#ef4444">Red</option>
+                    <option value="#06b6d4">Cyan</option>
+                    <option value="#8b5cf6">Violet</option>
+                </select>
+                <button class="btn btn-primary" data-action="create-tag">Add</button>
+            </div>
+            <div class="tag-list" id="allTagsList">
+                <!-- All tags will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
