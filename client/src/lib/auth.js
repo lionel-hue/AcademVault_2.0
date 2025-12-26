@@ -34,12 +34,14 @@ class AuthService {
     setAuthData(token, user) {
         this.token = token;
         this.user = user;
-        
+
         if (typeof window !== 'undefined') {
+            // Store in localStorage for client-side access
             localStorage.setItem('academvault_token', token);
             localStorage.setItem('academvault_user', JSON.stringify(user));
-            localStorage.setItem('academvault_token_expiry', 
-                new Date(Date.now() + 3600 * 1000).toISOString()); // 1 hour expiry
+
+            // Also set cookie for server-side middleware access
+            document.cookie = `academvault_token=${token}; path=/; max-age=3600; SameSite=Strict`;
         }
     }
 
@@ -47,11 +49,13 @@ class AuthService {
     clearAuthData() {
         this.token = null;
         this.user = null;
-        
+
         if (typeof window !== 'undefined') {
             localStorage.removeItem('academvault_token');
             localStorage.removeItem('academvault_user');
-            localStorage.removeItem('academvault_token_expiry');
+
+            // Clear cookie
+            document.cookie = 'academvault_token=; path=/; max-age=0';
         }
     }
 
@@ -60,15 +64,15 @@ class AuthService {
         if (typeof window !== 'undefined') {
             const token = localStorage.getItem('academvault_token');
             const expiry = localStorage.getItem('academvault_token_expiry');
-            
+
             if (!token || !expiry) return false;
-            
+
             // Check if token is expired
             if (new Date() > new Date(expiry)) {
                 this.clearAuthData();
                 return false;
             }
-            
+
             return true;
         }
         return false;
@@ -89,7 +93,7 @@ class AuthService {
             });
 
             const data = await response.json();
-            
+
             if (!response.ok) {
                 throw new Error(data.message || 'Failed to send verification code');
             }
@@ -118,7 +122,7 @@ class AuthService {
             });
 
             const data = await response.json();
-            
+
             if (!response.ok) {
                 throw new Error(data.message || 'Invalid verification code');
             }
@@ -146,7 +150,7 @@ class AuthService {
             });
 
             const data = await response.json();
-            
+
             if (!response.ok) {
                 throw new Error(data.message || 'Registration failed');
             }
@@ -171,18 +175,33 @@ class AuthService {
     }
 
     // Login
+    // client/src/lib/auth.js - Update login method
     async login(email, password) {
         try {
             const response = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',
-                headers: this.getHeaders(),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
                 body: JSON.stringify({ email, password })
             });
 
             const data = await response.json();
-            
+
             if (!response.ok) {
-                throw new Error(data.message || 'Invalid credentials');
+                // Handle specific error cases
+                if (data.message?.includes('verify your email')) {
+                    throw new Error('Please verify your email before logging in. Check your inbox.');
+                }
+                if (response.status === 401) {
+                    throw new Error('Invalid email or password');
+                }
+                if (response.status === 422) {
+                    const errors = Object.values(data.errors || {}).flat();
+                    throw new Error(errors[0] || 'Validation error');
+                }
+                throw new Error(data.message || 'Login failed');
             }
 
             // Store token and user data
@@ -197,10 +216,8 @@ class AuthService {
             };
 
         } catch (error) {
-            throw {
-                success: false,
-                message: error.message || 'Invalid credentials'
-            };
+            console.error('Login error:', error);
+            throw error; // Re-throw to be caught by the login page
         }
     }
 
@@ -233,7 +250,7 @@ class AuthService {
             });
 
             const data = await response.json();
-            
+
             if (!response.ok) {
                 throw new Error(data.message || 'Failed to fetch user data');
             }
@@ -266,7 +283,7 @@ class AuthService {
             });
 
             const data = await response.json();
-            
+
             if (!response.ok) {
                 throw new Error(data.message || 'Failed to refresh token');
             }
@@ -274,7 +291,7 @@ class AuthService {
             if (data.data && data.data.token) {
                 this.token = data.data.token;
                 localStorage.setItem('academvault_token', data.data.token);
-                localStorage.setItem('academvault_token_expiry', 
+                localStorage.setItem('academvault_token_expiry',
                     new Date(Date.now() + 3600 * 1000).toISOString());
                 return true;
             }
@@ -297,7 +314,7 @@ class AuthService {
             });
 
             const data = await response.json();
-            
+
             if (!response.ok) {
                 throw new Error(data.message || 'Failed to check email');
             }
