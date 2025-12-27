@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DashboardController;
 
 Route::prefix('auth')->group(function () {
     // Public routes
@@ -11,7 +12,7 @@ Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
     Route::post('check-email', [AuthController::class, 'checkEmail']); // ← ADD THIS LINE
     Route::post('resend-verification', [AuthController::class, 'resendVerificationCode']);
-    
+
     // Protected routes
     Route::middleware('auth:api')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
@@ -49,4 +50,17 @@ Route::get('/', function () {
             ]
         ]
     ]);
+});
+
+
+// Dashboard routes (protected)
+Route::middleware('auth:api')->group(function () {
+    Route::prefix('dashboard')->group(function () {
+        Route::get('stats', [DashboardController::class, 'stats']);
+        Route::get('activities', [DashboardController::class, 'recentActivities']);
+        Route::get('recent-documents', [DashboardController::class, 'recentDocuments']);
+        Route::get('favorites', [DashboardController::class, 'favoriteDocuments']);
+        Route::get('notifications', [DashboardController::class, 'notifications']);
+        Route::get('search-history', [DashboardController::class, 'searchHistory']);
+    });
 });
