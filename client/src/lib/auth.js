@@ -1,4 +1,4 @@
-// client/src/lib/auth.js - UPDATED FOR REAL BACKEND
+// client/src/lib/auth.js - UPDATED WITH DASHBOARD API CALLS
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 class AuthService {
@@ -82,6 +82,72 @@ class AuthService {
     getCurrentUser() {
         return this.user;
     }
+
+    // ============= DASHBOARD API METHODS =============
+    async fetchDashboardStats() {
+        return this.makeRequest('/dashboard/stats');
+    }
+
+    async fetchRecentActivities() {
+        return this.makeRequest('/dashboard/activities');
+    }
+
+    async fetchRecentDocuments() {
+        return this.makeRequest('/dashboard/recent-documents');
+    }
+
+    async fetchFavoriteDocuments() {
+        return this.makeRequest('/dashboard/favorites');
+    }
+
+    async fetchNotifications() {
+        return this.makeRequest('/dashboard/notifications');
+    }
+
+    async fetchSearchHistory() {
+        return this.makeRequest('/dashboard/search-history');
+    }
+
+    // Generic request method for dashboard
+    async makeRequest(endpoint, options = {}) {
+        const token = this.getToken();
+        
+        const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...options.headers,
+        };
+
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`${API_URL}${endpoint}`, {
+            ...options,
+            headers,
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                this.clearAuthData();
+                window.location.href = '/login';
+                throw new Error('Session expired. Please login again.');
+            }
+            
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.message || `API request failed: ${response.status}`);
+        }
+
+        return response.json();
+    }
+
+    getToken() {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('academvault_token');
+        }
+        return this.token;
+    }
+    // ============= END DASHBOARD API METHODS =============
 
     // Send verification code
     async sendVerificationCode(email) {
@@ -175,7 +241,6 @@ class AuthService {
     }
 
     // Login
-    // client/src/lib/auth.js - Update login method
     async login(email, password) {
         try {
             const response = await fetch(`${API_URL}/auth/login`, {
@@ -217,7 +282,7 @@ class AuthService {
 
         } catch (error) {
             console.error('Login error:', error);
-            throw error; // Re-throw to be caught by the login page
+            throw error;
         }
     }
 
