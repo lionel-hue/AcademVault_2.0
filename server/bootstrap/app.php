@@ -15,8 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Remove throttle or increase limit for API
         $middleware->api([
-            \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
+            // Comment out or increase the throttle for development
+            // \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ]);
         
