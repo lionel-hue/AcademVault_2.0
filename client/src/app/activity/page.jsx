@@ -1,4 +1,4 @@
-// Example: ./client/src/app/documents/page.jsx
+// Example: ./client/src/app/activity/page.jsx
 export default function ActivityPage() {
     return (
         <div>
