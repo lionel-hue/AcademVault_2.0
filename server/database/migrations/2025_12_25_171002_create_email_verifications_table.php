@@ -1,31 +1,33 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+namespace App\Models;
 
-return new class extends Migration
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class EmailVerification extends Model
 {
-    public function up(): void
-    {
-        Schema::create('email_verifications', function (Blueprint $table) {
-            $table->id();
-            $table->string('email');
-            $table->string('code', 6);
-            $table->enum('type', ['signup', 'reset', 'change'])->default('signup');
-            $table->timestamp('expires_at');
-            $table->timestamp('verified_at')->nullable();
-            $table->timestamps();
-            
-            // Indexes for faster queries
-            $table->index(['email', 'code']);
-            $table->index(['email', 'type', 'expires_at']);
-            $table->index('expires_at');
-        });
-    }
+    use HasFactory;
 
-    public function down(): void
+    protected $fillable = [
+        'email',
+        'code',
+        'type',
+        'expires_at',
+        'verified_at'  // NOT used_at
+    ];
+
+    protected $casts = [
+        'expires_at' => 'datetime',
+        'verified_at' => 'datetime'  // NOT used_at
+    ];
+
+    /**
+     * Scope for valid verification codes (not used/verified yet)
+     */
+    public function scopeValid($query)
     {
-        Schema::dropIfExists('email_verifications');
+        return $query->where('expires_at', '>', now())
+                     ->whereNull('verified_at');
     }
-};
+}
