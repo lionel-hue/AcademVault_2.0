@@ -1,6 +1,5 @@
 <?php
 // server/database/seeders/DatabaseSeeder.php
-
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
@@ -23,6 +22,7 @@ class DatabaseSeeder extends Seeder
         DB::table('notifications')->truncate();
         DB::table('friendships')->truncate();
         DB::table('discussions')->truncate();
+        DB::table('collection_document')->truncate(); // Add this line
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         // Create main user
@@ -130,21 +130,36 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // Add documents to collections
+        // Add documents to collections - FIXED: Use unique documents for each collection
+        $usedDocumentPairs = []; // Track used (collection_id, document_id) pairs
+        
         foreach ($collectionIds as $collectionId) {
             $docCount = rand(2, 5);
-            $selectedDocs = array_rand($documentIds, min($docCount, count($documentIds)));
-            if (!is_array($selectedDocs)) {
-                $selectedDocs = [$selectedDocs];
-            }
-            foreach ($selectedDocs as $docIndex) {
-                DB::table('collection_document')->insert([
-                    'collection_id' => $collectionId,
-                    'document_id' => $documentIds[$docIndex],
-                    'added_at' => now()->subDays(rand(0, 30)),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+            $availableDocs = array_values(array_diff($documentIds, 
+                array_keys(array_filter($usedDocumentPairs, function($docId) use ($collectionId) {
+                    return $docId === $collectionId;
+                }, ARRAY_FILTER_USE_KEY))
+            ));
+            
+            $selectedDocs = [];
+            if (count($availableDocs) > 0) {
+                shuffle($availableDocs);
+                $selectedDocs = array_slice($availableDocs, 0, min($docCount, count($availableDocs)));
+                
+                foreach ($selectedDocs as $docId) {
+                    // Check if this pair already exists
+                    $pairKey = "{$collectionId}-{$docId}";
+                    if (!in_array($pairKey, $usedDocumentPairs)) {
+                        DB::table('collection_document')->insert([
+                            'collection_id' => $collectionId,
+                            'document_id' => $docId,
+                            'added_at' => now()->subDays(rand(0, 30)),
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                        $usedDocumentPairs[] = $pairKey;
+                    }
+                }
             }
         }
 
