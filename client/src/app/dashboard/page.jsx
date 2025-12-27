@@ -1,4 +1,4 @@
-// client/src/app/dashboard/page.jsx
+// client/src/app/dashboard/page.jsx - FIXED WITH CONTENT
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -22,26 +22,36 @@ export default function DashboardPage() {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                if (!AuthService.isLoggedIn()) {
-                    await alert({
-                        title: 'Session Expired',
-                        message: 'Please login to continue',
-                        variant: 'warning'
-                    });
-                    router.push('/login');
-                    return;
+                // Wait a bit to ensure auth data is persisted
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                const loggedIn = AuthService.isLoggedIn();
+                
+                if (!loggedIn) {
+                    // Double-check by looking directly at localStorage
+                    const token = localStorage.getItem('academvault_token');
+                    const userStr = localStorage.getItem('academvault_user');
+                    
+                    if (token && userStr) {
+                        // Auth data exists, but isLoggedIn() failed - update AuthService
+                        AuthService.token = token;
+                        AuthService.user = JSON.parse(userStr);
+                        console.log('Auth data restored from localStorage');
+                    } else {
+                        await alert({
+                            title: 'Session Expired',
+                            message: 'Please login to continue',
+                            variant: 'warning'
+                        });
+                        router.push('/login');
+                        return;
+                    }
                 }
 
                 const currentUser = AuthService.getCurrentUser();
                 setUser(currentUser);
 
-                // Optional: Fetch fresh user data
-                // const result = await AuthService.getMe();
-                // if (result.success) {
-                //     setUser(result.data);
-                // }
-
-                // Simulate loading stats (replace with real API call)
+                // Simulate loading stats
                 setTimeout(() => {
                     setStats({
                         documents: 12,
@@ -50,7 +60,7 @@ export default function DashboardPage() {
                         storage: '245 MB'
                     });
                     setLoading(false);
-                }, 1000);
+                }, 500);
 
             } catch (error) {
                 console.error('Dashboard error:', error);

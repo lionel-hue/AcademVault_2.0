@@ -48,9 +48,12 @@ class AuthController extends Controller
 
         // Generate 6-digit code
         $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        
+
         // Delete any existing verification codes for this email
-        EmailVerification::where('email', $email)->delete();
+        EmailVerification::where('email', $email)
+            ->where('type', 'signup')
+            ->whereNull('verified_at')
+            ->delete();
 
         // Create new verification record
         $verification = EmailVerification::create([
@@ -63,7 +66,7 @@ class AuthController extends Controller
         try {
             // Send verification email
             Mail::to($email)->send(new VerificationEmail($email, $code));
-            
+
             // In development, return the code for testing
             if (app()->environment('local')) {
                 return response()->json([
@@ -80,11 +83,10 @@ class AuthController extends Controller
                 'success' => true,
                 'message' => 'Verification code sent successfully'
             ]);
-
         } catch (\Exception $e) {
             // Log error but don't expose details to client
             Log::error('Email sending failed: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to send verification email. Please try again.'
@@ -114,6 +116,7 @@ class AuthController extends Controller
             ->where('code', $request->code)
             ->where('type', 'signup')
             ->where('expires_at', '>', Carbon::now())
+            ->whereNull('verified_at')
             ->first();
 
         if (!$verification) {
@@ -124,7 +127,7 @@ class AuthController extends Controller
         }
 
         // Mark as used
-        $verification->update(['used_at' => Carbon::now()]);
+        $verification->update(['verified_at' => Carbon::now()]);
 
         return response()->json([
             'success' => true,
@@ -188,7 +191,7 @@ class AuthController extends Controller
         // Verify that email was verified
         $verification = EmailVerification::where('email', $request->email)
             ->where('type', 'signup')
-            ->whereNotNull('used_at')
+            ->whereNotNull('verified_at')
             ->first();
 
         if (!$verification) {
@@ -198,14 +201,14 @@ class AuthController extends Controller
             ], 400);
         }
 
-        // Create user
+        // Create user with the verification timestamp
         $user = User::create([
             'name' => $request->name,
             'type' => $request->type,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'registration_date' => $request->registration_date,
-            'email_verified_at' => now(), // Mark email as verified
+            'email_verified_at' => $verification->verified_at, // Use verification timestamp
             'institution' => $request->institution,
             'department' => $request->department,
             'phone' => $request->phone,
@@ -323,7 +326,7 @@ class AuthController extends Controller
     {
         try {
             JWTAuth::logout();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Successfully logged out'
@@ -343,7 +346,7 @@ class AuthController extends Controller
     {
         try {
             $user = JWTAuth::user();
-            
+
             if (!$user) {
                 return response()->json([
                     'success' => false,
@@ -383,7 +386,7 @@ class AuthController extends Controller
     {
         try {
             $token = JWTAuth::refresh();
-            
+
             return response()->json([
                 'success' => true,
                 'data' => [
