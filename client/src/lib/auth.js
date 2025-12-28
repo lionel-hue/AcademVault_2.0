@@ -1,4 +1,4 @@
-// client/src/lib/auth.js - UPDATED WITH DASHBOARD API CALLS
+// client/src/lib/auth.js - FINAL WORKING VERSION
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 class AuthService {
@@ -23,25 +23,39 @@ class AuthService {
             'Accept': 'application/json'
         };
 
-        if (this.token) {
-            headers['Authorization'] = `Bearer ${this.token}`;
+        const token = this.getToken();
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
         }
 
         return headers;
     }
 
-    // Store auth data
-    setAuthData(token, user) {
+    // Store auth data - FIXED: Properly sets expiry
+    setAuthData(token, user, expires_in = 3600) {
         this.token = token;
         this.user = user;
 
         if (typeof window !== 'undefined') {
-            // Store in localStorage for client-side access
+            console.log('🟢 Setting auth data:', { 
+                token: token.substring(0, 20) + '...',
+                email: user?.email,
+                expires_in 
+            });
+            
+            // Store in localStorage
             localStorage.setItem('academvault_token', token);
             localStorage.setItem('academvault_user', JSON.stringify(user));
+            
+            // Use the expires_in from server (in seconds)
+            const expiry = new Date();
+            expiry.setSeconds(expiry.getSeconds() + expires_in);
+            localStorage.setItem('academvault_token_expiry', expiry.toISOString());
 
-            // Also set cookie for server-side middleware access
-            document.cookie = `academvault_token=${token}; path=/; max-age=3600; SameSite=Strict`;
+            console.log('✅ Token stored with expiry:', expiry.toISOString());
+            
+            // Set cookie
+            document.cookie = `academvault_token=${token}; path=/; max-age=${expires_in}; SameSite=Strict`;
         }
     }
 
@@ -51,29 +65,21 @@ class AuthService {
         this.user = null;
 
         if (typeof window !== 'undefined') {
+            console.log('🔴 Clearing auth data');
             localStorage.removeItem('academvault_token');
             localStorage.removeItem('academvault_user');
-
-            // Clear cookie
+            localStorage.removeItem('academvault_token_expiry');
+            
             document.cookie = 'academvault_token=; path=/; max-age=0';
         }
     }
 
-    // Check if logged in
+    // Check if logged in - SIMPLIFIED: Just check token exists
     isLoggedIn() {
         if (typeof window !== 'undefined') {
             const token = localStorage.getItem('academvault_token');
-            const expiry = localStorage.getItem('academvault_token_expiry');
-
-            if (!token || !expiry) return false;
-
-            // Check if token is expired
-            if (new Date() > new Date(expiry)) {
-                this.clearAuthData();
-                return false;
-            }
-
-            return true;
+            console.log('🔑 isLoggedIn check - Token exists:', !!token);
+            return !!token; // Just check if token exists
         }
         return false;
     }
@@ -81,6 +87,14 @@ class AuthService {
     // Get current user
     getCurrentUser() {
         return this.user;
+    }
+
+    // Get token safely
+    getToken() {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('academvault_token');
+        }
+        return this.token;
     }
 
     // ============= DASHBOARD API METHODS =============
@@ -108,48 +122,62 @@ class AuthService {
         return this.makeRequest('/dashboard/search-history');
     }
 
-    // Generic request method for dashboard
+    // Generic request method - SIMPLIFIED
     async makeRequest(endpoint, options = {}) {
         const token = this.getToken();
         
+        if (!token) {
+            console.error('❌ No token for request:', endpoint);
+            this.clearAuthData();
+            window.location.href = '/login';
+            throw new Error('No authentication token');
+        }
+
         const headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`,
             ...options.headers,
         };
 
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
+        console.log('🌐 Making request to:', endpoint);
 
-        const response = await fetch(`${API_URL}${endpoint}`, {
-            ...options,
-            headers,
-        });
+        try {
+            const response = await fetch(`${API_URL}${endpoint}`, {
+                ...options,
+                headers,
+            });
 
-        if (!response.ok) {
+            console.log('📡 Response status:', response.status, 'for:', endpoint);
+
             if (response.status === 401) {
+                console.log('🔐 401 Unauthorized - Token expired');
                 this.clearAuthData();
                 window.location.href = '/login';
-                throw new Error('Session expired. Please login again.');
+                throw new Error('Session expired');
+            }
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.log('❌ Error response:', errorText);
+                throw new Error(`API error: ${response.status}`);
+            }
+
+            return response.json();
+            
+        } catch (error) {
+            console.error(`💥 API Error (${endpoint}):`, error.message);
+            
+            if (error.message.includes('Session expired') || error.message.includes('No authentication')) {
+                this.clearAuthData();
+                window.location.href = '/login';
             }
             
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.message || `API request failed: ${response.status}`);
+            throw error;
         }
-
-        return response.json();
     }
 
-    getToken() {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('academvault_token');
-        }
-        return this.token;
-    }
-    // ============= END DASHBOARD API METHODS =============
-
-    // Send verification code
+    // ============= AUTH METHODS =============
     async sendVerificationCode(email) {
         try {
             const response = await fetch(`${API_URL}/auth/send-verification`, {
@@ -178,7 +206,6 @@ class AuthService {
         }
     }
 
-    // Verify email with code
     async verifyEmail(email, code) {
         try {
             const response = await fetch(`${API_URL}/auth/verify-email`, {
@@ -206,7 +233,6 @@ class AuthService {
         }
     }
 
-    // Register user
     async register(userData) {
         try {
             const response = await fetch(`${API_URL}/auth/register`, {
@@ -221,9 +247,8 @@ class AuthService {
                 throw new Error(data.message || 'Registration failed');
             }
 
-            // Store token and user data
             if (data.data && data.data.token) {
-                this.setAuthData(data.data.token, data.data.user);
+                this.setAuthData(data.data.token, data.data.user, data.data.expires_in);
             }
 
             return {
@@ -240,9 +265,10 @@ class AuthService {
         }
     }
 
-    // Login
     async login(email, password) {
         try {
+            console.log('🔑 Attempting login for:', email);
+
             const response = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',
                 headers: {
@@ -253,11 +279,11 @@ class AuthService {
             });
 
             const data = await response.json();
+            console.log('📨 Login response:', data);
 
             if (!response.ok) {
-                // Handle specific error cases
                 if (data.message?.includes('verify your email')) {
-                    throw new Error('Please verify your email before logging in. Check your inbox.');
+                    throw new Error('Please verify your email before logging in');
                 }
                 if (response.status === 401) {
                     throw new Error('Invalid email or password');
@@ -269,9 +295,12 @@ class AuthService {
                 throw new Error(data.message || 'Login failed');
             }
 
-            // Store token and user data
             if (data.data && data.data.token) {
-                this.setAuthData(data.data.token, data.data.user);
+                this.setAuthData(data.data.token, data.data.user, data.data.expires_in);
+                console.log('✅ Login successful!');
+            } else {
+                console.error('❌ No token in login response');
+                throw new Error('Login failed - no token received');
             }
 
             return {
@@ -281,15 +310,15 @@ class AuthService {
             };
 
         } catch (error) {
-            console.error('Login error:', error);
+            console.error('💥 Login error:', error);
             throw error;
         }
     }
 
-    // Logout
     async logout() {
         try {
-            if (this.token) {
+            const token = this.getToken();
+            if (token) {
                 await fetch(`${API_URL}/auth/logout`, {
                     method: 'POST',
                     headers: this.getHeaders()
@@ -302,10 +331,10 @@ class AuthService {
         }
     }
 
-    // Get current user from API
     async getMe() {
         try {
-            if (!this.token) {
+            const token = this.getToken();
+            if (!token) {
                 throw new Error('No authentication token');
             }
 
@@ -320,7 +349,6 @@ class AuthService {
                 throw new Error(data.message || 'Failed to fetch user data');
             }
 
-            // Update user data
             if (data.data) {
                 this.user = data.data;
                 localStorage.setItem('academvault_user', JSON.stringify(data.data));
@@ -339,7 +367,6 @@ class AuthService {
         }
     }
 
-    // Refresh token
     async refreshToken() {
         try {
             const response = await fetch(`${API_URL}/auth/refresh`, {
@@ -369,7 +396,6 @@ class AuthService {
         }
     }
 
-    // Check if email exists
     async checkEmail(email) {
         try {
             const response = await fetch(`${API_URL}/auth/check-email`, {
