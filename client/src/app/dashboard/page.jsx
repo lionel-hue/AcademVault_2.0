@@ -13,13 +13,6 @@ export default function DashboardPage() {
     const { alert } = useModal();
     const [user, setUser] = useState(null);
 
-    // ADD THIS DEBUG LOGGING
-    console.log('=== DASHBOARD LOADING ===');
-    console.log('Token exists:', !!localStorage.getItem('academvault_token'));
-    console.log('Token value:', localStorage.getItem('academvault_token')?.substring(0, 30) + '...');
-    console.log('User from localStorage:', localStorage.getItem('academvault_user'));
-    console.log('AuthService.isLoggedIn():', AuthService.isLoggedIn());
-
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState(null);
     const [activities, setActivities] = useState([]);
