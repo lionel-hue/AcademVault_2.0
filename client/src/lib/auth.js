@@ -37,23 +37,23 @@ class AuthService {
         this.user = user;
 
         if (typeof window !== 'undefined') {
-            console.log('🟢 Setting auth data:', { 
+            console.log('🟢 Setting auth data:', {
                 token: token.substring(0, 20) + '...',
                 email: user?.email,
-                expires_in 
+                expires_in
             });
-            
+
             // Store in localStorage
             localStorage.setItem('academvault_token', token);
             localStorage.setItem('academvault_user', JSON.stringify(user));
-            
+
             // Use the expires_in from server (in seconds)
             const expiry = new Date();
             expiry.setSeconds(expiry.getSeconds() + expires_in);
             localStorage.setItem('academvault_token_expiry', expiry.toISOString());
 
             console.log('✅ Token stored with expiry:', expiry.toISOString());
-            
+
             // Set cookie
             document.cookie = `academvault_token=${token}; path=/; max-age=${expires_in}; SameSite=Strict`;
         }
@@ -69,7 +69,7 @@ class AuthService {
             localStorage.removeItem('academvault_token');
             localStorage.removeItem('academvault_user');
             localStorage.removeItem('academvault_token_expiry');
-            
+
             document.cookie = 'academvault_token=; path=/; max-age=0';
         }
     }
@@ -125,7 +125,7 @@ class AuthService {
     // Generic request method - SIMPLIFIED
     async makeRequest(endpoint, options = {}) {
         const token = this.getToken();
-        
+
         if (!token) {
             console.error('❌ No token for request:', endpoint);
             this.clearAuthData();
@@ -164,15 +164,15 @@ class AuthService {
             }
 
             return response.json();
-            
+
         } catch (error) {
             console.error(`💥 API Error (${endpoint}):`, error.message);
-            
+
             if (error.message.includes('Session expired') || error.message.includes('No authentication')) {
                 this.clearAuthData();
                 window.location.href = '/login';
             }
-            
+
             throw error;
         }
     }
@@ -420,6 +420,106 @@ class AuthService {
                 success: false,
                 message: error.message || 'Failed to check email'
             };
+        }
+    }
+
+    // client/src/lib/auth.js - ADD THESE METHODS AT THE END OF THE CLASS
+
+    // ============= SEARCH METHODS =============
+    async search(params) {
+        try {
+            const token = this.getToken();
+
+            if (!token) {
+                throw new Error('No authentication token');
+            }
+
+            const response = await fetch(`${API_URL}/search`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(params)
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    this.clearAuthData();
+                    window.location.href = '/login';
+                    throw new Error('Session expired');
+                }
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Search failed');
+            }
+
+            return await response.json();
+
+        } catch (error) {
+            console.error('Search error:', error);
+            throw error;
+        }
+    }
+
+    async getSearchHistory() {
+        try {
+            const response = await this.makeRequest('/search/history');
+            return response;
+        } catch (error) {
+            console.error('Error fetching search history:', error);
+            throw error;
+        }
+    }
+
+    async clearSearchHistory() {
+        try {
+            const token = this.getToken();
+
+            const response = await fetch(`${API_URL}/search/history`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to clear search history');
+            }
+
+            return await response.json();
+
+        } catch (error) {
+            console.error('Error clearing search history:', error);
+            throw error;
+        }
+    }
+
+    async saveSearchResult(data) {
+        try {
+            const token = this.getToken();
+
+            const response = await fetch(`${API_URL}/search/save`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to save search result');
+            }
+
+            return await response.json();
+
+        } catch (error) {
+            console.error('Error saving search result:', error);
+            throw error;
         }
     }
 }

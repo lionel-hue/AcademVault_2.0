@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\SearchController;
 
 Route::prefix('auth')->group(function () {
     // Public routes
@@ -18,6 +19,15 @@ Route::prefix('auth')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::post('refresh', [AuthController::class, 'refresh']);
         Route::get('me', [AuthController::class, 'me']);
+    });
+
+
+    // routes/api.php - Add these routes inside the auth:api middleware group
+    Route::middleware('auth:api')->prefix('search')->group(function () {
+        Route::post('/', [SearchController::class, 'search']);
+        Route::get('/history', [SearchController::class, 'searchHistory']);
+        Route::delete('/history', [SearchController::class, 'clearSearchHistory']);
+        Route::post('/save', [SearchController::class, 'saveResult']);
     });
 });
 

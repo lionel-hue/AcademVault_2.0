@@ -73,7 +73,7 @@ class DashboardController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Dashboard stats error: ' . $e->getMessage());
-            
+
             // Return safe default values
             return response()->json([
                 'success' => true,
@@ -110,7 +110,7 @@ class DashboardController extends Controller
                 ->orderBy('history.created_at', 'desc')
                 ->limit(5)
                 ->get()
-                ->map(function($item) {
+                ->map(function ($item) {
                     return [
                         'id' => $item->id,
                         'action' => $item->action,
@@ -126,7 +126,7 @@ class DashboardController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Recent activities error: ' . $e->getMessage());
-            
+
             // Return sample activities
             return response()->json([
                 'success' => true,
@@ -172,7 +172,7 @@ class DashboardController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Recent documents error: ' . $e->getMessage());
-            
+
             // Return sample documents
             return response()->json([
                 'success' => true,
@@ -226,7 +226,7 @@ class DashboardController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Favorite documents error: ' . $e->getMessage());
-            
+
             // Return sample favorites
             return response()->json([
                 'success' => true,
@@ -255,7 +255,7 @@ class DashboardController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Notifications error: ' . $e->getMessage());
-            
+
             // Return empty notifications
             return response()->json([
                 'success' => true,
@@ -264,22 +264,33 @@ class DashboardController extends Controller
         }
     }
 
+    // In DashboardController.php - Update searchHistory method
     public function searchHistory(Request $request)
     {
+        $user = Auth::user();
+
         try {
-            // Return sample search history for now
+            // Use the new search_history table
+            $searchHistory = DB::table('search_history')
+                ->where('user_id', $user->id)
+                ->select('query', 'created_at')
+                ->orderBy('created_at', 'desc')
+                ->limit(20)
+                ->get()
+                ->map(function ($item) {
+                    return $item->query;
+                })
+                ->unique() // Remove duplicates
+                ->values()
+                ->toArray();
+
             return response()->json([
                 'success' => true,
-                'search_history' => [
-                    'machine learning',
-                    'artificial intelligence',
-                    'data science',
-                    'quantum computing'
-                ]
+                'search_history' => $searchHistory
             ]);
         } catch (\Exception $e) {
             Log::error('Search history error: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => true,
                 'search_history' => []
