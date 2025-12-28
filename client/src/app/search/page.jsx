@@ -22,7 +22,7 @@ export default function SearchPage() {
     const [searchType, setSearchType] = useState(initialType);
     const [searchHistory, setSearchHistory] = useState([]);
 
-    useEffect(() => {
+    useEffect(() => {   
         loadSearchHistory();
 
         if (initialQuery) {
