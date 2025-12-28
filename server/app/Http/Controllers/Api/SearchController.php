@@ -89,7 +89,8 @@ class SearchController extends Controller
             }
 
             try {
-                $youtubeResponse = Http::timeout(10)->get('https://www.googleapis.com/youtube/v3/search', [
+                /** @var \Illuminate\Http\Client\Response $response */
+                $response = Http::timeout(10)->get('https://www.googleapis.com/youtube/v3/search', [
                     'part' => 'snippet',
                     'q' => $query . ' tutorial lecture',
                     'type' => 'video',
@@ -101,8 +102,10 @@ class SearchController extends Controller
                     'order' => 'relevance'
                 ]);
 
-                if ($youtubeResponse->success()) {
-                    $items = $youtubeResponse->json()['items'] ?? [];
+                // CORRECTED: Use the right method to check response
+                if ($response->successful()) {  // This is the correct method
+                    $data = $response->json();
+                    $items = $data['items'] ?? [];
                     
                     return array_map(function ($item) {
                         return [
@@ -148,7 +151,8 @@ class SearchController extends Controller
     private function searchArXiv($query, $limit)
     {
         try {
-            $arxivResponse = Http::timeout(10)->get('http://export.arxiv.org/api/query', [
+            /** @var \Illuminate\Http\Client\Response $response */
+            $response = Http::timeout(10)->get('http://export.arxiv.org/api/query', [
                 'search_query' => 'all:' . urlencode($query),
                 'start' => 0,
                 'max_results' => $limit,
@@ -156,8 +160,9 @@ class SearchController extends Controller
                 'sortOrder' => 'descending'
             ]);
 
-            if ($arxivResponse->ok()) {
-                $xml = simplexml_load_string($arxivResponse->body());
+            // CORRECTED: Use the right method to check response
+            if ($response->successful()) {  // This is the correct method
+                $xml = simplexml_load_string($response->body());
                 $entries = $xml->entry ?? [];
                 
                 $results = [];
@@ -194,10 +199,6 @@ class SearchController extends Controller
     private function searchArticles($query, $limit = 10)
     {
         // For now, return mock data
-        // In production, you could use:
-        // - Google Custom Search API
-        // - NewsAPI
-        // - Web scraping (with respect to robots.txt)
         return $this->getMockArticleResults($query, $limit);
     }
 
