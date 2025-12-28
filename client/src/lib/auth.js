@@ -522,6 +522,32 @@ class AuthService {
             throw error;
         }
     }
+
+
+
+    // Add this method for checking connectivity
+    async checkConnectivity() {
+        try {
+            const response = await fetch(`${API_URL}/health`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                console.log('✅ Backend connection successful');
+                return true;
+            } else {
+                console.error('❌ Backend connection failed');
+                return false;
+            }
+        } catch (error) {
+            console.error('💥 Connectivity check error:', error);
+            return false;
+        }
+    }
 }
 
 // Export singleton instance
