@@ -15,7 +15,7 @@ export default function MainLayout({ children }) {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState(''); // ADD THIS STATE
-    
+
     const userDropdownRef = useRef(null);
     const notificationsRef = useRef(null);
 
@@ -23,11 +23,11 @@ export default function MainLayout({ children }) {
         const checkAuth = async () => {
             try {
                 const loggedIn = AuthService.isLoggedIn();
-                
+
                 if (!loggedIn) {
                     const token = localStorage.getItem('academvault_token');
                     const userStr = localStorage.getItem('academvault_user');
-                    
+
                     if (token && userStr) {
                         AuthService.token = token;
                         AuthService.user = JSON.parse(userStr);
@@ -66,7 +66,7 @@ export default function MainLayout({ children }) {
     const handleSearch = (e) => {
         e.preventDefault();
         if (!searchQuery.trim()) return;
-        
+
         // Redirect to search page with query
         router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
         setSearchQuery(''); // Clear the input
@@ -140,7 +140,7 @@ export default function MainLayout({ children }) {
                             >
                                 <i className="fas fa-bars text-xl"></i>
                             </button>
-                            
+
                             <Link href="/dashboard" className="flex items-center gap-3">
                                 <div className="relative">
                                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl blur-md"></div>
@@ -185,7 +185,7 @@ export default function MainLayout({ children }) {
                         {/* Right: User Actions */}
                         <div className="flex items-center gap-4">
                             {/* Desktop Search Button - UPDATED */}
-                            <button 
+                            <button
                                 onClick={() => router.push('/search')}
                                 className="md:hidden p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg"
                             >
@@ -401,11 +401,11 @@ export default function MainLayout({ children }) {
             {/* Mobile Sidebar Overlay */}
             {sidebarOpen && (
                 <div className="fixed inset-0 z-50 md:hidden">
-                    <div 
+                    <div
                         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
                         onClick={() => setSidebarOpen(false)}
                     ></div>
-                    
+
                     <div className="absolute left-0 top-0 h-full w-64 bg-gray-900 border-r border-gray-800 animate-slide-in">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-8">
@@ -415,14 +415,14 @@ export default function MainLayout({ children }) {
                                     </div>
                                     <h2 className="text-white font-bold">AcademVault</h2>
                                 </div>
-                                <button 
+                                <button
                                     onClick={() => setSidebarOpen(false)}
                                     className="text-gray-400 hover:text-white"
                                 >
                                     <i className="fas fa-times text-xl"></i>
                                 </button>
                             </div>
-                            
+
                             {/* Mobile Navigation */}
                             <nav className="space-y-1 mb-8">
                                 {navItems.map((item) => (
@@ -470,30 +470,6 @@ export default function MainLayout({ children }) {
                     </div>
                 </div>
             )}
-
-            {/* Mobile Bottom Navigation */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-xl border-t border-gray-800">
-                <div className="flex justify-around items-center h-16">
-                    {navItems.slice(0, 4).map((item) => (
-                        <Link
-                            key={item.label}
-                            href={item.href}
-                            className="flex flex-col items-center justify-center p-2 text-gray-400 hover:text-white"
-                        >
-                            <i className={`${item.icon} text-lg`}></i>
-                            <span className="text-xs mt-1">{item.label}</span>
-                        </Link>
-                    ))}
-                    {/* Add Search Button to Mobile Nav */}
-                    <button 
-                        onClick={() => router.push('/search')}
-                        className="flex flex-col items-center justify-center p-2 text-gray-400 hover:text-white"
-                    >
-                        <i className="fas fa-search text-lg"></i>
-                        <span className="text-xs mt-1">Search</span>
-                    </button>
-                </div>
-            </div>
         </div>
     );
 }
