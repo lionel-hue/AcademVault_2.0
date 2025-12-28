@@ -1,4 +1,4 @@
-// client/src/app/components/Layout/MainLayout.jsx - REPLACED WITH PROFESSIONAL VERSION
+// client/src/app/components/Layout/MainLayout.jsx - UPDATED VERSION
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -14,6 +14,7 @@ export default function MainLayout({ children }) {
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState(''); // ADD THIS STATE
     
     const userDropdownRef = useRef(null);
     const notificationsRef = useRef(null);
@@ -60,6 +61,23 @@ export default function MainLayout({ children }) {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [router]);
+
+    // ADD THIS FUNCTION FOR SEARCH
+    const handleSearch = (e) => {
+        e.preventDefault();
+        if (!searchQuery.trim()) return;
+        
+        // Redirect to search page with query
+        router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+        setSearchQuery(''); // Clear the input
+    };
+
+    // ADD THIS FUNCTION FOR SEARCH ON ENTER KEY
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            handleSearch(e);
+        }
+    };
 
     const handleLogout = async () => {
         try {
@@ -139,22 +157,38 @@ export default function MainLayout({ children }) {
                             </Link>
                         </div>
 
-                        {/* Center: Search Bar (Desktop) */}
+                        {/* Center: Search Bar (Desktop) - UPDATED */}
                         <div className="hidden md:block flex-1 max-w-2xl mx-8">
                             <div className="relative">
                                 <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
-                                <input
-                                    type="text"
-                                    placeholder="Search documents, discussions, or users..."
-                                    className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                />
+                                <form onSubmit={handleSearch} className="w-full">
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        onKeyPress={handleKeyPress}
+                                        placeholder="Search documents, discussions, or users..."
+                                        className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                </form>
+                                {searchQuery && (
+                                    <button
+                                        onClick={handleSearch}
+                                        className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-blue-400 hover:text-blue-300"
+                                    >
+                                        <i className="fas fa-arrow-right"></i>
+                                    </button>
+                                )}
                             </div>
                         </div>
 
                         {/* Right: User Actions */}
                         <div className="flex items-center gap-4">
-                            {/* Desktop Search Button */}
-                            <button className="md:hidden p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg">
+                            {/* Desktop Search Button - UPDATED */}
+                            <button 
+                                onClick={() => router.push('/search')}
+                                className="md:hidden p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg"
+                            >
                                 <i className="fas fa-search text-xl"></i>
                             </button>
 
@@ -269,15 +303,28 @@ export default function MainLayout({ children }) {
                 </div>
             </header>
 
-            {/* Mobile Search Bar */}
+            {/* Mobile Search Bar - UPDATED */}
             <div className="md:hidden bg-gray-900 border-b border-gray-800 p-4">
                 <div className="relative">
                     <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
-                    <input
-                        type="text"
-                        placeholder="Search documents, discussions, or users..."
-                        className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+                    <form onSubmit={handleSearch} className="w-full">
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            placeholder="Search documents, discussions, or users..."
+                            className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                    </form>
+                    {searchQuery && (
+                        <button
+                            onClick={handleSearch}
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-blue-400 hover:text-blue-300"
+                        >
+                            <i className="fas fa-arrow-right"></i>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -437,6 +484,14 @@ export default function MainLayout({ children }) {
                             <span className="text-xs mt-1">{item.label}</span>
                         </Link>
                     ))}
+                    {/* Add Search Button to Mobile Nav */}
+                    <button 
+                        onClick={() => router.push('/search')}
+                        className="flex flex-col items-center justify-center p-2 text-gray-400 hover:text-white"
+                    >
+                        <i className="fas fa-search text-lg"></i>
+                        <span className="text-xs mt-1">Search</span>
+                    </button>
                 </div>
             </div>
         </div>
