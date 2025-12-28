@@ -1,4 +1,4 @@
-// client/src/app/dashboard/page.jsx - COMPLETE VERSION WITH REAL DATA
+// client/src/app/dashboard/page.jsx - FIXED VERSION
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -12,6 +12,14 @@ export default function DashboardPage() {
     const router = useRouter();
     const { alert } = useModal();
     const [user, setUser] = useState(null);
+
+    // ADD THIS DEBUG LOGGING
+    console.log('=== DASHBOARD LOADING ===');
+    console.log('Token exists:', !!localStorage.getItem('academvault_token'));
+    console.log('Token value:', localStorage.getItem('academvault_token')?.substring(0, 30) + '...');
+    console.log('User from localStorage:', localStorage.getItem('academvault_user'));
+    console.log('AuthService.isLoggedIn():', AuthService.isLoggedIn());
+
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState(null);
     const [activities, setActivities] = useState([]);
@@ -21,7 +29,17 @@ export default function DashboardPage() {
     const [searchHistory, setSearchHistory] = useState([]);
     const [statsLoading, setStatsLoading] = useState(true);
     const [activitiesLoading, setActivitiesLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
+
+    // Default stats
+    const defaultStats = {
+        documents: 0,
+        categories: 0,
+        collections: 0,
+        discussions: 0,
+        bookmarks: 0,
+        friends: 0,
+        storage: '0 MB'
+    };
 
     useEffect(() => {
         const initializeDashboard = async () => {
@@ -29,61 +47,45 @@ export default function DashboardPage() {
                 // Check authentication
                 const loggedIn = AuthService.isLoggedIn();
                 if (!loggedIn) {
-                    const token = localStorage.getItem('academvault_token');
-                    const userStr = localStorage.getItem('academvault_user');
-                    
-                    if (token && userStr) {
-                        AuthService.token = token;
-                        AuthService.user = JSON.parse(userStr);
-                    } else {
-                        await alert({
-                            title: 'Session Expired',
-                            message: 'Please login to continue',
-                            variant: 'warning'
-                        });
-                        router.push('/login');
-                        return;
-                    }
+                    await alert({
+                        title: 'Session Expired',
+                        message: 'Please login to continue',
+                        variant: 'warning'
+                    });
+                    router.push('/login');
+                    return;
                 }
 
                 const currentUser = AuthService.getCurrentUser();
+                if (!currentUser) {
+                    await alert({
+                        title: 'Session Error',
+                        message: 'Please login again',
+                        variant: 'danger'
+                    });
+                    router.push('/login');
+                    return;
+                }
+
                 setUser(currentUser);
 
-                // Load all dashboard data
-                await loadDashboardData();
+                // Load all dashboard data sequentially to avoid rate limiting
+                await loadStats();
+                await loadActivities();
+                await loadRecentDocuments();
+                await loadFavorites();
+                await loadNotifications();
+                await loadSearchHistory();
 
                 setLoading(false);
             } catch (error) {
                 console.error('Dashboard initialization error:', error);
-                await alert({
-                    title: 'Error',
-                    message: 'Failed to load dashboard data',
-                    variant: 'danger'
-                });
+                setLoading(false);
             }
         };
 
         initializeDashboard();
     }, [router, alert]);
-
-    const loadDashboardData = async () => {
-        try {
-            // Load stats
-            await loadStats();
-            
-            // Load other data
-            await Promise.all([
-                loadActivities(),
-                loadRecentDocuments(),
-                loadFavorites(),
-                loadNotifications(),
-                loadSearchHistory()
-            ]);
-        } catch (error) {
-            console.error('Error loading dashboard data:', error);
-            throw error;
-        }
-    };
 
     const loadStats = async () => {
         try {
@@ -91,9 +93,12 @@ export default function DashboardPage() {
             const response = await AuthService.fetchDashboardStats();
             if (response.success) {
                 setStats(response.stats);
+            } else {
+                setStats(defaultStats);
             }
         } catch (error) {
-            console.error('Error loading stats:', error);
+            console.error('Error loading stats:', error.message);
+            setStats(defaultStats);
         } finally {
             setStatsLoading(false);
         }
@@ -107,7 +112,8 @@ export default function DashboardPage() {
                 setActivities(response.activities || []);
             }
         } catch (error) {
-            console.error('Error loading activities:', error);
+            console.error('Error loading activities:', error.message);
+            setActivities([]);
         } finally {
             setActivitiesLoading(false);
         }
@@ -120,7 +126,8 @@ export default function DashboardPage() {
                 setRecentDocuments(response.documents || []);
             }
         } catch (error) {
-            console.error('Error loading recent documents:', error);
+            console.error('Error loading recent documents:', error.message);
+            setRecentDocuments([]);
         }
     };
 
@@ -131,7 +138,8 @@ export default function DashboardPage() {
                 setFavorites(response.favorites || []);
             }
         } catch (error) {
-            console.error('Error loading favorites:', error);
+            console.error('Error loading favorites:', error.message);
+            setFavorites([]);
         }
     };
 
@@ -142,7 +150,8 @@ export default function DashboardPage() {
                 setNotifications(response.notifications || []);
             }
         } catch (error) {
-            console.error('Error loading notifications:', error);
+            console.error('Error loading notifications:', error.message);
+            setNotifications([]);
         }
     };
 
@@ -153,13 +162,14 @@ export default function DashboardPage() {
                 setSearchHistory(response.search_history || []);
             }
         } catch (error) {
-            console.error('Error loading search history:', error);
+            console.error('Error loading search history:', error.message);
+            setSearchHistory([]);
         }
     };
 
     const formatTime = (dateString) => {
-        if (!dateString) return 'Just now';
-        
+        if (!dateString) return 'Recently';
+
         try {
             const date = new Date(dateString);
             const now = new Date();
@@ -172,7 +182,7 @@ export default function DashboardPage() {
             if (diffMins < 60) return `${diffMins} min ago`;
             if (diffHours < 24) return `${diffHours} hours ago`;
             if (diffDays < 7) return `${diffDays} days ago`;
-            
+
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         } catch (error) {
             return 'Recently';
@@ -206,7 +216,9 @@ export default function DashboardPage() {
     };
 
     const getDocumentIcon = (type) => {
-        switch (type) {
+        if (!type) return 'fas fa-file text-gray-400';
+
+        switch (type.toLowerCase()) {
             case 'pdf':
                 return 'fas fa-file-pdf text-red-400';
             case 'video':
@@ -217,13 +229,6 @@ export default function DashboardPage() {
                 return 'fas fa-presentation text-purple-400';
             default:
                 return 'fas fa-file text-gray-400';
-        }
-    };
-
-    const handleSearch = (e) => {
-        e.preventDefault();
-        if (searchQuery.trim()) {
-            router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
         }
     };
 
@@ -254,7 +259,22 @@ export default function DashboardPage() {
 
     const clearSearchHistory = () => {
         setSearchHistory([]);
-        // In real app: API call to clear search history
+    };
+
+    const refreshDashboard = async () => {
+        setLoading(true);
+        try {
+            await loadStats();
+            await loadActivities();
+            await loadRecentDocuments();
+            await loadFavorites();
+            await loadNotifications();
+            await loadSearchHistory();
+        } catch (error) {
+            console.error('Error refreshing dashboard:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     if (loading) {
@@ -269,6 +289,17 @@ export default function DashboardPage() {
             </MainLayout>
         );
     }
+
+    const statItems = [
+        { title: 'Documents', value: stats?.documents || 0, icon: 'fas fa-file-alt', color: 'from-blue-500 to-cyan-500', link: '/documents' },
+        { title: 'Categories', value: stats?.categories || 0, icon: 'fas fa-folder', color: 'from-green-500 to-emerald-500', link: '/categories' },
+        { title: 'Collections', value: stats?.collections || 0, icon: 'fas fa-layer-group', color: 'from-purple-500 to-pink-500', link: '/collections' },
+        { title: 'Discussions', value: stats?.discussions || 0, icon: 'fas fa-comments', color: 'from-indigo-500 to-blue-500', link: '/discussions' },
+        { title: 'Bookmarks', value: stats?.bookmarks || 0, icon: 'fas fa-bookmark', color: 'from-yellow-500 to-orange-500', link: '/bookmarks' },
+        { title: 'Friends', value: stats?.friends || 0, icon: 'fas fa-users', color: 'from-red-500 to-pink-500', link: '/friends' },
+        { title: 'Storage Used', value: stats?.storage || '0 MB', icon: 'fas fa-database', color: 'from-gray-600 to-gray-800', link: '/storage' },
+        { title: 'Active Now', value: '3', icon: 'fas fa-bolt', color: 'from-green-500 to-yellow-500', link: '/activity' },
+    ];
 
     return (
         <MainLayout>
@@ -285,14 +316,14 @@ export default function DashboardPage() {
                         </p>
                     </div>
                     <div className="flex gap-3 mt-4 md:mt-0">
-                        <button 
-                            onClick={() => router.push('/search')}
+                        <button
+                            onClick={refreshDashboard}
                             className="px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl text-white font-medium transition-colors"
                         >
-                            <i className="fas fa-search mr-2"></i>
-                            Quick Search
+                            <i className="fas fa-sync-alt mr-2"></i>
+                            Refresh
                         </button>
-                        <button 
+                        <button
                             onClick={() => handleQuickAction('upload-document')}
                             className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-xl text-white font-medium transition-all"
                         >
@@ -307,37 +338,30 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 {statsLoading ? (
                     Array.from({ length: 8 }).map((_, index) => (
-                        <div key={index} className="bg-gray-900/50 rounded-xl p-4 animate-pulse">
+                        <div key={`skeleton-${index}`} className="bg-gray-900/50 rounded-xl p-4 animate-pulse">
                             <div className="h-10 bg-gray-800 rounded mb-2"></div>
                             <div className="h-4 bg-gray-800 rounded"></div>
                         </div>
                     ))
-                ) : stats && [
-                    { title: 'Documents', value: stats.documents, icon: 'fas fa-file-alt', color: 'from-blue-500 to-cyan-500', link: '/documents' },
-                    { title: 'Categories', value: stats.categories, icon: 'fas fa-folder', color: 'from-green-500 to-emerald-500', link: '/categories' },
-                    { title: 'Collections', value: stats.collections, icon: 'fas fa-layer-group', color: 'from-purple-500 to-pink-500', link: '/collections' },
-                    { title: 'Discussions', value: stats.discussions, icon: 'fas fa-comments', color: 'from-indigo-500 to-blue-500', link: '/discussions' },
-                    { title: 'Bookmarks', value: stats.bookmarks, icon: 'fas fa-bookmark', color: 'from-yellow-500 to-orange-500', link: '/bookmarks' },
-                    { title: 'Friends', value: stats.friends, icon: 'fas fa-users', color: 'from-red-500 to-pink-500', link: '/friends' },
-                    { title: 'Storage Used', value: stats.storage, icon: 'fas fa-database', color: 'from-gray-600 to-gray-800', link: '/storage' },
-                    { title: 'Active Now', value: '3', icon: 'fas fa-bolt', color: 'from-green-500 to-yellow-500', link: '/activity' },
-                ].map((stat, index) => (
-                    <Link 
-                        key={index} 
-                        href={stat.link}
-                        className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-4 border border-gray-800 hover:border-gray-700 hover:transform hover:-translate-y-1 transition-all duration-300"
-                    >
-                        <div className="flex items-center justify-between">
-                            <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
-                                <i className={`${stat.icon} text-white`}></i>
+                ) : (
+                    statItems.map((stat, index) => (
+                        <Link
+                            key={`stat-${index}`}
+                            href={stat.link}
+                            className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-4 border border-gray-800 hover:border-gray-700 hover:transform hover:-translate-y-1 transition-all duration-300"
+                        >
+                            <div className="flex items-center justify-between">
+                                <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
+                                    <i className={`${stat.icon} text-white`}></i>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-2xl font-bold text-white">{stat.value}</p>
+                                    <p className="text-sm text-gray-400">{stat.title}</p>
+                                </div>
                             </div>
-                            <div className="text-right">
-                                <p className="text-2xl font-bold text-white">{stat.value}</p>
-                                <p className="text-sm text-gray-400">{stat.title}</p>
-                            </div>
-                        </div>
-                    </Link>
-                ))}
+                        </Link>
+                    ))
+                )}
             </div>
 
             {/* Main Content Grid */}
@@ -351,19 +375,19 @@ export default function DashboardPage() {
                                 <i className="fas fa-history text-blue-400"></i>
                                 Recent Activity
                             </h3>
-                            <Link 
-                                href="/activity" 
+                            <button
+                                onClick={loadActivities}
                                 className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
                             >
-                                View All
-                                <i className="fas fa-arrow-right text-xs"></i>
-                            </Link>
+                                <i className="fas fa-sync-alt text-xs"></i>
+                                Refresh
+                            </button>
                         </div>
-                        
+
                         {activitiesLoading ? (
                             <div className="space-y-4">
                                 {Array.from({ length: 3 }).map((_, index) => (
-                                    <div key={index} className="flex items-center gap-4 p-3 animate-pulse">
+                                    <div key={`activity-skeleton-${index}`} className="flex items-center gap-4 p-3 animate-pulse">
                                         <div className="w-10 h-10 bg-gray-800 rounded-lg"></div>
                                         <div className="flex-1">
                                             <div className="h-4 bg-gray-800 rounded mb-2"></div>
@@ -375,8 +399,8 @@ export default function DashboardPage() {
                         ) : activities.length > 0 ? (
                             <div className="space-y-4">
                                 {activities.slice(0, 5).map((activity, index) => (
-                                    <div 
-                                        key={activity.id || index} 
+                                    <div
+                                        key={`activity-${activity.id || index}`}
                                         className="flex items-center gap-4 p-3 hover:bg-gray-800/30 rounded-xl transition-colors group"
                                     >
                                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getActivityColor(activity.source)} bg-opacity-10`}>
@@ -396,12 +420,7 @@ export default function DashboardPage() {
                             <div className="text-center py-8">
                                 <i className="fas fa-history text-gray-600 text-3xl mb-3"></i>
                                 <p className="text-gray-500">No recent activity</p>
-                                <button 
-                                    onClick={loadActivities}
-                                    className="mt-4 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg text-sm"
-                                >
-                                    Refresh
-                                </button>
+                                <p className="text-gray-400 text-sm mt-2">Start by uploading a document or browsing resources</p>
                             </div>
                         )}
                     </div>
@@ -413,27 +432,27 @@ export default function DashboardPage() {
                                 <i className="fas fa-file-alt text-green-400"></i>
                                 Recent Documents
                             </h3>
-                            <Link 
-                                href="/documents" 
+                            <button
+                                onClick={loadRecentDocuments}
                                 className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
                             >
-                                View All
-                                <i className="fas fa-arrow-right text-xs"></i>
-                            </Link>
+                                <i className="fas fa-sync-alt text-xs"></i>
+                                Refresh
+                            </button>
                         </div>
-                        
+
                         {recentDocuments.length > 0 ? (
                             <div className="space-y-3">
-                                {recentDocuments.slice(0, 4).map((doc) => (
-                                    <div 
-                                        key={doc.id} 
+                                {recentDocuments.slice(0, 4).map((doc, index) => (
+                                    <div
+                                        key={`doc-${doc.id || index}`}
                                         className="flex items-center gap-4 p-3 bg-gray-800/20 rounded-xl hover:bg-gray-800/40 transition-colors group"
                                     >
                                         <div className="w-12 h-12 rounded-lg bg-gray-800 flex items-center justify-center">
                                             <i className={`${getDocumentIcon(doc.type)} text-xl`}></i>
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <h4 className="font-medium text-white truncate">{doc.title}</h4>
+                                            <h4 className="font-medium text-white truncate">{doc.title || 'Untitled Document'}</h4>
                                             <div className="flex items-center gap-3 text-sm text-gray-500">
                                                 {doc.author && (
                                                     <span className="flex items-center gap-1">
@@ -445,25 +464,22 @@ export default function DashboardPage() {
                                                     <i className="fas fa-eye"></i>
                                                     {doc.view_count || 0}
                                                 </span>
-                                                <span>{formatTime(doc.last_accessed || doc.created_at)}</span>
+                                                <span>{formatTime(doc.created_at)}</span>
                                             </div>
                                         </div>
-                                        <button className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-gray-700 rounded-lg">
-                                            <i className="fas fa-ellipsis-h text-gray-400"></i>
-                                        </button>
                                     </div>
                                 ))}
                             </div>
                         ) : (
                             <div className="text-center py-8">
                                 <i className="fas fa-file text-gray-600 text-3xl mb-3"></i>
-                                <p className="text-gray-500">No recent documents</p>
-                                <button 
+                                <p className="text-gray-500">No documents found</p>
+                                <button
                                     onClick={() => handleQuickAction('upload-document')}
                                     className="mt-4 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg text-sm"
                                 >
                                     <i className="fas fa-plus mr-2"></i>
-                                    Upload Document
+                                    Upload Your First Document
                                 </button>
                             </div>
                         )}
@@ -478,72 +494,29 @@ export default function DashboardPage() {
                             <i className="fas fa-bolt text-yellow-400"></i>
                             Quick Actions
                         </h3>
-                        
+
                         <div className="space-y-3">
-                            <button 
-                                onClick={() => handleQuickAction('upload-document')}
-                                className="w-full flex items-center gap-3 p-4 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-xl transition-all hover:scale-[1.02] group"
-                            >
-                                <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                                    <i className="fas fa-upload text-blue-400"></i>
-                                </div>
-                                <div className="text-left">
-                                    <p className="font-medium text-white">Upload Document</p>
-                                    <p className="text-sm text-gray-400">Add research materials</p>
-                                </div>
-                            </button>
-
-                            <button 
-                                onClick={() => handleQuickAction('create-category')}
-                                className="w-full flex items-center gap-3 p-4 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 rounded-xl transition-all hover:scale-[1.02] group"
-                            >
-                                <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                                    <i className="fas fa-folder-plus text-green-400"></i>
-                                </div>
-                                <div className="text-left">
-                                    <p className="font-medium text-white">Create Category</p>
-                                    <p className="text-sm text-gray-400">Organize your research</p>
-                                </div>
-                            </button>
-
-                            <button 
-                                onClick={() => handleQuickAction('start-discussion')}
-                                className="w-full flex items-center gap-3 p-4 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 rounded-xl transition-all hover:scale-[1.02] group"
-                            >
-                                <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                                    <i className="fas fa-comment-medical text-purple-400"></i>
-                                </div>
-                                <div className="text-left">
-                                    <p className="font-medium text-white">Start Discussion</p>
-                                    <p className="text-sm text-gray-400">Discuss with peers</p>
-                                </div>
-                            </button>
-
-                            <button 
-                                onClick={() => handleQuickAction('invite-friend')}
-                                className="w-full flex items-center gap-3 p-4 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 rounded-xl transition-all hover:scale-[1.02] group"
-                            >
-                                <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                                    <i className="fas fa-user-plus text-orange-400"></i>
-                                </div>
-                                <div className="text-left">
-                                    <p className="font-medium text-white">Invite Friend</p>
-                                    <p className="text-sm text-gray-400">Collaborate with others</p>
-                                </div>
-                            </button>
-
-                            <button 
-                                onClick={() => handleQuickAction('create-collection')}
-                                className="w-full flex items-center gap-3 p-4 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-xl transition-all hover:scale-[1.02] group"
-                            >
-                                <div className="w-10 h-10 bg-indigo-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                                    <i className="fas fa-layer-group text-indigo-400"></i>
-                                </div>
-                                <div className="text-left">
-                                    <p className="font-medium text-white">Create Collection</p>
-                                    <p className="text-sm text-gray-400">Group related documents</p>
-                                </div>
-                            </button>
+                            {[
+                                { icon: 'fas fa-upload', color: 'blue', label: 'Upload Document', action: 'upload-document', desc: 'Add research materials' },
+                                { icon: 'fas fa-folder-plus', color: 'green', label: 'Create Category', action: 'create-category', desc: 'Organize your research' },
+                                { icon: 'fas fa-comment-medical', color: 'purple', label: 'Start Discussion', action: 'start-discussion', desc: 'Discuss with peers' },
+                                { icon: 'fas fa-user-plus', color: 'orange', label: 'Invite Friend', action: 'invite-friend', desc: 'Collaborate with others' },
+                                { icon: 'fas fa-layer-group', color: 'indigo', label: 'Create Collection', action: 'create-collection', desc: 'Group related documents' },
+                            ].map((action, index) => (
+                                <button
+                                    key={`action-${index}`}
+                                    onClick={() => handleQuickAction(action.action)}
+                                    className="w-full flex items-center gap-3 p-4 bg-gray-800/20 hover:bg-gray-800/40 border border-gray-700 rounded-xl transition-all hover:scale-[1.02] group"
+                                >
+                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-${action.color}-500/20`}>
+                                        <i className={`${action.icon} text-${action.color}-400`}></i>
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="font-medium text-white">{action.label}</p>
+                                        <p className="text-sm text-gray-400">{action.desc}</p>
+                                    </div>
+                                </button>
+                            ))}
                         </div>
                     </div>
 
@@ -559,22 +532,22 @@ export default function DashboardPage() {
                                     </span>
                                 )}
                             </h3>
-                            <Link 
-                                href="/notifications" 
-                                className="text-sm text-blue-400 hover:text-blue-300"
+                            <button
+                                onClick={loadNotifications}
+                                className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
                             >
-                                Mark all as read
-                            </Link>
+                                <i className="fas fa-sync-alt text-xs"></i>
+                            </button>
                         </div>
-                        
+
                         <div className="space-y-3">
                             {notifications.length > 0 ? (
-                                notifications.slice(0, 3).map((notification) => (
-                                    <div 
-                                        key={notification.id} 
+                                notifications.slice(0, 3).map((notification, index) => (
+                                    <div
+                                        key={`notif-${notification.id || index}`}
                                         className="p-3 bg-gray-800/20 rounded-xl hover:bg-gray-800/40 transition-colors"
                                     >
-                                        <p className="text-white text-sm mb-1">{notification.message}</p>
+                                        <p className="text-white text-sm mb-1">{notification.message || notification.title}</p>
                                         <p className="text-xs text-gray-500">{formatTime(notification.created_at)}</p>
                                     </div>
                                 ))
@@ -593,43 +566,33 @@ export default function DashboardPage() {
                             <i className="fas fa-chart-line text-green-400"></i>
                             Research Stats
                         </h3>
-                        
+
                         <div className="space-y-4">
                             <div className="space-y-2">
                                 <div className="flex justify-between text-sm">
                                     <span className="text-gray-400">Documents Added</span>
-                                    <span className="text-white">12 this week</span>
+                                    <span className="text-white">{stats?.documents || 0} total</span>
                                 </div>
                                 <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
-                                    <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-500" style={{ width: '75%' }}></div>
+                                    <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-500" style={{ width: `${Math.min((stats?.documents || 0) * 2, 100)}%` }}></div>
                                 </div>
                             </div>
-                            
+
                             <div className="space-y-2">
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-gray-400">Collaborations</span>
-                                    <span className="text-white">8 active</span>
+                                    <span className="text-gray-400">Categories</span>
+                                    <span className="text-white">{stats?.categories || 0} created</span>
                                 </div>
                                 <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
-                                    <div className="h-full bg-gradient-to-r from-green-500 to-emerald-500" style={{ width: '60%' }}></div>
-                                </div>
-                            </div>
-                            
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-gray-400">Research Time</span>
-                                    <span className="text-white">24h this week</span>
-                                </div>
-                                <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
-                                    <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500" style={{ width: '90%' }}></div>
+                                    <div className="h-full bg-gradient-to-r from-green-500 to-emerald-500" style={{ width: `${Math.min((stats?.categories || 0) * 10, 100)}%` }}></div>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div className="mt-6 pt-6 border-t border-gray-800 grid grid-cols-3 gap-4 text-center">
                             <div>
                                 <p className="text-2xl font-bold text-white">{stats?.documents || 0}</p>
-                                <p className="text-xs text-gray-400">Total Docs</p>
+                                <p className="text-xs text-gray-400">Docs</p>
                             </div>
                             <div>
                                 <p className="text-2xl font-bold text-white">{stats?.friends || 0}</p>
@@ -654,7 +617,7 @@ export default function DashboardPage() {
                             Recent Searches
                         </h3>
                         {searchHistory.length > 0 && (
-                            <button 
+                            <button
                                 onClick={clearSearchHistory}
                                 className="text-sm text-gray-400 hover:text-gray-300"
                             >
@@ -662,12 +625,12 @@ export default function DashboardPage() {
                             </button>
                         )}
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-2">
                         {searchHistory.length > 0 ? (
                             searchHistory.map((search, index) => (
                                 <button
-                                    key={index}
+                                    key={`search-${index}`}
                                     onClick={() => router.push(`/search?q=${encodeURIComponent(search)}`)}
                                     className="px-3 py-2 bg-gray-800/50 hover:bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-300 hover:text-white transition-colors"
                                 >
@@ -690,27 +653,26 @@ export default function DashboardPage() {
                             <i className="fas fa-star text-yellow-400"></i>
                             Favorite Resources
                         </h3>
-                        <Link 
-                            href="/bookmarks" 
+                        <button
+                            onClick={loadFavorites}
                             className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
                         >
-                            View All
-                            <i className="fas fa-arrow-right text-xs"></i>
-                        </Link>
+                            <i className="fas fa-sync-alt text-xs"></i>
+                        </button>
                     </div>
-                    
+
                     {favorites.length > 0 ? (
                         <div className="space-y-3">
-                            {favorites.slice(0, 3).map((doc) => (
-                                <div 
-                                    key={doc.id} 
+                            {favorites.slice(0, 3).map((doc, index) => (
+                                <div
+                                    key={`fav-${doc.id || index}`}
                                     className="flex items-center gap-3 p-3 bg-gray-800/20 rounded-xl hover:bg-gray-800/40 transition-colors group"
                                 >
                                     <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center">
                                         <i className="fas fa-star text-yellow-400"></i>
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <h4 className="font-medium text-white truncate">{doc.title}</h4>
+                                        <h4 className="font-medium text-white truncate">{doc.title || 'Favorite Document'}</h4>
                                         <div className="flex items-center gap-2 text-sm text-gray-500">
                                             {doc.author && <span>{doc.author}</span>}
                                             <span>{formatTime(doc.last_accessed_at || doc.created_at)}</span>
@@ -723,42 +685,9 @@ export default function DashboardPage() {
                         <div className="text-center py-8">
                             <i className="fas fa-star text-gray-600 text-3xl mb-3"></i>
                             <p className="text-gray-500">No favorite resources yet</p>
-                            <button 
-                                onClick={() => router.push('/documents')}
-                                className="mt-4 px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 rounded-lg text-sm"
-                            >
-                                <i className="fas fa-bookmark mr-2"></i>
-                                Browse Documents
-                            </button>
+                            <p className="text-gray-400 text-sm mt-2">Bookmark documents to see them here</p>
                         </div>
                     )}
-                </div>
-            </div>
-
-            {/* Getting Started Section */}
-            <div className="mt-8 bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl p-6 border border-gray-700">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h3 className="text-xl font-bold text-white mb-2">Complete Your Profile</h3>
-                        <p className="text-gray-400">Add more details to get personalized recommendations</p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div className="text-right">
-                            <span className="text-sm text-gray-400">Profile completeness</span>
-                            <div className="flex items-center gap-3">
-                                <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
-                                    <div className="h-full bg-gradient-to-r from-blue-500 to-purple-600" style={{ width: '65%' }}></div>
-                                </div>
-                                <span className="text-white font-medium">65%</span>
-                            </div>
-                        </div>
-                        <button 
-                            onClick={() => router.push('/profile/edit')}
-                            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
-                        >
-                            Complete Profile
-                        </button>
-                    </div>
                 </div>
             </div>
         </MainLayout>
