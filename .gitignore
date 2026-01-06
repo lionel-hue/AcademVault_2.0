@@ -1,4 +1,5 @@
 # Root gitignore
+test.txt
 .DS_Store
 *.log
 node_modules/
