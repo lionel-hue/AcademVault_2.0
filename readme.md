@@ -38,8 +38,8 @@
 #### **Method 1: Docker (Recommended - Easiest)**
 ```bash
 # 1. Clone & navigate
-git clone https://github.com/yourusername/academvault.git
-cd academvault
+git clone https://github.com/lionel-hue/AcademVault
+cd AcademVault
 
 # 2. Configure environment
 cp .env.example .env
