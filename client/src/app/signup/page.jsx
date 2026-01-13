@@ -69,6 +69,37 @@ export default function SignupPage() {
       return;
     }
 
+
+    // Add this useEffect at the top of your component (after other useEffects)
+    useEffect(() => {
+      // Check for verification parameters in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const verifyParam = urlParams.get('verify');
+      const emailParam = urlParams.get('email');
+      const codeParam = urlParams.get('code');
+
+      if (verifyParam === '1' && emailParam && codeParam) {
+        // Set the email and auto-fill code
+        setFormData(prev => ({ ...prev, email: emailParam }));
+
+        // Fill verification code
+        const codeArray = codeParam.split('');
+        setVerificationCode(codeArray);
+
+        // Auto-verify if we have all 6 digits
+        if (codeArray.length === 6) {
+          // Set to verification step
+          setCurrentStep(5);
+          setVerificationSent(true);
+
+          // Auto-verify after a short delay
+          setTimeout(() => {
+            handleVerifyEmail();
+          }, 1000);
+        }
+      }
+    }, []);
+
     let strength = 0;
     if (formData.password.length >= 8) strength += 25;
     if (/[A-Z]/.test(formData.password)) strength += 25;
@@ -381,8 +412,8 @@ export default function SignupPage() {
           {steps.map((step, index) => (
             <div key={step.number} className="flex items-center">
               <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center ${currentStep >= step.number
-                  ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg'
-                  : 'bg-gray-800 text-gray-400'
+                ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg'
+                : 'bg-gray-800 text-gray-400'
                 }`}>
                 <i className={step.icon}></i>
               </div>
@@ -415,12 +446,12 @@ export default function SignupPage() {
                       className="sr-only"
                     />
                     <div className={`p-6 rounded-2xl border-2 transition-all duration-300 group-hover:scale-105 ${formData.type === type.id
-                        ? 'border-blue-500 bg-blue-500/10'
-                        : 'border-gray-700 bg-gray-800/30 hover:border-gray-600'
+                      ? 'border-blue-500 bg-blue-500/10'
+                      : 'border-gray-700 bg-gray-800/30 hover:border-gray-600'
                       }`}>
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${formData.type === type.id
-                          ? 'bg-gradient-to-br from-blue-500 to-purple-600'
-                          : 'bg-gray-700'
+                        ? 'bg-gradient-to-br from-blue-500 to-purple-600'
+                        : 'bg-gray-700'
                         }`}>
                         <i className={`${type.icon} text-white text-lg`}></i>
                       </div>
@@ -564,8 +595,8 @@ export default function SignupPage() {
                       <div className="flex justify-between text-xs mb-1">
                         <span className="text-gray-400">Password strength</span>
                         <span className={`${passwordStrength >= 75 ? 'text-green-400' :
-                            passwordStrength >= 50 ? 'text-yellow-400' :
-                              'text-red-400'
+                          passwordStrength >= 50 ? 'text-yellow-400' :
+                            'text-red-400'
                           }`}>
                           {passwordStrength >= 75 ? 'Strong' : passwordStrength >= 50 ? 'Medium' : 'Weak'}
                         </span>
@@ -573,8 +604,8 @@ export default function SignupPage() {
                       <div className="w-full bg-gray-800 rounded-full h-2">
                         <div
                           className={`h-2 rounded-full transition-all duration-300 ${passwordStrength >= 75 ? 'bg-green-500' :
-                              passwordStrength >= 50 ? 'bg-yellow-500' :
-                                'bg-red-500'
+                            passwordStrength >= 50 ? 'bg-yellow-500' :
+                              'bg-red-500'
                             }`}
                           style={{ width: `${passwordStrength}%` }}
                         ></div>
@@ -636,8 +667,8 @@ export default function SignupPage() {
                     required
                   />
                   <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${formData.termsAccepted
-                      ? 'bg-gradient-to-br from-blue-500 to-purple-600 border-transparent'
-                      : 'border-gray-600 group-hover:border-gray-500'
+                    ? 'bg-gradient-to-br from-blue-500 to-purple-600 border-transparent'
+                    : 'border-gray-600 group-hover:border-gray-500'
                     }`}>
                     {formData.termsAccepted && (
                       <i className="fas fa-check text-white text-xs"></i>
@@ -769,8 +800,8 @@ export default function SignupPage() {
               onClick={nextStep}
               disabled={loading}
               className={`flex-1 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 ${currentStep === 4
-                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white'
-                  : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white'
+                : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {loading ? (

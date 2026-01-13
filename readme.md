@@ -1,6 +1,6 @@
 # 🎓 AcademVault - Intelligent Academic Research Platform
 
-<p align= 'center'>
+<p align='center'>
   <img src='./screenshots/banner.png' width='25%' style='border-radius:50%;'/>
 </p>
 
@@ -31,39 +31,84 @@
 - Encrypted data storage
 - GDPR compliant design
 
-## 🚀 Quick Start with Docker
+## 🚀 Quick Start
 
-### Prerequisites
-- Docker and Docker Compose installed
-- At least 4GB RAM available
-- Git
+### 📦 Installation Methods
 
-### Installation
+#### **Method 1: Docker (Recommended - Easiest)**
 ```bash
-# 1. Clone the repository
+# 1. Clone & navigate
 git clone https://github.com/yourusername/academvault.git
 cd academvault
 
-# 2. Copy environment configuration
-cp .env.docker .env
+# 2. Configure environment
+cp .env.example .env
+# Edit .env with your settings (see Configuration below)
 
-# 3. Update .env with your API keys and email credentials
-# Get API keys from: https://console.cloud.google.com/
-
-# 4. Start the application
+# 3. Launch with Docker
 docker-compose up -d
 
-# 5. Access the application
+# 4. Access the application:
 # Frontend: http://localhost:3000
 # Backend API: http://localhost:8000/api
-# PHPMyAdmin: http://localhost:8080 (optional)
+# API Docs: http://localhost:8000
 ```
 
-### Default Login Credentials
-- **Email**: test@academvault.com
-- **Password**: password123
+#### **Method 2: Manual Setup (For Developers)**
+```bash
+# Backend Setup (Laravel)
+cd server
+composer install
+cp .env.example .env
+# Configure .env file with your database & API keys
+php artisan key:generate
+php artisan jwt:secret
+php artisan migrate --seed
+php artisan serve --host=0.0.0.0 --port=8000
 
-## 📱 Screenshots
+# Frontend Setup (Next.js - in new terminal)
+cd client
+npm install
+npm run dev
+# Access at: http://localhost:3000
+```
+
+### ⚙️ Configuration
+
+#### **Environment Setup**
+```env
+# .env.example (copy to .env)
+# Database
+DB_CONNECTION=mysql
+DB_HOST=mysql            # or localhost for manual setup
+DB_PORT=3306
+DB_DATABASE=AcademVault
+DB_USERNAME=academ_vault_user
+DB_PASSWORD=Secret123!
+
+# JWT Auth (run: php artisan jwt:secret)
+JWT_SECRET=base64:your_generated_secret_here
+
+# Email Verification (Gmail recommended)
+MAIL_USERNAME=your_email@gmail.com
+MAIL_PASSWORD=your_app_password
+
+# Optional API Keys (for enhanced search)
+YOUTUBE_API_KEY=your_youtube_api_key
+GOOGLE_SEARCH_API_KEY=your_google_search_api_key
+GOOGLE_SEARCH_ENGINE_ID=your_search_engine_id
+```
+
+#### **Database Setup**
+```sql
+-- Create database manually (if not using Docker)
+CREATE DATABASE AcademVault;
+CREATE USER 'academ_vault_user'@'localhost' IDENTIFIED BY 'Secret123!';
+GRANT ALL PRIVILEGES ON AcademVault.* TO 'academ_vault_user'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+### 📱 Screenshots
 
 | Dashboard | Search Results | Mobile View |
 |-----------|----------------|-------------|
@@ -106,22 +151,24 @@ AcademVault/
 │   ├── src/lib/           # Auth, utilities
 │   └── Dockerfile         # Production Docker config
 ├── server/                # Laravel 12 Backend
-│   ├── app/Http/         # Controllers & Middleware
-│   ├── database/         # Migrations & Seeders
-│   └── Dockerfile        # Production Docker config
-├── docker-compose.yml    # Production orchestration
-└── screenshots/          # Application screenshots
+│   ├── app/Http/          # Controllers & Middleware
+│   ├── database/          # Migrations & Seeders
+│   └── Dockerfile         # Production Docker config
+├── docker-compose.yml     # Production orchestration
+├── .env.example           # Environment template
+├── .env                   # Your configuration (create from .env.example)
+└── screenshots/           # Application screenshots
 ```
 
 ## 🔧 API Configuration
 
-### Required API Keys
+### Required API Keys (Optional for Demo)
 1. **YouTube Data API v3**
-   - Enable from Google Cloud Console
+   - Enable from [Google Cloud Console](https://console.cloud.google.com/)
    - Used for educational video search
 
 2. **Google Custom Search API**
-   - Create custom search engine
+   - Create from [Programmable Search Engine](https://programmablesearchengine.google.com/)
    - Used for web article search
 
 3. **arXiv API**
@@ -132,6 +179,30 @@ AcademVault/
 - Uses Gmail SMTP with app passwords
 - Custom HTML email templates
 - Email verification for security
+- **Note**: Demo works without email verification
+
+## 🐳 Docker Services
+
+| Service | Port | Description |
+|---------|------|-------------|
+| `frontend` | 3000 | Next.js application |
+| `backend` | 8000 | Laravel API server |
+| `mysql` | 3306 | MySQL database |
+
+### Docker Commands
+```bash
+# Start services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+
+# Reset everything (including database)
+docker-compose down -v
+```
 
 ## 🛠️ Development
 
@@ -178,6 +249,56 @@ The application uses 14 interconnected tables:
 - **discussions** - Research discussions
 - **notifications** - User notifications
 
+## 🔍 API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/auth/register` | POST | Register new user |
+| `/api/auth/login` | POST | User login |
+| `/api/auth/verify-email` | POST | Verify email with code |
+| `/api/auth/send-verification` | POST | Send verification code |
+| `/api/dashboard/stats` | GET | Get dashboard statistics |
+| `/api/search` | POST | Search across sources |
+| `/api/health` | GET | Health check |
+
+## 🚨 Troubleshooting
+
+### Common Issues
+1. **Port Conflicts**
+   ```bash
+   # Check what's using port 3000 or 8000
+   sudo lsof -i :3000
+   sudo lsof -i :8000
+   ```
+
+2. **Email Verification Not Working**
+   - Use Gmail App Password, not regular password
+   - Check spam folder
+   - Verify SMTP settings in .env
+
+3. **Database Connection Errors**
+   ```bash
+   # Test MySQL connection
+   mysql -u academ_vault_user -p -h localhost
+   ```
+
+4. **Verification Link 404 Error**
+   - Ensure email verification link points to frontend (port 3000)
+   - Update `FRONTEND_URL` in .env file
+
+### Quick Fixes
+```bash
+# Rebuild Docker containers
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
+
+# Reset database
+docker-compose exec mysql mysql -u root -p
+# Then: DROP DATABASE AcademVault; CREATE DATABASE AcademVault;
+docker-compose exec backend php artisan migrate --seed
+```
+
 ## 🤝 Contributing
 
 We welcome contributions! Please see our [Contributing Guidelines](./CONTRIBUTING.md) for details.
@@ -210,61 +331,3 @@ For support, email support@academvault.com or create an issue in the GitHub repo
 **Made with ❤️ for the academic community**
 
 ⭐ **Star us on GitHub** if you find this project helpful!
-```
-
-## 🎯 QUICK START COMMANDS
-
-**File: `./QUICK_START.md`**
-```markdown
-# 🚀 AcademVault - Quick Start Guide
-
-## Option 1: Docker (Recommended)
-```bash
-# Clone and start
-git clone <repository-url>
-cd AcademVault
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop containers
-docker-compose down
-
-# Reset everything
-docker-compose down -v
-```
-
-## Option 2: Manual Installation
-```bash
-# Backend
-cd server
-composer install
-cp .env.example .env
-php artisan key:generate
-php artisan jwt:secret
-php artisan migrate --seed
-php artisan serve --host=0.0.0.0 --port=8000
-
-# Frontend (in new terminal)
-cd client
-npm install
-npm run dev
-```
-
-## API Keys Setup
-1. Get YouTube API key: https://console.cloud.google.com/
-2. Get Google Search API key: https://programmablesearchengine.google.com/
-3. Update `.env` file with your keys
-4. Restart application
-
-## Access Points
-- 🌐 Web App: http://localhost:3000
-- 🔧 API: http://localhost:8000/api
-- 📊 Database: http://localhost:8080 (phpMyAdmin)
-- 📧 Emails: Check Mailpit at http://localhost:8025 (if using mailpit)
-
-## Default Accounts
-- Admin: admin@academvault.com / admin123
-- Test User: test@academvault.com / password123
-- Teacher: teacher@academvault.com / teacher123

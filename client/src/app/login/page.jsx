@@ -58,7 +58,7 @@ export default function LoginPage() {
             message: `This will redirect you to ${provider} authentication. Continue?`,
             variant: 'default'
         });
-        
+
         if (confirmed) {
             await alert({
                 title: 'Coming Soon',
@@ -75,7 +75,7 @@ export default function LoginPage() {
             placeholder: 'you@university.edu',
             variant: 'default'
         });
-        
+
         if (email) {
             await alert({
                 title: 'Reset Link Sent',
@@ -110,7 +110,7 @@ export default function LoginPage() {
                                     AcademVault
                                 </h1>
                             </div>
-                            
+
                             <h2 className="text-4xl font-bold text-white mb-4">
                                 Welcome Back
                                 <div className="text-lg font-normal text-gray-400 mt-2">
@@ -196,7 +196,7 @@ export default function LoginPage() {
                                     </div>
                                     <span className="text-sm text-gray-300">Remember me</span>
                                 </label>
-                                
+
                                 <div className="text-sm">
                                     <span className="text-gray-500">New to AcademVault? </span>
                                     <Link href="/signup" className="text-blue-400 hover:text-blue-300 font-medium">
@@ -235,7 +235,7 @@ export default function LoginPage() {
                             </div>
 
                             {/* Social Login */}
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
                                 {[
                                     { provider: 'Google', icon: 'fab fa-google', color: 'hover:bg-red-500/10 border-red-500/20' },
                                     { provider: 'Microsoft', icon: 'fab fa-microsoft', color: 'hover:bg-blue-500/10 border-blue-500/20' },
@@ -245,10 +245,10 @@ export default function LoginPage() {
                                         key={index}
                                         type="button"
                                         onClick={() => handleSocialLogin(social.provider)}
-                                        className={`flex items-center justify-center gap-2 py-3 rounded-xl border ${social.color} bg-gray-900/30 backdrop-blur-sm text-gray-300 hover:text-white transition-all duration-300 hover:scale-105`}
+                                        className={`flex items-center justify-center gap-2 py-2 sm:py-3 rounded-lg sm:rounded-xl border ${social.color} bg-gray-900/30 backdrop-blur-sm text-gray-300 hover:text-white transition-all duration-300 hover:scale-105 text-sm sm:text-base`}
                                     >
                                         <i className={`${social.icon}`}></i>
-                                        <span className="text-sm font-medium">{social.provider}</span>
+                                        <span className="font-medium hidden xs:inline">{social.provider}</span>
                                     </button>
                                 ))}
                             </div>
@@ -267,7 +267,7 @@ export default function LoginPage() {
                     <div className="order-1 lg:order-2 animate-fade-in">
                         <div className="relative">
                             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-3xl blur-2xl"></div>
-                            
+
                             {/* Main Illustration Container */}
                             <div className="relative bg-gray-900/30 backdrop-blur-xl rounded-3xl p-8 border border-gray-700/50 shadow-2xl overflow-hidden">
                                 {/* Security Illustration */}
@@ -284,9 +284,9 @@ export default function LoginPage() {
                                                             <stop offset="100%" stopColor="#8b5cf6" />
                                                         </linearGradient>
                                                     </defs>
-                                                    <path 
-                                                        d="M100,40 L160,60 Q200,80 180,120 Q160,160 100,180 L40,160 Q20,120 40,80 Q60,40 100,40" 
-                                                        fill="url(#shield-gradient)" 
+                                                    <path
+                                                        d="M100,40 L160,60 Q200,80 180,120 Q160,160 100,180 L40,160 Q20,120 40,80 Q60,40 100,40"
+                                                        fill="url(#shield-gradient)"
                                                         fillOpacity="0.2"
                                                         stroke="url(#shield-gradient)"
                                                         strokeWidth="3"
@@ -295,7 +295,7 @@ export default function LoginPage() {
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     {/* Lock */}
                                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                                         <div className="relative w-20 h-20">
@@ -303,7 +303,7 @@ export default function LoginPage() {
                                             <i className="fas fa-lock absolute inset-0 flex items-center justify-center text-white text-2xl"></i>
                                         </div>
                                     </div>
-                                    
+
                                     {/* Floating Keys */}
                                     <div className="absolute top-12 left-12 animate-float">
                                         <i className="fas fa-key text-blue-400 text-xl"></i>
@@ -312,7 +312,7 @@ export default function LoginPage() {
                                         <i className="fas fa-fingerprint text-purple-400 text-xl"></i>
                                     </div>
                                 </div>
-                                
+
                                 {/* Features List */}
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-3 p-4 bg-gray-800/30 rounded-xl backdrop-blur-sm">
@@ -324,7 +324,7 @@ export default function LoginPage() {
                                             <p className="text-sm text-gray-400">Bank-level encryption for your research</p>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="flex items-center gap-3 p-4 bg-gray-800/30 rounded-xl backdrop-blur-sm">
                                         <div className="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-lg flex items-center justify-center">
                                             <i className="fas fa-sync-alt text-blue-400"></i>
@@ -334,7 +334,7 @@ export default function LoginPage() {
                                             <p className="text-sm text-gray-400">Access your work from any device</p>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="flex items-center gap-3 p-4 bg-gray-800/30 rounded-xl backdrop-blur-sm">
                                         <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg flex items-center justify-center">
                                             <i className="fas fa-cloud text-purple-400"></i>
