@@ -39,13 +39,13 @@ export default function SignupPage() {
     password: '',
     confirmPassword: '',
     registration_date: '', // Will be set on client side
-    
+
     // Optional fields
     institution: '',
     department: '',
     phone: '',
     bio: '',
-    
+
     // Terms acceptance
     termsAccepted: false
   });
@@ -135,7 +135,7 @@ export default function SignupPage() {
           return false;
         }
         return true;
-      
+
       case 2:
         if (!formData.institution.trim()) {
           await alert({
@@ -147,7 +147,7 @@ export default function SignupPage() {
           return false;
         }
         return true;
-      
+
       case 3:
         if (formData.password.length < 8) {
           await alert({
@@ -177,7 +177,7 @@ export default function SignupPage() {
           return false;
         }
         return true;
-      
+
       case 4:
         if (!formData.termsAccepted) {
           await alert({
@@ -189,7 +189,7 @@ export default function SignupPage() {
           return false;
         }
         return true;
-      
+
       default:
         return true;
     }
@@ -198,10 +198,10 @@ export default function SignupPage() {
   const nextStep = async () => {
     const isValid = await validateStep(currentStep);
     if (!isValid) return;
-    
+
     if (currentStep < 5) {
       setCurrentStep(currentStep + 1);
-      
+
       // When moving to verification step, send verification code
       if (currentStep === 4) {
         await sendVerificationCode();
@@ -220,7 +220,6 @@ export default function SignupPage() {
     try {
       // First check if email already exists
       const checkResult = await AuthService.checkEmail(formData.email);
-      
       if (checkResult.data && checkResult.data.exists) {
         await alert({
           title: 'Email Already Exists',
@@ -230,36 +229,19 @@ export default function SignupPage() {
         });
         return;
       }
-      
+
       // Send verification code
       const result = await AuthService.sendVerificationCode(formData.email);
-      
       if (result.success) {
         setVerificationSent(true);
-        
-        // In development, store the code but don't show modal
-        if (result.data && result.data.code) {
-          setDevModeCode(result.data.code);
-          console.log('📧 Development Mode: Verification Code:', result.data.code);
-          
-          // Auto-fill code for testing (optional)
-          // setVerificationCode(result.data.code.split(''));
-          
-          // Show a subtle notification instead of modal
-          await alert({
-            title: 'Verification Code Sent',
-            message: `Check your inbox at ${formData.email} for the verification code. (Development mode: code logged to console)`,
-            variant: 'info',
-            confirmText: 'Got it'
-          });
-        } else {
-          await alert({
-            title: 'Verification Code Sent! ✅',
-            message: `A 6-digit code has been sent to ${formData.email}. Please check your inbox.`,
-            variant: 'success',
-            confirmText: 'Got it'
-          });
-        }
+
+        // Remove the console.log and just show the alert
+        await alert({
+          title: 'Verification Code Sent! ✅',
+          message: `A 6-digit code has been sent to ${formData.email}. Please check your email (including spam folder).`,
+          variant: 'success',
+          confirmText: 'Got it'
+        });
       }
     } catch (error) {
       console.error('Send verification error:', error);
@@ -289,7 +271,7 @@ export default function SignupPage() {
     setLoading(true);
     try {
       const result = await AuthService.verifyEmail(formData.email, code);
-      
+
       if (result.success) {
         // Auto-register after verification
         await registerUser();
@@ -325,7 +307,7 @@ export default function SignupPage() {
       };
 
       const result = await AuthService.register(userData);
-      
+
       if (result.success) {
         await alert({
           title: 'Registration Successful! 🎉',
@@ -333,7 +315,7 @@ export default function SignupPage() {
           variant: 'success',
           confirmText: 'Go to Login'
         });
-        
+
         // Clear auth data and redirect to login
         AuthService.clearAuthData();
         router.push('/login');
@@ -357,7 +339,7 @@ export default function SignupPage() {
       message: `Send a new 6-digit code to ${formData.email}?`,
       variant: 'default'
     });
-    
+
     if (confirmed) {
       await sendVerificationCode();
     }
@@ -398,11 +380,10 @@ export default function SignupPage() {
         <div className="flex justify-between items-center mb-8">
           {steps.map((step, index) => (
             <div key={step.number} className="flex items-center">
-              <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center ${
-                currentStep >= step.number 
-                  ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg' 
+              <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center ${currentStep >= step.number
+                  ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg'
                   : 'bg-gray-800 text-gray-400'
-              }`}>
+                }`}>
                 <i className={step.icon}></i>
               </div>
               {index < steps.length - 1 && (
@@ -418,7 +399,7 @@ export default function SignupPage() {
           {currentStep === 1 && (
             <>
               <h3 className="text-2xl font-bold text-white mb-6">Basic Information</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 {[
                   { id: 'student', icon: 'fas fa-graduation-cap', label: 'Student', desc: 'Access course materials and research' },
@@ -433,16 +414,14 @@ export default function SignupPage() {
                       onChange={handleInputChange}
                       className="sr-only"
                     />
-                    <div className={`p-6 rounded-2xl border-2 transition-all duration-300 group-hover:scale-105 ${
-                      formData.type === type.id 
-                        ? 'border-blue-500 bg-blue-500/10' 
+                    <div className={`p-6 rounded-2xl border-2 transition-all duration-300 group-hover:scale-105 ${formData.type === type.id
+                        ? 'border-blue-500 bg-blue-500/10'
                         : 'border-gray-700 bg-gray-800/30 hover:border-gray-600'
-                    }`}>
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${
-                        formData.type === type.id 
-                          ? 'bg-gradient-to-br from-blue-500 to-purple-600' 
-                          : 'bg-gray-700'
                       }`}>
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${formData.type === type.id
+                          ? 'bg-gradient-to-br from-blue-500 to-purple-600'
+                          : 'bg-gray-700'
+                        }`}>
                         <i className={`${type.icon} text-white text-lg`}></i>
                       </div>
                       <h4 className="font-bold text-white mb-2">{type.label}</h4>
@@ -492,7 +471,7 @@ export default function SignupPage() {
           {currentStep === 2 && (
             <>
               <h3 className="text-2xl font-bold text-white mb-6">Academic Information</h3>
-              
+
               <div className="space-y-6">
                 <div className="group">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
@@ -564,7 +543,7 @@ export default function SignupPage() {
           {currentStep === 3 && (
             <>
               <h3 className="text-2xl font-bold text-white mb-6">Account Security</h3>
-              
+
               <div className="space-y-6">
                 <div className="group">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
@@ -584,21 +563,19 @@ export default function SignupPage() {
                     <div className="mt-2">
                       <div className="flex justify-between text-xs mb-1">
                         <span className="text-gray-400">Password strength</span>
-                        <span className={`${
-                          passwordStrength >= 75 ? 'text-green-400' : 
-                          passwordStrength >= 50 ? 'text-yellow-400' : 
-                          'text-red-400'
-                        }`}>
+                        <span className={`${passwordStrength >= 75 ? 'text-green-400' :
+                            passwordStrength >= 50 ? 'text-yellow-400' :
+                              'text-red-400'
+                          }`}>
                           {passwordStrength >= 75 ? 'Strong' : passwordStrength >= 50 ? 'Medium' : 'Weak'}
                         </span>
                       </div>
                       <div className="w-full bg-gray-800 rounded-full h-2">
-                        <div 
-                          className={`h-2 rounded-full transition-all duration-300 ${
-                            passwordStrength >= 75 ? 'bg-green-500' : 
-                            passwordStrength >= 50 ? 'bg-yellow-500' : 
-                            'bg-red-500'
-                          }`}
+                        <div
+                          className={`h-2 rounded-full transition-all duration-300 ${passwordStrength >= 75 ? 'bg-green-500' :
+                              passwordStrength >= 50 ? 'bg-yellow-500' :
+                                'bg-red-500'
+                            }`}
                           style={{ width: `${passwordStrength}%` }}
                         ></div>
                       </div>
@@ -632,7 +609,7 @@ export default function SignupPage() {
           {currentStep === 4 && (
             <>
               <h3 className="text-2xl font-bold text-white mb-6">Terms & Conditions</h3>
-              
+
               <div className="bg-gray-900/30 backdrop-blur-sm rounded-2xl p-6 border border-gray-700 max-h-60 overflow-y-auto">
                 <h4 className="font-bold text-white mb-4">AcademVault Terms of Service</h4>
                 <div className="space-y-3 text-gray-400 text-sm">
@@ -658,11 +635,10 @@ export default function SignupPage() {
                     className="sr-only"
                     required
                   />
-                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
-                    formData.termsAccepted 
-                      ? 'bg-gradient-to-br from-blue-500 to-purple-600 border-transparent' 
+                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${formData.termsAccepted
+                      ? 'bg-gradient-to-br from-blue-500 to-purple-600 border-transparent'
                       : 'border-gray-600 group-hover:border-gray-500'
-                  }`}>
+                    }`}>
                     {formData.termsAccepted && (
                       <i className="fas fa-check text-white text-xs"></i>
                     )}
@@ -683,13 +659,13 @@ export default function SignupPage() {
                 <div className="w-20 h-20 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
                   <i className="fas fa-envelope-open-text text-3xl text-blue-400"></i>
                 </div>
-                
+
                 {verificationSent ? (
                   <>
                     <h3 className="text-2xl font-bold text-white mb-2">Verify Your Email</h3>
                     <p className="text-gray-400 mb-2">Enter the 6-digit code sent to:</p>
                     <p className="font-medium text-blue-400 mb-8">{formData.email}</p>
-                    
+
                     {/* Development mode hint */}
                     {devModeCode && (
                       <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
@@ -699,9 +675,9 @@ export default function SignupPage() {
                         </p>
                       </div>
                     )}
-                    
+
                     <div className="flex justify-center gap-3 mb-8">
-                      {[0,1,2,3,4,5].map(i => (
+                      {[0, 1, 2, 3, 4, 5].map(i => (
                         <input
                           key={i}
                           ref={el => codeInputsRef.current[i] = el}
@@ -714,7 +690,7 @@ export default function SignupPage() {
                         />
                       ))}
                     </div>
-                    
+
                     <div className="space-y-4">
                       <button
                         onClick={handleVerifyEmail}
@@ -733,7 +709,7 @@ export default function SignupPage() {
                           </>
                         )}
                       </button>
-                      
+
                       <button
                         onClick={resendVerificationCode}
                         disabled={loading}
@@ -751,7 +727,7 @@ export default function SignupPage() {
                       We need to verify your email address before creating your account.
                       A 6-digit code will be sent to {formData.email}
                     </p>
-                    
+
                     <button
                       onClick={sendVerificationCode}
                       disabled={loading}
@@ -788,15 +764,14 @@ export default function SignupPage() {
                 Back
               </button>
             )}
-            
+
             <button
               onClick={nextStep}
               disabled={loading}
-              className={`flex-1 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 ${
-                currentStep === 4 
-                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white' 
+              className={`flex-1 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 ${currentStep === 4
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white'
                   : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {loading ? (
                 <>
@@ -830,7 +805,7 @@ export default function SignupPage() {
           <div className="order-2 lg:order-1 animate-fade-in">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-3xl blur-2xl"></div>
-              
+
               {/* Main Illustration Container */}
               <div className="relative bg-gray-900/30 backdrop-blur-xl rounded-3xl p-8 border border-gray-700/50 shadow-2xl overflow-hidden">
                 {/* Registration Illustration */}
@@ -839,18 +814,18 @@ export default function SignupPage() {
                   <div className="absolute top-8 left-8 w-16 h-16 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl rotate-12 animate-float">
                     <i className="fas fa-user-plus absolute inset-0 flex items-center justify-center text-blue-400 text-xl"></i>
                   </div>
-                  
+
                   <div className="absolute top-24 right-12 w-20 h-20 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl -rotate-12 animate-float" style={{ animationDelay: '0.3s' }}>
                     <i className="fas fa-graduation-cap absolute inset-0 flex items-center justify-center text-purple-400 text-2xl"></i>
                   </div>
-                  
+
                   <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 w-24 h-24">
                     <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full blur-xl"></div>
                     <div className="relative w-24 h-24 bg-gradient-to-br from-blue-500/30 to-purple-600/30 rounded-2xl flex items-center justify-center">
                       <i className="fas fa-check-circle text-white text-3xl"></i>
                     </div>
                   </div>
-                  
+
                   {/* Connecting Dots - FIXED POSITIONS */}
                   <svg className="absolute inset-0 w-full h-full">
                     {FIXED_CIRCLE_POSITIONS.map((pos, i) => (
@@ -867,11 +842,11 @@ export default function SignupPage() {
                     ))}
                   </svg>
                 </div>
-                
+
                 {/* Benefits */}
                 <div className="space-y-4">
                   <h4 className="text-xl font-bold text-white mb-4">Join Our Academic Community</h4>
-                  
+
                   <div className="flex items-center gap-3 p-4 bg-gray-800/30 rounded-xl backdrop-blur-sm">
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-lg flex items-center justify-center">
                       <i className="fas fa-database text-blue-400"></i>
@@ -881,7 +856,7 @@ export default function SignupPage() {
                       <p className="text-sm text-gray-400">Your data is protected with encryption</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3 p-4 bg-gray-800/30 rounded-xl backdrop-blur-sm">
                     <div className="w-10 h-10 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg flex items-center justify-center">
                       <i className="fas fa-shield-alt text-green-400"></i>
@@ -891,7 +866,7 @@ export default function SignupPage() {
                       <p className="text-sm text-gray-400">Secure account with email confirmation</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3 p-4 bg-gray-800/30 rounded-xl backdrop-blur-sm">
                     <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg flex items-center justify-center">
                       <i className="fas fa-rocket text-purple-400"></i>
@@ -921,7 +896,7 @@ export default function SignupPage() {
                   AcademVault
                 </h1>
               </div>
-              
+
               <h2 className="text-4xl font-bold text-white mb-4">
                 Create Your Account
                 <div className="text-lg font-normal text-gray-400 mt-2">
@@ -933,7 +908,7 @@ export default function SignupPage() {
             {/* Form Container */}
             <div className="bg-gray-900/30 backdrop-blur-xl rounded-3xl p-8 border border-gray-700/50 shadow-2xl">
               {renderStep()}
-              
+
               {/* Footer */}
               <div className="mt-8 pt-6 border-t border-gray-800">
                 <p className="text-center text-gray-400">
