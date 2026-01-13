@@ -1,299 +1,269 @@
-# AcademVault - Plateforme de Recherche Intelligente
+# 🎓 AcademVault - Intelligent Academic Research Platform
 
-Une plateforme académique moderne pour organiser, rechercher et partager des ressources de recherche. Système d'authentification complet avec vérification par email et JWT.
+![AcademVault Banner](./screenshots/banner.png)
 
-## 🚀 Installation Locale Rapide
+**AcademVault** is a modern, collaborative platform designed for researchers, students, and academics to discover, organize, and share academic resources. With intelligent search across multiple sources, secure collaboration features, and a beautiful dark-themed interface, AcademVault transforms how research is conducted.
 
-### ⚡ Prérequis
-- **Node.js** 18+ et npm
-- **PHP** 8.2+ et Composer 2.5+
-- **MySQL** 8.0+
-- **Git**
+## ✨ Key Features
 
-### 📥 1. Cloner le Projet
+### 🔍 **Intelligent Multi-Source Search**
+- Search across **YouTube educational videos**, **arXiv research papers**, and **web articles** simultaneously
+- Smart filtering by content type (videos, PDFs, articles)
+- Save and organize search results into collections
+
+### 👥 **Collaborative Research**
+- Create shared collections with colleagues
+- Discussion forums for research topics
+- Friend system for academic networking
+- Real-time notifications
+
+### 📊 **Research Management**
+- Dashboard with research analytics
+- Document categorization and tagging
+- Bookmark management system
+- Activity tracking and history
+
+### 🔒 **Enterprise Security**
+- JWT-based authentication with email verification
+- Role-based access control (Student/Teacher/Admin)
+- Encrypted data storage
+- GDPR compliant design
+
+## 🚀 Quick Start with Docker
+
+### Prerequisites
+- Docker and Docker Compose installed
+- At least 4GB RAM available
+- Git
+
+### Installation
 ```bash
-git clone <repository-url>
-cd AcademVault
+# 1. Clone the repository
+git clone https://github.com/yourusername/academvault.git
+cd academvault
+
+# 2. Copy environment configuration
+cp .env.docker .env
+
+# 3. Update .env with your API keys and email credentials
+# Get API keys from: https://console.cloud.google.com/
+
+# 4. Start the application
+docker-compose up -d
+
+# 5. Access the application
+# Frontend: http://localhost:3000
+# Backend API: http://localhost:8000/api
+# PHPMyAdmin: http://localhost:8080 (optional)
 ```
 
-### 🖥️ 2. Configuration du Backend (Laravel 12)
-```bash
-# Accéder au dossier backend
-cd server
+### Default Login Credentials
+- **Email**: test@academvault.com
+- **Password**: password123
 
-# Installer les dépendances PHP
-composer install
+## 📱 Screenshots
 
-# Configurer l'environnement
-cp .env.example .env
+| Dashboard | Search Results | Mobile View |
+|-----------|----------------|-------------|
+| ![Dashboard](./screenshots/dashboard.png) | ![Search](./screenshots/search.png) | ![Mobile](./screenshots/mobile.png) |
 
-# Configurer la base de données MySQL
-mysql -u root -p <<EOF
-CREATE DATABASE IF NOT EXISTS AcademVault 
-CHARACTER SET utf8mb4 
-COLLATE utf8mb4_unicode_ci;
+| Email Verification | Collections | Discussions |
+|--------------------|--------------|-------------|
+| ![Email](./screenshots/email.png) | ![Collections](./screenshots/collections.png) | ![Discussions](./screenshots/discussions.png) |
 
-CREATE USER IF NOT EXISTS 'academ_vault_user'@'localhost' 
-IDENTIFIED BY 'Secret123!';
+## 🏗️ Architecture
 
-GRANT ALL PRIVILEGES ON AcademVault.* 
-TO 'academ_vault_user'@'localhost';
-
-FLUSH PRIVILEGES;
-EOF
-
-# Générer la clé d'application
-php artisan key:generate
-
-# Configurer JWT
-php artisan jwt:secret --force
-
-# Exécuter les migrations
-php artisan migrate
-
-# Démarrer le serveur (Port 8000)
-php artisan serve --port=8000
+```mermaid
+graph TB
+    A[Next.js Frontend] --> B[Laravel API Gateway]
+    B --> C[MySQL Database]
+    B --> D[YouTube API]
+    B --> E[arXiv API]
+    B --> F[Google Search API]
+    B --> G[SMTP Email Service]
+    
+    style A fill:#2563eb,color:#fff
+    style B fill:#7c3aed,color:#fff
+    style C fill:#059669,color:#fff
 ```
 
-### 🎨 3. Configuration du Frontend (Next.js 14)
-```bash
-# Accéder au dossier frontend
-cd client
+### Tech Stack
+- **Frontend**: Next.js 14, React 19, Tailwind CSS
+- **Backend**: Laravel 12, PHP 8.2, JWT Authentication
+- **Database**: MySQL 8.0 with advanced schema
+- **Email**: Gmail SMTP with custom templates
+- **Search**: YouTube Data API v3, arXiv API, Google Custom Search
+- **Containerization**: Docker, Docker Compose
 
-# Installer les dépendances Node.js
-npm install
+## 📁 Project Structure
 
-# Configurer l'environnement
-echo "NEXT_PUBLIC_API_URL=http://localhost:8000/api" > .env.local
-echo "NEXT_PUBLIC_APP_NAME=AcademVault" >> .env.local
-
-# Démarrer le serveur de développement (Port 3000)
-npm run dev
-```
-
-### 📧 4. Configuration de l'Email (Optionnel - pour emails réels)
-```bash
-# Modifier server/.env et ajouter:
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USERNAME=votre_email@gmail.com
-MAIL_PASSWORD=votre_mot_de_passe_application
-MAIL_ENCRYPTION=tls
-MAIL_FROM_ADDRESS=votre_email@gmail.com
-MAIL_FROM_NAME="AcademVault"
-```
-
-## 🌐 Accès à l'Application
-- **Frontend** : http://localhost:3000
-- **Backend API** : http://localhost:8000/api
-- **Base de données** : MySQL sur localhost:3306
-
-## 🎯 Fonctionnalités Principales
-
-### ✅ Système d'Authentification Complet
-- **Inscription en 5 étapes** avec progression visuelle
-- **Vérification par email** avec codes à 6 chiffres
-- **Authentification JWT** avec tokens sécurisés
-- **Routes protégées** avec middleware
-- **Gestion de session** avec localStorage
-
-### 🎨 Interface Utilisateur
-- **Thème sombre moderne** avec effets glassmorphism
-- **Design responsive** pour mobile, tablette et desktop
-- **Animations fluides** et micro-interactions
-- **Validation en temps réel** des formulaires
-- **Indicateur de force de mot de passe**
-
-### 📧 Système d'Email
-- **Envoi d'emails réel** via Gmail SMTP
-- **Template professionnel** avec thème sombre
-- **Codes de vérification** à 6 chiffres
-- **Mode développement** avec logging dans la console
-
-## 🔧 Commandes Utiles
-
-### Backend (Laravel)
-```bash
-cd server
-
-# Migration de base de données
-php artisan migrate:fresh
-
-# Générer des données de test
-php artisan db:seed
-
-# Vider les caches
-php artisan optimize:clear
-
-# Lister les routes API
-php artisan route:list | grep api
-```
-
-### Frontend (Next.js)
-```bash
-cd client
-
-# Démarrer en mode développement
-npm run dev
-
-# Construire pour production
-npm run build
-
-# Lancer en production
-npm start
-
-# Analyser le bundle
-npm run analyze
-```
-
-## 🐛 Dépannage
-
-### Problèmes Courants
-
-#### 1. **Erreurs de migration**
-```bash
-# Réinitialiser la base de données
-php artisan db:wipe
-php artisan migrate
-
-# Regénérer la clé JWT
-php artisan jwt:secret --force
-```
-
-#### 2. **Erreurs CORS**
-```bash
-# Vérifier le middleware CORS dans bootstrap/app.php
-# S'assurer que le frontend URL est correct
-```
-
-#### 3. **Emails non envoyés**
-```bash
-# Vérifier les logs Laravel
-tail -f storage/logs/laravel.log
-
-# Tester l'envoi d'email
-php artisan tinker
->>> Mail::raw('Test', fn($m) => $m->to('test@example.com')->subject('Test'))
-```
-
-#### 4. **Erreurs de port**
-```bash
-# Vérifier les ports utilisés
-sudo lsof -i :8000
-sudo lsof -i :3000
-
-# Tuer les processus
-sudo kill -9 <PID>
-```
-
-## 📁 Structure du Projet
 ```
 AcademVault/
-├── client/                 # Application Next.js 14
-│   ├── src/app/           # Pages et routes
-│   ├── src/lib/           # Utilitaires (auth, modals)
-│   └── public/            # Assets statiques
-│
-└── server/                # API Laravel 12
-    ├── app/               # Logique métier
-    ├── database/          # Migrations et seeders
-    ├── routes/            # Routes API
-    └── resources/         # Vues et templates email
+├── client/                 # Next.js 14 Frontend
+│   ├── src/app/           # App Router pages
+│   ├── src/lib/           # Auth, utilities
+│   └── Dockerfile         # Production Docker config
+├── server/                # Laravel 12 Backend
+│   ├── app/Http/         # Controllers & Middleware
+│   ├── database/         # Migrations & Seeders
+│   └── Dockerfile        # Production Docker config
+├── docker-compose.yml    # Production orchestration
+├── docker-compose.dev.yml # Development orchestration
+└── screenshots/          # Application screenshots
 ```
 
-## 🔒 Sécurité
+## 🔧 API Configuration
 
-### Configuration Sécurisée
-- **JWT tokens** avec expiration automatique
-- **Hashage bcrypt** pour les mots de passe
-- **Validation d'entrée** côté serveur
-- **Protection CORS** configurée
-- **Rate limiting** sur les endpoints API
+### Required API Keys
+1. **YouTube Data API v3**
+   - Enable from Google Cloud Console
+   - Used for educational video search
 
-### Variables d'Environnement
-```env
-# Toujours garder confidentielles
-APP_KEY=...
-JWT_SECRET=...
-DB_PASSWORD=...
-MAIL_PASSWORD=...
+2. **Google Custom Search API**
+   - Create custom search engine
+   - Used for web article search
+
+3. **arXiv API**
+   - No key required
+   - Free academic paper search
+
+### Email Configuration
+- Uses Gmail SMTP with app passwords
+- Custom HTML email templates
+- Email verification for security
+
+## 🛠️ Development
+
+### Local Development (Without Docker)
+```bash
+# Backend
+cd server
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan jwt:secret
+php artisan migrate --seed
+php artisan serve
+
+# Frontend
+cd client
+npm install
+npm run dev
 ```
 
-## 🤝 Contribution
+### Running Tests
+```bash
+# Backend tests
+cd server
+php artisan test
 
-### Processus de Contribution
-1. **Fork** le dépôt
-2. **Créer une branche** : `git checkout -b feature/nouvelle-fonctionnalite`
-3. **Commiter les changements** : `git commit -m "feat: description"`
-4. **Pousser la branche** : `git push origin feature/nouvelle-fonctionnalite`
-5. **Ouvrir une Pull Request**
+# Frontend tests
+cd client
+npm test
+```
 
-### Standards de Code
-- Suivre les règles ESLint/Prettier
-- Écrire des tests pour les nouvelles fonctionnalités
-- Documenter les changements majeurs
-- Maintenir la cohérence du code
+## 📊 Database Schema
+
+The application uses 14 interconnected tables:
+
+- **users** - User accounts with roles
+- **documents** - Research documents and metadata
+- **categories** - Document categorization
+- **collections** - Grouped research materials
+- **search_history** - User search queries
+- **email_verifications** - Email verification codes
+- **bookmarks** - Saved documents
+- **friendships** - User connections
+- **discussions** - Research discussions
+- **notifications** - User notifications
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](./CONTRIBUTING.md) for details.
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [Laravel](https://laravel.com) - The PHP Framework
+- [Next.js](https://nextjs.org) - The React Framework
+- [Tailwind CSS](https://tailwindcss.com) - CSS Framework
+- [Font Awesome](https://fontawesome.com) - Icons
+- [arXiv](https://arxiv.org) - Academic Papers API
+- [YouTube Data API](https://developers.google.com/youtube/v3) - Video Search
 
 ## 📞 Support
 
-### Ressources
-- **Documentation détaillée** : Voir `manual.md`
-- **API Endpoints** : http://localhost:8000/api
-- **Logs Backend** : `server/storage/logs/laravel.log`
-- **Logs Frontend** : Console du navigateur
-
-### Tests
-```bash
-# Tester l'API
-curl -X POST http://localhost:8000/api/auth/check-email \
-  -H "Content-Type: application/json" \
-  -d '{"email": "test@example.com"}'
-
-# Tester la santé de l'API
-curl http://localhost:8000/api/health
-```
-
-## 🚀 Déploiement
-
-### Préparation Production
-```bash
-# Frontend
-cd client
-npm run build
-
-# Backend
-cd server
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-```
-
-### Variables Production
-```env
-APP_ENV=production
-APP_DEBUG=false
-APP_URL=https://votre-domaine.com
-
-# Configurer la base de données production
-DB_HOST=...
-DB_DATABASE=...
-DB_USERNAME=...
-DB_PASSWORD=...
-
-# Configurer l'email production
-MAIL_MAILER=...
-MAIL_HOST=...
-```
-
-## 📄 Licence
-
-MIT License - Voir le fichier LICENSE pour plus de détails.
+For support, email support@academvault.com or create an issue in the GitHub repository.
 
 ---
 
-**✨ Système complet d'authentification opérationnel !**  
-**📧 Emails de vérification fonctionnels !**  
-**🎨 Interface utilisateur moderne et responsive !**
+**Made with ❤️ for the academic community**
 
-Pour toute question, consultez le fichier `manual.md` pour la documentation complète du système.
+⭐ **Star us on GitHub** if you find this project helpful!
+```
+
+## 🎯 QUICK START COMMANDS
+
+**File: `./QUICK_START.md`**
+```markdown
+# 🚀 AcademVault - Quick Start Guide
+
+## Option 1: Docker (Recommended)
+```bash
+# Clone and start
+git clone <repository-url>
+cd AcademVault
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop containers
+docker-compose down
+
+# Reset everything
+docker-compose down -v
+```
+
+## Option 2: Manual Installation
+```bash
+# Backend
+cd server
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan jwt:secret
+php artisan migrate --seed
+php artisan serve --host=0.0.0.0 --port=8000
+
+# Frontend (in new terminal)
+cd client
+npm install
+npm run dev
+```
+
+## API Keys Setup
+1. Get YouTube API key: https://console.cloud.google.com/
+2. Get Google Search API key: https://programmablesearchengine.google.com/
+3. Update `.env` file with your keys
+4. Restart application
+
+## Access Points
+- 🌐 Web App: http://localhost:3000
+- 🔧 API: http://localhost:8000/api
+- 📊 Database: http://localhost:8080 (phpMyAdmin)
+- 📧 Emails: Check Mailpit at http://localhost:8025 (if using mailpit)
+
+## Default Accounts
+- Admin: admin@academvault.com / admin123
+- Test User: test@academvault.com / password123
+- Teacher: teacher@academvault.com / teacher123

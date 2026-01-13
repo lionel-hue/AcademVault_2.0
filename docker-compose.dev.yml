@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: academvault_mysql_dev
+    restart: always
+    environment:
+      MYSQL_DATABASE: AcademVault
+      MYSQL_USER: academ_vault_user
+      MYSQL_PASSWORD: Secret123!
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data_dev:/var/lib/mysql
+      - ./server/database/init:/docker-entrypoint-initdb.d
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    container_name: academvault_backend_dev
+    restart: always
+    depends_on:
+      - mysql
+    environment:
+      APP_NAME: AcademVault
+      APP_ENV: local
+      APP_DEBUG: true
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: AcademVault
+      DB_USERNAME: academ_vault_user
+      DB_PASSWORD: Secret123!
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./server:/var/www/html
+      - /var/www/html/vendor
+    working_dir: /var/www/html
+    command: >
+      sh -c "
+      php artisan migrate:fresh --seed --force &&
+      php artisan serve --host=0.0.0.0 --port=8000"
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
+    container_name: academvault_frontend_dev
+    restart: always
+    depends_on:
+      - backend
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+      - /app/.next
+    working_dir: /app
+
+volumes:
+  mysql_data_dev:
