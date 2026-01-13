@@ -548,6 +548,140 @@ class AuthService {
             return false;
         }
     }
+
+    // Enhanced search with pagination
+    async search(params) {
+        try {
+            const token = this.getToken();
+            if (!token) {
+                throw new Error('No authentication token');
+            }
+
+            const response = await fetch(`${API_URL}/search`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(params)
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    this.clearAuthData();
+                    window.location.href = '/login';
+                    throw new Error('Session expired');
+                }
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Search failed');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Search error:', error);
+            throw error;
+        }
+    }
+
+    // Advanced search with filters
+    async advancedSearch(params) {
+        try {
+            const token = this.getToken();
+            const response = await fetch(`${API_URL}/search/advanced`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(params)
+            });
+
+            if (!response.ok) {
+                throw new Error('Advanced search failed');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Advanced search error:', error);
+            throw error;
+        }
+    }
+
+    // Save search result to bookmarks
+    async saveSearchResult(data) {
+        try {
+            const token = this.getToken();
+            const response = await fetch(`${API_URL}/search/save`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to save search result');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error saving search result:', error);
+            throw error;
+        }
+    }
+
+    // Add to AuthService class:
+
+    async getVideoDownloadOptions(videoId, quality = 'medium') {
+        try {
+            const token = this.getToken();
+            if (!token) {
+                throw new Error('No authentication token');
+            }
+
+            const response = await fetch(`${API_URL}/download/video/info`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ video_id: videoId, quality })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch download options');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Video download options error:', error);
+            throw error;
+        }
+    }
+
+    async getEducationalAlternatives() {
+        try {
+            const token = this.getToken();
+            const response = await fetch(`${API_URL}/download/video/alternatives`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch educational alternatives');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Educational alternatives error:', error);
+            throw error;
+        }
+    }
 }
 
 // Export singleton instance

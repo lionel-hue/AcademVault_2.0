@@ -8,6 +8,18 @@ module.exports = {
   ],
   theme: {
     extend: {
+      // Add screens here (inside extend) for additional breakpoints
+      screens: {
+        'xs': '475px',     // Extra small: for very mobile
+        'sm': '640px',     // Small: mobile
+        'md': '768px',     // Medium: tablet
+        'lg': '1024px',    // Large: laptop
+        'xl': '1280px',    // Extra large: desktop
+        '2xl': '1536px',   // 2X large: large desktop
+        '3xl': '1920px',   // 3X large: 4K monitors
+      },
+      
+      // Your existing colors, animations, etc. remain the same
       colors: {
         primary: '#3b82f6',
         'primary-hover': '#2563eb',
