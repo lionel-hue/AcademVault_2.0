@@ -64,29 +64,19 @@ class AuthController extends Controller
         ]);
 
         try {
-            // Send verification email
-            Mail::to($email)->send(new VerificationEmail($email, $code));
+            // Send verification email - ALWAYS send in both development and production
+            Mail::to($email)->send(new VerificationEmail($code, $email));
 
-            // In development, return the code for testing
-            if (app()->environment('local')) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Verification code sent successfully',
-                    'data' => [
-                        'code' => $code, // Only in development
-                        'expires_at' => $verification->expires_at
-                    ]
-                ]);
-            }
+            // For debugging, log that email was sent but don't return code
+            Log::info('Verification email sent to: ' . $email . ' with code: ' . $code);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Verification code sent successfully'
+                'message' => 'Verification code sent successfully. Please check your email.'
             ]);
         } catch (\Exception $e) {
             // Log error but don't expose details to client
             Log::error('Email sending failed: ' . $e->getMessage());
-
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to send verification email. Please try again.'
