@@ -1,5 +1,9 @@
 # Root gitignore
 test.txt
+.env
+.env.local
+.env.*.local
+*.key
 .DS_Store
 *.log
 node_modules/
