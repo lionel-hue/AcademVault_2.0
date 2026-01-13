@@ -1,4 +1,3 @@
-// client/src/app/components/Layout/MainLayout.jsx - UPDATED VERSION
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -14,8 +13,9 @@ export default function MainLayout({ children }) {
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState(''); // ADD THIS STATE
-
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchType, setSearchType] = useState('all'); // Add search type state
+    
     const userDropdownRef = useRef(null);
     const notificationsRef = useRef(null);
 
@@ -23,11 +23,9 @@ export default function MainLayout({ children }) {
         const checkAuth = async () => {
             try {
                 const loggedIn = AuthService.isLoggedIn();
-
                 if (!loggedIn) {
                     const token = localStorage.getItem('academvault_token');
                     const userStr = localStorage.getItem('academvault_user');
-
                     if (token && userStr) {
                         AuthService.token = token;
                         AuthService.user = JSON.parse(userStr);
@@ -36,7 +34,6 @@ export default function MainLayout({ children }) {
                         return;
                     }
                 }
-
                 const currentUser = AuthService.getCurrentUser();
                 setUser(currentUser);
                 setLoading(false);
@@ -45,7 +42,7 @@ export default function MainLayout({ children }) {
                 router.push('/login');
             }
         };
-
+        
         checkAuth();
 
         // Close dropdowns when clicking outside
@@ -57,22 +54,18 @@ export default function MainLayout({ children }) {
                 setNotificationsOpen(false);
             }
         };
-
+        
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [router]);
 
-    // ADD THIS FUNCTION FOR SEARCH
     const handleSearch = (e) => {
         e.preventDefault();
         if (!searchQuery.trim()) return;
-
-        // Redirect to search page with query
-        router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-        setSearchQuery(''); // Clear the input
+        router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}&type=${searchType}`);
+        setSearchQuery('');
     };
 
-    // ADD THIS FUNCTION FOR SEARCH ON ENTER KEY
     const handleKeyPress = (e) => {
         if (e.key === 'Enter') {
             handleSearch(e);
@@ -126,6 +119,17 @@ export default function MainLayout({ children }) {
         { icon: 'fas fa-cog', label: 'Settings', href: '/settings' },
     ];
 
+    // Get user initials for mobile
+    const getUserInitials = () => {
+        if (!user?.name) return 'U';
+        return user.name
+            .split(' ')
+            .map(word => word[0])
+            .join('')
+            .toUpperCase()
+            .substring(0, 2);
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
             {/* Header */}
@@ -140,7 +144,7 @@ export default function MainLayout({ children }) {
                             >
                                 <i className="fas fa-bars text-xl"></i>
                             </button>
-
+                            
                             <Link href="/dashboard" className="flex items-center gap-3">
                                 <div className="relative">
                                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl blur-md"></div>
@@ -148,18 +152,18 @@ export default function MainLayout({ children }) {
                                         <i className="fas fa-graduation-cap text-white text-lg"></i>
                                     </div>
                                 </div>
-                                <div>
+                                <div className="hidden sm:block">
                                     <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                                         AcademVault
                                     </h1>
-                                    <p className="text-gray-500 text-xs hidden sm:block">Research Platform</p>
+                                    <p className="text-gray-500 text-xs">Research Platform</p>
                                 </div>
                             </Link>
                         </div>
 
-                        {/* Center: Search Bar (Desktop) - UPDATED */}
-                        <div className="hidden md:block flex-1 max-w-2xl mx-8">
-                            <div className="relative">
+                        {/* Center: Search Bar (Desktop) */}
+                        <div className="hidden md:flex flex-1 max-w-2xl mx-8">
+                            <div className="relative w-full">
                                 <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
                                 <form onSubmit={handleSearch} className="w-full">
                                     <input
@@ -168,23 +172,33 @@ export default function MainLayout({ children }) {
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         onKeyPress={handleKeyPress}
                                         placeholder="Search documents, discussions, or users..."
-                                        className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full pl-10 pr-32 py-2 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
+                                    <div className="absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+                                        <select
+                                            value={searchType}
+                                            onChange={(e) => setSearchType(e.target.value)}
+                                            className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        >
+                                            <option value="all">All</option>
+                                            <option value="videos">Videos</option>
+                                            <option value="pdfs">PDFs</option>
+                                            <option value="articles">Articles</option>
+                                        </select>
+                                        <button
+                                            type="submit"
+                                            className="p-1.5 text-blue-400 hover:text-blue-300 hover:bg-gray-800 rounded-lg"
+                                        >
+                                            <i className="fas fa-arrow-right"></i>
+                                        </button>
+                                    </div>
                                 </form>
-                                {searchQuery && (
-                                    <button
-                                        onClick={handleSearch}
-                                        className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-blue-400 hover:text-blue-300"
-                                    >
-                                        <i className="fas fa-arrow-right"></i>
-                                    </button>
-                                )}
                             </div>
                         </div>
 
                         {/* Right: User Actions */}
-                        <div className="flex items-center gap-4">
-                            {/* Desktop Search Button - UPDATED */}
+                        <div className="flex items-center gap-2 md:gap-4">
+                            {/* Desktop Search Button */}
                             <button
                                 onClick={() => router.push('/search')}
                                 className="md:hidden p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg"
@@ -192,8 +206,8 @@ export default function MainLayout({ children }) {
                                 <i className="fas fa-search text-xl"></i>
                             </button>
 
-                            {/* Notifications */}
-                            <div className="relative" ref={notificationsRef}>
+                            {/* Notifications - Hide on mobile */}
+                            <div className="hidden md:block relative" ref={notificationsRef}>
                                 <button
                                     onClick={() => setNotificationsOpen(!notificationsOpen)}
                                     className="relative p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg"
@@ -205,7 +219,6 @@ export default function MainLayout({ children }) {
                                         </span>
                                     )}
                                 </button>
-
                                 {notificationsOpen && (
                                     <div className="absolute right-0 mt-2 w-80 bg-gray-900 border border-gray-800 rounded-xl shadow-2xl py-2 z-50">
                                         <div className="px-4 py-2 border-b border-gray-800">
@@ -217,7 +230,10 @@ export default function MainLayout({ children }) {
                                                     <div key={notification.id} className="px-4 py-3 hover:bg-gray-800/50">
                                                         <p className="text-white text-sm">{notification.message}</p>
                                                         <p className="text-gray-500 text-xs mt-1">
-                                                            {new Date(notification.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            {new Date(notification.created_at).toLocaleTimeString([], {
+                                                                hour: '2-digit',
+                                                                minute: '2-digit',
+                                                            })}
                                                         </p>
                                                     </div>
                                                 ))
@@ -234,62 +250,97 @@ export default function MainLayout({ children }) {
                                 )}
                             </div>
 
-                            {/* User Profile */}
+                            {/* User Profile - Mobile Optimized */}
                             <div className="relative" ref={userDropdownRef}>
                                 <button
                                     onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                                    className="flex items-center gap-3 p-2 hover:bg-gray-800 rounded-xl transition-colors"
+                                    className="flex items-center gap-2 p-1 md:p-2 hover:bg-gray-800 rounded-xl transition-colors"
                                 >
-                                    <div className="relative">
-                                        <img
-                                            src={user?.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=3b82f6&color=fff`}
-                                            alt="Profile"
-                                            className="w-10 h-10 rounded-full border-2 border-blue-500/50"
-                                        />
+                                    {/* Mobile: Show initials only */}
+                                    <div className="md:hidden relative">
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                                            {getUserInitials()}
+                                        </div>
                                         <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900"></span>
                                     </div>
-                                    <div className="hidden md:block text-left">
-                                        <p className="text-white font-medium text-sm">{user?.name || 'User'}</p>
-                                        <p className="text-gray-400 text-xs capitalize">{user?.type || 'Student'}</p>
+
+                                    {/* Desktop: Show full profile */}
+                                    <div className="hidden md:flex items-center gap-3">
+                                        <div className="relative">
+                                            <img
+                                                src={user?.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=3b82f6&color=fff`}
+                                                alt="Profile"
+                                                className="w-10 h-10 rounded-full border-2 border-blue-500/50"
+                                            />
+                                            <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900"></span>
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="text-white font-medium text-sm">{user?.name || 'User'}</p>
+                                            <p className="text-gray-400 text-xs capitalize">{user?.type || 'Student'}</p>
+                                        </div>
+                                        <i className={`fas fa-chevron-down text-gray-400 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`}></i>
                                     </div>
-                                    <i className={`fas fa-chevron-down text-gray-400 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`}></i>
                                 </button>
 
+                                {/* User Dropdown - Mobile Optimized */}
                                 {userDropdownOpen && (
-                                    <div className="absolute right-0 mt-2 w-64 bg-gray-900 border border-gray-800 rounded-xl shadow-2xl py-2 z-50">
+                                    <div className="absolute right-0 mt-2 w-64 md:w-80 bg-gray-900 border border-gray-800 rounded-xl shadow-2xl py-2 z-50">
+                                        {/* Profile Info */}
                                         <div className="px-4 py-3 border-b border-gray-800">
                                             <div className="flex items-center gap-3">
-                                                <img
-                                                    src={user?.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=3b82f6&color=fff`}
-                                                    alt="Profile"
-                                                    className="w-12 h-12 rounded-full border-2 border-blue-500/50"
-                                                />
-                                                <div>
-                                                    <p className="text-white font-medium">{user?.name || 'User'}</p>
-                                                    <p className="text-gray-400 text-sm">{user?.email || 'user@example.com'}</p>
+                                                <div className="md:hidden">
+                                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+                                                        {getUserInitials()}
+                                                    </div>
+                                                </div>
+                                                <div className="hidden md:block">
+                                                    <img
+                                                        src={user?.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=3b82f6&color=fff`}
+                                                        alt="Profile"
+                                                        className="w-12 h-12 rounded-full border-2 border-blue-500/50"
+                                                    />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-white font-medium truncate">{user?.name || 'User'}</p>
+                                                    <p className="text-gray-400 text-sm truncate">{user?.email || 'user@example.com'}</p>
+                                                    <p className="text-gray-500 text-xs capitalize mt-1">{user?.type || 'Student'}</p>
                                                 </div>
                                             </div>
                                         </div>
 
+                                        {/* Menu Items */}
                                         <div className="py-2">
-                                            <Link href="/profile" className="flex items-center gap-3 px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-800">
+                                            <Link
+                                                href="/profile"
+                                                className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-gray-800 md:py-2"
+                                                onClick={() => setUserDropdownOpen(false)}
+                                            >
                                                 <i className="fas fa-user-circle w-5"></i>
                                                 <span>Profile</span>
                                             </Link>
-                                            <Link href="/settings" className="flex items-center gap-3 px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-800">
+                                            <Link
+                                                href="/settings"
+                                                className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-gray-800 md:py-2"
+                                                onClick={() => setUserDropdownOpen(false)}
+                                            >
                                                 <i className="fas fa-cog w-5"></i>
                                                 <span>Settings</span>
                                             </Link>
-                                            <Link href="/help" className="flex items-center gap-3 px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-800">
+                                            <Link
+                                                href="/help"
+                                                className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-gray-800 md:py-2"
+                                                onClick={() => setUserDropdownOpen(false)}
+                                            >
                                                 <i className="fas fa-question-circle w-5"></i>
                                                 <span>Help & Support</span>
                                             </Link>
                                         </div>
 
+                                        {/* Logout */}
                                         <div className="border-t border-gray-800 pt-2">
                                             <button
                                                 onClick={handleLogout}
-                                                className="w-full flex items-center gap-3 px-4 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                                className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 md:py-2"
                                             >
                                                 <i className="fas fa-sign-out-alt w-5"></i>
                                                 <span>Logout</span>
@@ -301,32 +352,42 @@ export default function MainLayout({ children }) {
                         </div>
                     </div>
                 </div>
-            </header>
 
-            {/* Mobile Search Bar - UPDATED */}
-            <div className="md:hidden bg-gray-900 border-b border-gray-800 p-4">
-                <div className="relative">
-                    <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
-                    <form onSubmit={handleSearch} className="w-full">
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            placeholder="Search documents, discussions, or users..."
-                            className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                    </form>
-                    {searchQuery && (
-                        <button
-                            onClick={handleSearch}
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-blue-400 hover:text-blue-300"
-                        >
-                            <i className="fas fa-arrow-right"></i>
-                        </button>
-                    )}
+                {/* Mobile Search Bar */}
+                <div className="md:hidden bg-gray-900 border-b border-gray-800 p-4">
+                    <div className="relative">
+                        <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                        <form onSubmit={handleSearch} className="w-full">
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyPress={handleKeyPress}
+                                placeholder="Search documents, discussions, or users..."
+                                className="w-full pl-10 pr-24 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                            <div className="absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+                                <select
+                                    value={searchType}
+                                    onChange={(e) => setSearchType(e.target.value)}
+                                    className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                >
+                                    <option value="all">All</option>
+                                    <option value="videos">Videos</option>
+                                    <option value="pdfs">PDFs</option>
+                                    <option value="articles">Articles</option>
+                                </select>
+                                <button
+                                    type="submit"
+                                    className="p-2 text-blue-400 hover:text-blue-300"
+                                >
+                                    <i className="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            </div>
+            </header>
 
             {/* Main Content */}
             <div className="flex">
@@ -405,7 +466,6 @@ export default function MainLayout({ children }) {
                         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
                         onClick={() => setSidebarOpen(false)}
                     ></div>
-
                     <div className="absolute left-0 top-0 h-full w-64 bg-gray-900 border-r border-gray-800 animate-slide-in">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-8">
@@ -448,11 +508,9 @@ export default function MainLayout({ children }) {
                             {/* User Info */}
                             <div className="p-4 bg-gray-800/30 rounded-xl">
                                 <div className="flex items-center gap-3 mb-3">
-                                    <img
-                                        src={user?.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=3b82f6&color=fff`}
-                                        alt="Profile"
-                                        className="w-10 h-10 rounded-full border-2 border-blue-500/50"
-                                    />
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold">
+                                        {getUserInitials()}
+                                    </div>
                                     <div>
                                         <p className="text-white font-medium">{user?.name || 'User'}</p>
                                         <p className="text-gray-400 text-xs">{user?.email || 'user@example.com'}</p>
@@ -462,8 +520,7 @@ export default function MainLayout({ children }) {
                                     onClick={handleLogout}
                                     className="w-full mt-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg text-sm font-medium"
                                 >
-                                    <i className="fas fa-sign-out-alt mr-2"></i>
-                                    Logout
+                                    <i className="fas fa-sign-out-alt mr-2"></i> Logout
                                 </button>
                             </div>
                         </div>
