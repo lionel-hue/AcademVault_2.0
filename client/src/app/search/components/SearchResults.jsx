@@ -363,7 +363,6 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
                         </div>
                     </div>
 
-                    // In the Grid Layout section, replace with:
                     {/* Grid Layout - MOBILE OPTIMIZED */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                         {activeTab === 'all' ? (

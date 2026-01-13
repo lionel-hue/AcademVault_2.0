@@ -15,7 +15,7 @@ export default function MainLayout({ children }) {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchType, setSearchType] = useState('all'); // Add search type state
-    
+
     const userDropdownRef = useRef(null);
     const notificationsRef = useRef(null);
 
@@ -42,7 +42,7 @@ export default function MainLayout({ children }) {
                 router.push('/login');
             }
         };
-        
+
         checkAuth();
 
         // Close dropdowns when clicking outside
@@ -54,7 +54,7 @@ export default function MainLayout({ children }) {
                 setNotificationsOpen(false);
             }
         };
-        
+
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [router]);
@@ -144,7 +144,7 @@ export default function MainLayout({ children }) {
                             >
                                 <i className="fas fa-bars text-xl"></i>
                             </button>
-                            
+
                             <Link href="/dashboard" className="flex items-center gap-3">
                                 <div className="relative">
                                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl blur-md"></div>
@@ -350,41 +350,6 @@ export default function MainLayout({ children }) {
                                 )}
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                {/* Mobile Search Bar */}
-                <div className="md:hidden bg-gray-900 border-b border-gray-800 p-4">
-                    <div className="relative">
-                        <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
-                        <form onSubmit={handleSearch} className="w-full">
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyPress={handleKeyPress}
-                                placeholder="Search documents, discussions, or users..."
-                                className="w-full pl-10 pr-24 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
-                            <div className="absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
-                                <select
-                                    value={searchType}
-                                    onChange={(e) => setSearchType(e.target.value)}
-                                    className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                >
-                                    <option value="all">All</option>
-                                    <option value="videos">Videos</option>
-                                    <option value="pdfs">PDFs</option>
-                                    <option value="articles">Articles</option>
-                                </select>
-                                <button
-                                    type="submit"
-                                    className="p-2 text-blue-400 hover:text-blue-300"
-                                >
-                                    <i className="fas fa-arrow-right"></i>
-                                </button>
-                            </div>
-                        </form>
                     </div>
                 </div>
             </header>

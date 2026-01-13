@@ -1,6 +1,8 @@
 # 🎓 AcademVault - Intelligent Academic Research Platform
 
-![AcademVault Banner](./screenshots/banner.png)
+<p align= 'center'>
+  <img src='./screenshots/banner.png' width='25%' style='border-radius:50%;'/>
+</p>
 
 **AcademVault** is a modern, collaborative platform designed for researchers, students, and academics to discover, organize, and share academic resources. With intelligent search across multiple sources, secure collaboration features, and a beautiful dark-themed interface, AcademVault transforms how research is conducted.
 
@@ -108,7 +110,6 @@ AcademVault/
 │   ├── database/         # Migrations & Seeders
 │   └── Dockerfile        # Production Docker config
 ├── docker-compose.yml    # Production orchestration
-├── docker-compose.dev.yml # Development orchestration
 └── screenshots/          # Application screenshots
 ```
 
