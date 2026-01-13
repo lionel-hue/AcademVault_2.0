@@ -29,7 +29,7 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
                 type: item.type,
                 data: item.data
             });
-            
+
             if (response.success) {
                 setSavedItems(prev => ({ ...prev, [item.data.id]: true }));
                 await alert({
@@ -57,10 +57,10 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
                 confirmText: 'Export',
                 variant: 'info'
             });
-            
+
             if (confirmed) {
                 let content, mimeType, filename;
-                
+
                 switch (format) {
                     case 'json':
                         content = JSON.stringify(results, null, 2);
@@ -71,7 +71,7 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
                         const csvRows = [];
                         // Add header
                         csvRows.push(['Type', 'Title', 'Source', 'URL', 'Published', 'Description'].join(','));
-                        
+
                         // Add videos
                         results.videos.forEach(video => {
                             csvRows.push([
@@ -83,7 +83,7 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
                                 `"${video.description?.replace(/"/g, '""').substring(0, 100)}..."`
                             ].join(','));
                         });
-                        
+
                         // Add PDFs
                         results.pdfs.forEach(pdf => {
                             csvRows.push([
@@ -95,7 +95,7 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
                                 `"${pdf.description?.replace(/"/g, '""').substring(0, 100)}..."`
                             ].join(','));
                         });
-                        
+
                         // Add articles
                         results.articles.forEach(article => {
                             csvRows.push([
@@ -107,13 +107,13 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
                                 `"${article.snippet?.replace(/"/g, '""').substring(0, 100)}..."`
                             ].join(','));
                         });
-                        
+
                         content = csvRows.join('\n');
                         mimeType = 'text/csv';
                         filename = `search-results-${query}-${Date.now()}.csv`;
                         break;
                 }
-                
+
                 // Download file
                 const blob = new Blob([content], { type: mimeType });
                 const url = window.URL.createObjectURL(blob);
@@ -124,7 +124,7 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
                 a.click();
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
-                
+
                 await alert({
                     title: 'Export Successful',
                     message: `Results exported as ${filename}`,
@@ -144,7 +144,7 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
 
     const handleLoadMore = async () => {
         if (loadingMore || !hasMore) return;
-        
+
         setLoadingMore(true);
         try {
             const nextPage = page + 1;
@@ -154,16 +154,16 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
                 limit: 20,
                 page: nextPage
             });
-            
+
             if (response.success && response.data) {
                 // Merge new results
                 const newResults = response.data;
-                
+
                 if (newResults.videos.length === 0 && newResults.pdfs.length === 0 && newResults.articles.length === 0) {
                     setHasMore(false);
                 } else {
                     setPage(nextPage);
-                    
+
                     // You would need to update parent component's results
                     // This is a simplified approach
                     if (onRefresh) {
@@ -197,16 +197,16 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
         const sorted = [...items];
         switch (sortBy) {
             case 'newest':
-                return sorted.sort((a, b) => 
+                return sorted.sort((a, b) =>
                     new Date(b.published_at || b.created_at) - new Date(a.published_at || a.created_at)
                 );
             case 'oldest':
-                return sorted.sort((a, b) => 
+                return sorted.sort((a, b) =>
                     new Date(a.published_at || a.created_at) - new Date(b.published_at || b.created_at)
                 );
             case 'popular':
-                return sorted.sort((a, b) => 
-                    (b.views || b.citation_count || b.download_count || 0) - 
+                return sorted.sort((a, b) =>
+                    (b.views || b.citation_count || b.download_count || 0) -
                     (a.views || a.citation_count || a.download_count || 0)
                 );
             default:
@@ -221,7 +221,7 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
     const getSourceInfo = () => {
         const sources = results.metadata?.sources_used || [];
         const hasRealData = results.metadata?.has_real_data || false;
-        
+
         return {
             sources,
             hasRealData,
@@ -244,7 +244,7 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
                             <p className="text-gray-400">
                                 Found {results.total_results} results across {results.videos.length} videos, {results.pdfs.length} papers, and {results.articles.length} articles
                             </p>
-                            
+
                             {/* Source Indicators */}
                             {sourceInfo.sources.length > 0 && (
                                 <div className="flex items-center gap-2">
@@ -266,10 +266,10 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
                             )}
                         </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-3">
-                        <select 
-                            value={sortBy} 
+                        <select
+                            value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
                             className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                         >
@@ -278,21 +278,21 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
                             <option value="oldest">Sort by: Oldest</option>
                             <option value="popular">Sort by: Popular</option>
                         </select>
-                        
+
                         <div className="relative group">
                             <button className="px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-white font-medium transition-colors flex items-center gap-2">
                                 <i className="fas fa-download"></i>
                                 Export
                             </button>
                             <div className="absolute right-0 mt-2 w-48 bg-gray-900 border border-gray-800 rounded-lg shadow-2xl py-2 z-50 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all duration-200">
-                                <button 
+                                <button
                                     onClick={() => handleExport('json')}
                                     className="w-full px-4 py-2 text-left text-gray-300 hover:text-white hover:bg-gray-800"
                                 >
                                     <i className="fas fa-file-code mr-2"></i>
                                     Export as JSON
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => handleExport('csv')}
                                     className="w-full px-4 py-2 text-left text-gray-300 hover:text-white hover:bg-gray-800"
                                 >
@@ -311,17 +311,15 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`px-5 py-3 rounded-xl font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${
-                                    activeTab === tab.id
+                                className={`px-5 py-3 rounded-xl font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${activeTab === tab.id
                                         ? `${tab.color} text-white shadow-lg`
                                         : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                                }`}
+                                    }`}
                             >
                                 <i className={tab.icon}></i>
                                 {tab.label}
-                                <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
-                                    activeTab === tab.id ? 'bg-white/20' : 'bg-gray-700'
-                                }`}>
+                                <span className={`ml-2 text-xs px-2 py-1 rounded-full ${activeTab === tab.id ? 'bg-white/20' : 'bg-gray-700'
+                                    }`}>
                                     {tab.count}
                                 </span>
                             </button>
@@ -337,7 +335,7 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
                     <h3 className="text-xl font-bold text-white mb-2">No results found</h3>
                     <p className="text-gray-400 mb-6">Try adjusting your search terms or filters</p>
                     <div className="flex gap-2 justify-center">
-                        <button 
+                        <button
                             onClick={() => window.location.reload()}
                             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white"
                         >
@@ -355,7 +353,7 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
                             {page > 1 && ` (Page ${page})`}
                         </p>
                         <div className="flex items-center gap-4">
-                            <button 
+                            <button
                                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                                 className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
                             >
@@ -365,62 +363,69 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
                         </div>
                     </div>
 
-                    {/* Grid Layout */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    // In the Grid Layout section, replace with:
+                    {/* Grid Layout - MOBILE OPTIMIZED */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                         {activeTab === 'all' ? (
-                            // Mixed layout for all results
+                            // Mixed layout for all results with proper mobile sizing
                             <>
                                 {results.videos.slice(0, 2).map((video, index) => (
-                                    <VideoCard 
-                                        key={`video-${video.id || index}`} 
-                                        video={video} 
-                                        onSave={() => handleSave({ type: 'video', data: video })}
-                                        saved={savedItems[video.id]}
-                                    />
+                                    <div key={`video-${video.id || index}`} className="w-full h-full">
+                                        <VideoCard
+                                            video={video}
+                                            onSave={() => handleSave({ type: 'video', data: video })}
+                                            saved={savedItems[video.id]}
+                                        />
+                                    </div>
                                 ))}
                                 {results.pdfs.slice(0, 2).map((pdf, index) => (
-                                    <PDFCard 
-                                        key={`pdf-${pdf.id || index}`} 
-                                        pdf={pdf} 
-                                        onSave={() => handleSave({ type: 'pdf', data: pdf })}
-                                        saved={savedItems[pdf.id]}
-                                    />
+                                    <div key={`pdf-${pdf.id || index}`} className="w-full h-full">
+                                        <PDFCard
+                                            pdf={pdf}
+                                            onSave={() => handleSave({ type: 'pdf', data: pdf })}
+                                            saved={savedItems[pdf.id]}
+                                        />
+                                    </div>
                                 ))}
                                 {results.articles.slice(0, 2).map((article, index) => (
-                                    <ArticleCard 
-                                        key={`article-${article.id || index}`} 
-                                        article={article} 
-                                        onSave={() => handleSave({ type: 'article', data: article })}
-                                        saved={savedItems[article.id]}
-                                    />
+                                    <div key={`article-${article.id || index}`} className="w-full h-full">
+                                        <ArticleCard
+                                            article={article}
+                                            onSave={() => handleSave({ type: 'article', data: article })}
+                                            saved={savedItems[article.id]}
+                                        />
+                                    </div>
                                 ))}
                             </>
                         ) : activeTab === 'videos' ? (
                             results.videos.map((video, index) => (
-                                <VideoCard 
-                                    key={`video-${video.id || index}`} 
-                                    video={video} 
-                                    onSave={() => handleSave({ type: 'video', data: video })}
-                                    saved={savedItems[video.id]}
-                                />
+                                <div key={`video-${video.id || index}`} className="w-full h-full">
+                                    <VideoCard
+                                        video={video}
+                                        onSave={() => handleSave({ type: 'video', data: video })}
+                                        saved={savedItems[video.id]}
+                                    />
+                                </div>
                             ))
                         ) : activeTab === 'pdfs' ? (
                             results.pdfs.map((pdf, index) => (
-                                <PDFCard 
-                                    key={`pdf-${pdf.id || index}`} 
-                                    pdf={pdf} 
-                                    onSave={() => handleSave({ type: 'pdf', data: pdf })}
-                                    saved={savedItems[pdf.id]}
-                                />
+                                <div key={`pdf-${pdf.id || index}`} className="w-full h-full">
+                                    <PDFCard
+                                        pdf={pdf}
+                                        onSave={() => handleSave({ type: 'pdf', data: pdf })}
+                                        saved={savedItems[pdf.id]}
+                                    />
+                                </div>
                             ))
                         ) : (
                             results.articles.map((article, index) => (
-                                <ArticleCard 
-                                    key={`article-${article.id || index}`} 
-                                    article={article} 
-                                    onSave={() => handleSave({ type: 'article', data: article })}
-                                    saved={savedItems[article.id]}
-                                />
+                                <div key={`article-${article.id || index}`} className="w-full h-full">
+                                    <ArticleCard
+                                        article={article}
+                                        onSave={() => handleSave({ type: 'article', data: article })}
+                                        saved={savedItems[article.id]}
+                                    />
+                                </div>
                             ))
                         )}
                     </div>
@@ -428,7 +433,7 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
                     {/* Load More Button */}
                     {hasMore && sortedResults.length > 0 && (
                         <div className="text-center mt-12">
-                            <button 
+                            <button
                                 onClick={handleLoadMore}
                                 disabled={loadingMore}
                                 className="px-6 py-3 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -515,7 +520,7 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
                             </p>
                         </div>
                     </div>
-                    <button 
+                    <button
                         onClick={() => window.open('https://console.cloud.google.com/', '_blank')}
                         className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg text-white text-sm"
                     >
