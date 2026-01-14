@@ -229,7 +229,7 @@ export default function SearchPage() {
                         <p className="text-gray-400 text-sm md:text-base">Try different keywords or check your spelling</p>
                     </div>
                 ) : (
-                    <div className="max-w-4xl mx-auto">
+                    <div className="search-results-container max-w-4xl mx-auto w-full overflow-x-hidden">
                         {/* Recent Searches - Mobile Optimized */}
                         {recentSearches.length > 0 && (
                             <div className="mb-6 md:mb-8">
@@ -266,7 +266,7 @@ export default function SearchPage() {
                                 <i className="fas fa-fire text-red-400"></i>
                                 Popular Searches
                             </h3>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 md:gap-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1 md:gap-2">
                                 {popularSearches.map((search, index) => (
                                     <button
                                         key={index}

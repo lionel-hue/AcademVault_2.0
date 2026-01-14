@@ -364,7 +364,7 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
                     </div>
 
                     {/* Grid Layout - MOBILE OPTIMIZED */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                    <div className="search-results-container grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4 lg:gap-6 max-w-full overflow-x-hidden">
                         {activeTab === 'all' ? (
                             // Mixed layout for all results with proper mobile sizing
                             <>
