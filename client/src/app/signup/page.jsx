@@ -70,7 +70,7 @@ export default function SignupPage() {
     }
 
 
-    // Add this useEffect at the top of your component (after other useEffects)
+    // Also update the URL verification useEffect to handle verification properly:
     useEffect(() => {
       // Check for verification parameters in URL
       const urlParams = new URLSearchParams(window.location.search);
@@ -79,24 +79,29 @@ export default function SignupPage() {
       const codeParam = urlParams.get('code');
 
       if (verifyParam === '1' && emailParam && codeParam) {
-        // Set the email and auto-fill code
+        // Set the email
         setFormData(prev => ({ ...prev, email: emailParam }));
 
         // Fill verification code
-        const codeArray = codeParam.split('');
+        const codeArray = codeParam.split('').slice(0, 6);
         setVerificationCode(codeArray);
 
-        // Auto-verify if we have all 6 digits
-        if (codeArray.length === 6) {
-          // Set to verification step
-          setCurrentStep(5);
-          setVerificationSent(true);
+        // Set to verification step
+        setCurrentStep(5);
+        setVerificationSent(true);
 
-          // Auto-verify after a short delay
-          setTimeout(() => {
+        // Auto-verify after a short delay
+        setTimeout(() => {
+          if (codeArray.length === 6) {
             handleVerifyEmail();
-          }, 1000);
-        }
+          } else {
+            alert({
+              title: 'Invalid Code',
+              message: 'The verification code in the link is incomplete. Please enter the full code.',
+              variant: 'warning'
+            });
+          }
+        }, 1500);
       }
     }, []);
 
@@ -301,11 +306,14 @@ export default function SignupPage() {
 
     setLoading(true);
     try {
-      const result = await AuthService.verifyEmail(formData.email, code);
+      // First verify the email
+      const verifyResult = await AuthService.verifyEmail(formData.email, code);
 
-      if (result.success) {
-        // Auto-register after verification
+      if (verifyResult.success) {
+        // Then register the user
         await registerUser();
+      } else {
+        throw new Error(verifyResult.message || 'Verification failed');
       }
     } catch (error) {
       console.error('Verify email error:', error);
@@ -320,6 +328,7 @@ export default function SignupPage() {
     }
   };
 
+  // Update the registerUser function to properly set verification:
   const registerUser = async () => {
     setLoading(true);
     try {
@@ -338,31 +347,46 @@ export default function SignupPage() {
       };
 
       const result = await AuthService.register(userData);
-
       if (result.success) {
         await alert({
           title: 'Registration Successful! 🎉',
-          message: 'Your account has been created successfully. Please login to continue.',
+          message: 'Your account has been verified and created successfully. Please login to continue.',
           variant: 'success',
           confirmText: 'Go to Login'
         });
 
-        // Clear auth data and redirect to login
+        // Clear any existing auth data
         AuthService.clearAuthData();
+
+        // Redirect to login
         router.push('/login');
       }
     } catch (error) {
       console.error('Registration error:', error);
-      await alert({
-        title: 'Registration Failed',
-        message: error.message || 'Unable to create account. Please try again.',
-        variant: 'danger',
-        confirmText: 'Try Again'
-      });
+
+      // Check if it's a verification error
+      if (error.message.includes('verify your email first')) {
+        // Resend verification code
+        await sendVerificationCode();
+        await alert({
+          title: 'Verification Required',
+          message: 'Please use the verification code we just sent to your email to complete registration.',
+          variant: 'warning',
+          confirmText: 'OK'
+        });
+      } else {
+        await alert({
+          title: 'Registration Failed',
+          message: error.message || 'Unable to create account. Please try again.',
+          variant: 'danger',
+          confirmText: 'Try Again'
+        });
+      }
     } finally {
       setLoading(false);
     }
   };
+
 
   const resendVerificationCode = async () => {
     const confirmed = await confirm({
