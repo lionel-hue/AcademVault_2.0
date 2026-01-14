@@ -265,10 +265,25 @@ class AuthController extends Controller
 
         // Check if email is verified
         if (!$user->email_verified_at) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Please verify your email before logging in'
-            ], 403);
+            // Check if there's a pending verification
+            $pendingVerification = EmailVerification::where('email', $request->email)
+                ->where('type', 'signup')
+                ->whereNotNull('verified_at')
+                ->first();
+
+            if ($pendingVerification) {
+                // Update user's email_verified_at from verification timestamp
+                $user->email_verified_at = $pendingVerification->verified_at;
+                $user->save();
+
+                // Clean up verification
+                EmailVerification::where('email', $request->email)->delete();
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please verify your email before logging in'
+                ], 403);
+            }
         }
 
         // Check if account is active
