@@ -185,8 +185,7 @@ export default function MainLayout({ children }) {
                                             <option value="pdfs">PDFs</option>
                                             <option value="articles">Articles</option>
                                         </select>
-                                        <button
-                                            type="submit"
+                                        <button type="submit"
                                             className="ml-1 p-2 text-blue-400 hover:text-blue-300 hover:bg-gray-800 rounded-lg"
                                         >
                                             <i className="fas fa-arrow-right"></i>

@@ -22,6 +22,8 @@ export default function DashboardPage() {
     const [searchHistory, setSearchHistory] = useState([]);
     const [statsLoading, setStatsLoading] = useState(true);
     const [activitiesLoading, setActivitiesLoading] = useState(true);
+    const [isMobile, setIsMobile] = useState(false); // Add mobile detection
+
 
     // Default stats
     const defaultStats = {
@@ -33,6 +35,15 @@ export default function DashboardPage() {
         friends: 0,
         storage: '0 MB'
     };
+
+
+    // Add mobile detection useEffect
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     useEffect(() => {
         const initializeDashboard = async () => {
@@ -327,29 +338,27 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            {/* Stats Grid - MOBILE OPTIMIZED */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 md:mb-8">
                 {statsLoading ? (
                     Array.from({ length: 8 }).map((_, index) => (
-                        <div key={`skeleton-${index}`} className="bg-gray-900/50 rounded-xl p-4 animate-pulse">
-                            <div className="h-10 bg-gray-800 rounded mb-2"></div>
+                        <div key={`skeleton-${index}`} className="bg-gray-900/50 rounded-xl p-3 md:p-4 animate-pulse">
+                            <div className="h-8 md:h-10 bg-gray-800 rounded mb-2"></div>
                             <div className="h-4 bg-gray-800 rounded"></div>
                         </div>
                     ))
                 ) : (
                     statItems.map((stat, index) => (
-                        <Link
-                            key={`stat-${index}`}
-                            href={stat.link}
-                            className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-4 border border-gray-800 hover:border-gray-700 hover:transform hover:-translate-y-1 transition-all duration-300"
+                        <Link key={`stat-${index}`} href={stat.link}
+                            className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-3 md:p-4 border border-gray-800 hover:border-gray-700 hover:transform hover:-translate-y-1 transition-all duration-300"
                         >
                             <div className="flex items-center justify-between">
-                                <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
-                                    <i className={`${stat.icon} text-white`}></i>
+                                <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
+                                    <i className={`${stat.icon} text-white text-sm md:text-base`}></i>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-2xl font-bold text-white">{stat.value}</p>
-                                    <p className="text-sm text-gray-400">{stat.title}</p>
+                                    <p className="text-lg md:text-2xl font-bold text-white">{stat.value}</p>
+                                    <p className="text-xs md:text-sm text-gray-400">{stat.title}</p>
                                 </div>
                             </div>
                         </Link>
