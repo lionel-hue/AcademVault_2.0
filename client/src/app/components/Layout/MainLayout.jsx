@@ -111,14 +111,13 @@ export default function MainLayout({ children }) {
         { icon: 'fas fa-home', label: 'Dashboard', href: '/dashboard', mobile: true },
         { icon: 'fas fa-folder', label: 'Categories', href: '/categories', count: 12, mobile: false },
         { icon: 'fas fa-file-alt', label: 'Documents', href: '/documents', count: 45, mobile: true },
+        { icon: 'fas fa-search-plus', label: 'Search Sessions', href: '/search-sessions', count: 0, mobile: true, highlight: true },
         { icon: 'fas fa-layer-group', label: 'Collections', href: '/collections', count: 8, mobile: false },
         { icon: 'fas fa-comments', label: 'Discussions', href: '/discussions', count: 5, mobile: true },
         { icon: 'fas fa-users', label: 'Friends', href: '/friends', count: 18, mobile: false },
         { icon: 'fas fa-bookmark', label: 'Bookmarks', href: '/bookmarks', count: 23, mobile: true },
         { icon: 'fas fa-chart-line', label: 'Analytics', href: '/analytics', mobile: false },
         { icon: 'fas fa-cog', label: 'Settings', href: '/settings', mobile: false },
-        { icon: 'fas fa-comments', label: 'Search Sessions', href: '/search-sessions', count: 0, mobile: true },
-        { icon: 'fas fa-search-plus', label: 'Search Sessions', href: '/search-sessions', count: 0, mobile: true, highlight: true },
     ];
 
     // Get user initials for mobile
