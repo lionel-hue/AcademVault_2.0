@@ -1082,3 +1082,149 @@ select:focus {
     display: none !important;
   }
 }
+
+
+
+/* ============================================ */
+/* SPECIFIC FIX FOR INFINIX HOT 60i (720px) */
+/* ============================================ */
+
+@media (max-width: 720px) {
+  /* Fix signup page specifically */
+  .signup-page-fix {
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  
+  /* Signup form container */
+  .auth-card {
+    padding: 1rem !important;
+    margin: 0.5rem !important;
+    width: calc(100% - 1rem) !important;
+    max-width: 100% !important;
+  }
+  
+  /* Grid fixes */
+  .grid-cols-1 {
+    grid-template-columns: 1fr !important;
+    gap: 0.5rem !important;
+  }
+  
+  /* Step indicator */
+  .step-indicator {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+  
+  .step {
+    flex-shrink: 0;
+    min-width: 70px;
+  }
+  
+  /* Form inputs */
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    font-size: 16px !important; /* Prevents iOS zoom */
+    padding: 0.75rem !important;
+    width: 100% !important;
+  }
+  
+  /* Verification code inputs */
+  .code-input {
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    font-size: 1rem !important;
+  }
+  
+  /* Illustration container */
+  .illustration-container {
+    min-height: 250px !important;
+    padding: 1rem !important;
+    margin-bottom: 1rem;
+  }
+  
+  /* Role selector grid */
+  .role-selector {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+  
+  /* Buttons */
+  button,
+  .btn {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    padding: 0.75rem 1rem !important;
+  }
+  
+  /* Fix for the signup page grid */
+  .lg\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Adjust spacing */
+  .gap-12 {
+    gap: 1rem !important;
+  }
+  
+  /* Reduce padding */
+  .p-8 {
+    padding: 1.5rem !important;
+  }
+  
+  /* Fix overflow */
+  .overflow-hidden {
+    overflow: hidden !important;
+  }
+  
+  /* Specifically target the signup page layout */
+  .grid.lg\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+    padding: 0.5rem !important;
+  }
+}
+
+/* Extra small devices (below 400px) */
+@media (max-width: 400px) {
+  .auth-card {
+    padding: 0.75rem !important;
+    margin: 0.25rem !important;
+  }
+  
+  .role-selector {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .code-input {
+    width: 2rem !important;
+    height: 2rem !important;
+  }
+  
+  .step-number {
+    width: 2rem !important;
+    height: 2rem !important;
+    font-size: 0.875rem !important;
+  }
+}
+
+/* Prevent horizontal scroll on all mobile */
+@media (max-width: 768px) {
+  html, body {
+    max-width: 100vw;
+    overflow-x: hidden;
+    position: relative;
+  }
+  
+  body {
+    padding-left: 0;
+    padding-right: 0;
+  }
+  
+  .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
