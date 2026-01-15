@@ -60,13 +60,14 @@ export default function SearchPage() {
                 query: initialQuery,
                 results: results,
                 filters: searchType !== 'all' ? { type: searchType } : {},
-                total_results: results.total_results || 0
+                total_results: results.total_results || 0,
+                title: `Search: ${initialQuery.substring(0, 30)}`
             };
 
-            // Store in localStorage temporarily
-            localStorage.setItem('current_search', JSON.stringify(sessionData));
+            console.log('Attempting to save session:', sessionData);
 
             const response = await AuthService.createSearchSession(sessionData);
+
             if (response.success) {
                 await alert({
                     title: 'Session Saved',
@@ -78,7 +79,7 @@ export default function SearchPage() {
             console.error('Error saving session:', error);
             await alert({
                 title: 'Save Failed',
-                message: 'Failed to save search session. Please try again.',
+                message: error.message || 'Failed to save search session. Please try again.',
                 variant: 'danger'
             });
         }
