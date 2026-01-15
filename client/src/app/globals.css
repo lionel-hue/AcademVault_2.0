@@ -1341,3 +1341,144 @@ table, pre, code {
   margin: 0 0.25rem !important;
 }
 }
+
+
+/* HOT 60i specific fixes (720x1600) - ALTERNATIVE CLEANER VERSION */
+@media (max-width: 720px) {
+  /* Ensure containers don't exceed viewport */
+  .container, .max-w-7xl, .max-w-4xl {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* Add a mobile-container class to use in your JSX */
+  .mobile-container {
+    max-width: calc(100vw - 2rem) !important;
+    width: calc(100vw - 2rem) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    overflow: hidden !important;
+  }
+  
+  /* Fix search results overflow */
+  .search-results-container {
+    max-width: 100vw !important;
+    width: 100vw !important;
+    margin-left: -0.5rem !important;
+    margin-right: -0.5rem !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Fix grid layout */
+  .grid-cols-1, .grid-cols-2, .grid-cols-3 {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+  
+  /* Fix button and input widths */
+  button, input, select, .w-full {
+    max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Fix padding issues */
+  .px-4, .px-6, .px-8 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* Prevent horizontal scroll */
+  html, body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    width: 100vw !important;
+    position: relative !important;
+  }
+  
+  /* Fix text overflow */
+  .truncate, .line-clamp-2, .line-clamp-3 {
+    max-width: calc(100vw - 4rem) !important;
+  }
+}
+
+/* Better mobile grid for 720px devices */
+@media (min-width: 640px) and (max-width: 720px) {
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+    gap: 1rem !important;
+  }
+}
+
+
+/* Mobile UI Fixes - Prevent elements from sticking to right edge */
+@media (max-width: 768px) {
+  /* General container fixes */
+  .container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Search results specific fixes */
+  .search-results-container {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    margin-left: -0.5rem !important;
+    margin-right: -0.5rem !important;
+    width: calc(100% + 1rem) !important;
+  }
+
+  /* Fix search input and dropdown alignment */
+  .search-bar-container {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  /* Cards should have breathing room */
+  .bg-gray-900\/50, .backdrop-blur-sm {
+    margin-left: 0.5rem !important;
+    margin-right: 0.5rem !important;
+    max-width: calc(100% - 1rem) !important;
+  }
+
+  /* Fix grid layouts */
+  .grid {
+    gap: 0.75rem !important;
+  }
+
+  /* Button and input improvements */
+  button, input, select {
+    margin-left: 0.25rem !important;
+    margin-right: 0.25rem !important;
+  }
+}
+
+/* Specific fix for HOT 60i (720px width) */
+@media (max-width: 720px) {
+  /* Force all containers to have proper padding */
+  .max-w-7xl, .max-w-4xl, .max-w-2xl {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  /* Search page specific fixes */
+  .search-page-container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Fix the right edge gap */
+  .px-4 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}

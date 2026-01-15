@@ -233,91 +233,48 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
 
     return (
         <div className="max-w-7xl mx-auto">
-            {/* Results Header */}
-            <div className="mb-8">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                    <div>
-                        <h1 className="text-2xl font-bold text-white mb-2">
-                            Search results for "<span className="text-blue-400">{query}</span>"
-                        </h1>
-                        <div className="flex items-center gap-4 flex-wrap">
-                            <p className="text-gray-400">
-                                Found {results.total_results} results across {results.videos.length} videos, {results.pdfs.length} papers, and {results.articles.length} articles
+            {/* Results Header - FIXED FOR MOBILE */}
+            <div className="mb-6 md:mb-8">
+                <div className="flex flex-col gap-4 mb-4">
+                    <h1 className="text-xl md:text-2xl font-bold text-white break-words max-w-full">
+                        Search results for "<span className="text-blue-400 break-words">{query}</span>"
+                    </h1>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                            <p className="text-gray-400 text-sm break-words">
+                                Found {results.total_results} results across {results.videos.length} videos,
+                                {results.pdfs.length} papers, and {results.articles.length} articles
                             </p>
-
-                            {/* Source Indicators */}
-                            {sourceInfo.sources.length > 0 && (
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs text-gray-500">Sources:</span>
-                                    <div className="flex gap-1">
-                                        {sourceInfo.sources.map((source, idx) => (
-                                            <span key={idx} className="px-2 py-1 bg-gray-800 text-gray-300 text-xs rounded">
-                                                {source.replace('_', ' ')}
-                                            </span>
-                                        ))}
-                                    </div>
-                                    {!sourceInfo.hasRealData && (
-                                        <span className="text-xs text-yellow-500 flex items-center gap-1">
-                                            <i className="fas fa-info-circle"></i>
-                                            Using demo data
-                                        </span>
-                                    )}
-                                </div>
-                            )}
                         </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        <select
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value)}
-                            className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        >
-                            <option value="relevance">Sort by: Relevance</option>
-                            <option value="newest">Sort by: Newest</option>
-                            <option value="oldest">Sort by: Oldest</option>
-                            <option value="popular">Sort by: Popular</option>
-                        </select>
-
-                        <div className="relative group">
-                            <button className="px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-white font-medium transition-colors flex items-center gap-2">
-                                <i className="fas fa-download"></i>
-                                Export
-                            </button>
-                            <div className="absolute right-0 mt-2 w-48 bg-gray-900 border border-gray-800 rounded-lg shadow-2xl py-2 z-50 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all duration-200">
-                                <button
-                                    onClick={() => handleExport('json')}
-                                    className="w-full px-4 py-2 text-left text-gray-300 hover:text-white hover:bg-gray-800"
-                                >
-                                    <i className="fas fa-file-code mr-2"></i>
-                                    Export as JSON
-                                </button>
-                                <button
-                                    onClick={() => handleExport('csv')}
-                                    className="w-full px-4 py-2 text-left text-gray-300 hover:text-white hover:bg-gray-800"
-                                >
-                                    <i className="fas fa-file-csv mr-2"></i>
-                                    Export as CSV
-                                </button>
-                            </div>
+                        <div className="flex flex-wrap gap-2">
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 w-full md:w-auto"
+                            >
+                                <option value="relevance">Sort by: Relevance</option>
+                                <option value="newest">Sort by: Newest</option>
+                                <option value="oldest">Sort by: Oldest</option>
+                                <option value="popular">Sort by: Popular</option>
+                            </select>
                         </div>
                     </div>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex overflow-x-auto pb-2 -mx-4 px-4">
-                    <div className="flex gap-1">
+                {/* Tabs - FIXED FOR MOBILE */}
+                <div className="w-full overflow-x-auto">
+                    <div className="flex min-w-max gap-1 pb-2">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`px-5 py-3 rounded-xl font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${activeTab === tab.id
-                                        ? `${tab.color} text-white shadow-lg`
-                                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                                className={`px-4 py-3 rounded-lg font-medium whitespace-nowrap flex items-center gap-2 ${activeTab === tab.id
+                                    ? `${tab.color} text-white shadow-lg`
+                                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                                     }`}
                             >
                                 <i className={tab.icon}></i>
-                                {tab.label}
+                                <span className="hidden xs:inline">{tab.label}</span>
                                 <span className={`ml-2 text-xs px-2 py-1 rounded-full ${activeTab === tab.id ? 'bg-white/20' : 'bg-gray-700'
                                     }`}>
                                     {tab.count}
@@ -363,70 +320,90 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
                         </div>
                     </div>
 
-                    {/* Grid Layout - MOBILE OPTIMIZED */}
-                    <div className="search-results-container grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4 lg:gap-6 max-w-full overflow-x-hidden">
-                        {activeTab === 'all' ? (
-                            // Mixed layout for all results with proper mobile sizing
-                            <>
-                                {results.videos.slice(0, 2).map((video, index) => (
-                                    <div key={`video-${video.id || index}`} className="w-full h-full">
+                    {/* Grid Layout - MOBILE OPTIMIZED WITH RIGHT SPACE */}
+                    <div className="search-results-container w-full px-3 sm:px-0">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8 w-full">
+                            {activeTab === 'all' ? (
+                                // Mixed layout for all results with proper mobile sizing
+                                <>
+                                    {results.videos.slice(0, 2).map((video, index) => (
+                                        <div
+                                            key={`video-${video.id || index}`}
+                                            className="w-full px-1 sm:px-0"
+                                        >
+                                            <VideoCard
+                                                video={video}
+                                                onSave={() => handleSave({ type: 'video', data: video })}
+                                                saved={savedItems[video.id]}
+                                            />
+                                        </div>
+                                    ))}
+                                    {results.pdfs.slice(0, 2).map((pdf, index) => (
+                                        <div
+                                            key={`pdf-${pdf.id || index}`}
+                                            className="w-full px-1 sm:px-0"
+                                        >
+                                            <PDFCard
+                                                pdf={pdf}
+                                                onSave={() => handleSave({ type: 'pdf', data: pdf })}
+                                                saved={savedItems[pdf.id]}
+                                            />
+                                        </div>
+                                    ))}
+                                    {results.articles.slice(0, 2).map((article, index) => (
+                                        <div
+                                            key={`article-${article.id || index}`}
+                                            className="w-full px-1 sm:px-0"
+                                        >
+                                            <ArticleCard
+                                                article={article}
+                                                onSave={() => handleSave({ type: 'article', data: article })}
+                                                saved={savedItems[article.id]}
+                                            />
+                                        </div>
+                                    ))}
+                                </>
+                            ) : activeTab === 'videos' ? (
+                                results.videos.map((video, index) => (
+                                    <div
+                                        key={`video-${video.id || index}`}
+                                        className="w-full px-1 sm:px-0"
+                                    >
                                         <VideoCard
                                             video={video}
                                             onSave={() => handleSave({ type: 'video', data: video })}
                                             saved={savedItems[video.id]}
                                         />
                                     </div>
-                                ))}
-                                {results.pdfs.slice(0, 2).map((pdf, index) => (
-                                    <div key={`pdf-${pdf.id || index}`} className="w-full h-full">
+                                ))
+                            ) : activeTab === 'pdfs' ? (
+                                results.pdfs.map((pdf, index) => (
+                                    <div
+                                        key={`pdf-${pdf.id || index}`}
+                                        className="w-full px-1 sm:px-0"
+                                    >
                                         <PDFCard
                                             pdf={pdf}
                                             onSave={() => handleSave({ type: 'pdf', data: pdf })}
                                             saved={savedItems[pdf.id]}
                                         />
                                     </div>
-                                ))}
-                                {results.articles.slice(0, 2).map((article, index) => (
-                                    <div key={`article-${article.id || index}`} className="w-full h-full">
+                                ))
+                            ) : (
+                                results.articles.map((article, index) => (
+                                    <div
+                                        key={`article-${article.id || index}`}
+                                        className="w-full px-1 sm:px-0"
+                                    >
                                         <ArticleCard
                                             article={article}
                                             onSave={() => handleSave({ type: 'article', data: article })}
                                             saved={savedItems[article.id]}
                                         />
                                     </div>
-                                ))}
-                            </>
-                        ) : activeTab === 'videos' ? (
-                            results.videos.map((video, index) => (
-                                <div key={`video-${video.id || index}`} className="w-full h-full">
-                                    <VideoCard
-                                        video={video}
-                                        onSave={() => handleSave({ type: 'video', data: video })}
-                                        saved={savedItems[video.id]}
-                                    />
-                                </div>
-                            ))
-                        ) : activeTab === 'pdfs' ? (
-                            results.pdfs.map((pdf, index) => (
-                                <div key={`pdf-${pdf.id || index}`} className="w-full h-full">
-                                    <PDFCard
-                                        pdf={pdf}
-                                        onSave={() => handleSave({ type: 'pdf', data: pdf })}
-                                        saved={savedItems[pdf.id]}
-                                    />
-                                </div>
-                            ))
-                        ) : (
-                            results.articles.map((article, index) => (
-                                <div key={`article-${article.id || index}`} className="w-full h-full">
-                                    <ArticleCard
-                                        article={article}
-                                        onSave={() => handleSave({ type: 'article', data: article })}
-                                        saved={savedItems[article.id]}
-                                    />
-                                </div>
-                            ))
-                        )}
+                                ))
+                            )}
+                        </div>
                     </div>
 
                     {/* Load More Button */}

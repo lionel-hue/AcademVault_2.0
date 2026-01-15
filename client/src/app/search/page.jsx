@@ -11,10 +11,10 @@ export default function SearchPage() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const { alert } = useModal();
-    
+
     const initialQuery = searchParams.get('q') || '';
     const initialType = searchParams.get('type') || 'all';
-    
+
     const [loading, setLoading] = useState(false);
     const [results, setResults] = useState(null);
     const [searchQuery, setSearchQuery] = useState(initialQuery);
@@ -47,7 +47,7 @@ export default function SearchPage() {
 
     const performSearch = async (query, type = 'all') => {
         if (!query.trim()) return;
-        
+
         setLoading(true);
         try {
             const response = await AuthService.search({
@@ -55,7 +55,7 @@ export default function SearchPage() {
                 type,
                 limit: 12 // Reduced for mobile performance
             });
-            
+
             if (response.success) {
                 setResults(response.data);
             } else {
@@ -80,13 +80,13 @@ export default function SearchPage() {
     const handleSearch = (e) => {
         e.preventDefault();
         if (!searchQuery.trim()) return;
-        
+
         const params = new URLSearchParams();
         params.set('q', searchQuery.trim());
         if (searchType !== 'all') {
             params.set('type', searchType);
         }
-        
+
         router.push(`/search?${params.toString()}`);
         performSearch(searchQuery.trim(), searchType);
     };
@@ -104,7 +104,7 @@ export default function SearchPage() {
             confirmText: 'Clear',
             variant: 'warning'
         });
-        
+
         if (confirmed) {
             try {
                 await AuthService.clearSearchHistory();
@@ -131,26 +131,26 @@ export default function SearchPage() {
     return (
         <MainLayout>
             {/* Search Header - Mobile Optimized */}
-            <div className="sticky top-16 z-40 bg-gray-900/95 backdrop-blur-xl border-b border-gray-800 py-4 md:py-6">
-                <div className="container mx-auto px-3 md:px-4">
-                    <form onSubmit={handleSearch} className="max-w-4xl mx-auto">
-                        <div className="relative">
-                            <div className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2">
-                                <i className="fas fa-search text-gray-500 text-sm md:text-base"></i>
+            <div className="sticky top-16 z-40 bg-gray-900/95 backdrop-blur-xl border-b border-gray-800 py-4">
+                <div className="w-full px-4 sm:px-6">
+                    <form onSubmit={handleSearch} className="w-full max-w-full mx-auto">
+                        <div className="relative w-full">
+                            <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                                <i className="fas fa-search text-gray-500"></i>
                             </div>
                             <input
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Search research topics, videos, papers..."
-                                className="w-full pl-10 md:pl-12 pr-24 md:pr-32 py-3 md:py-4 bg-gray-800/50 border border-gray-700 rounded-xl md:rounded-2xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base md:text-lg"
+                                className="w-full pl-12 pr-28 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                                 autoFocus
                             />
-                            <div className="absolute right-1 md:right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1 md:gap-2">
+                            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
                                 <select
                                     value={searchType}
                                     onChange={(e) => setSearchType(e.target.value)}
-                                    className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 md:px-3 md:py-2 text-white text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 >
                                     <option value="all">All</option>
                                     <option value="videos">Videos</option>
@@ -160,55 +160,22 @@ export default function SearchPage() {
                                 <button
                                     type="submit"
                                     disabled={loading || !searchQuery.trim()}
-                                    className="px-3 md:px-4 py-1.5 md:py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed rounded-lg md:rounded-xl text-white font-medium md:font-semibold text-sm transition-all duration-200"
+                                    className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed rounded-lg text-white font-medium text-sm transition-all duration-200"
                                 >
                                     {loading ? (
-                                        <>
-                                            <i className="fas fa-spinner fa-spin mr-1 md:mr-2"></i>
-                                            <span className="hidden md:inline">Searching</span>
-                                        </>
+                                        <i className="fas fa-spinner fa-spin"></i>
                                     ) : (
-                                        <>
-                                            <i className="fas fa-search mr-1 md:mr-2"></i>
-                                            <span className="hidden md:inline">Search</span>
-                                        </>
+                                        <i className="fas fa-search"></i>
                                     )}
                                 </button>
                             </div>
                         </div>
                     </form>
-
-                    {/* Quick Filters - Mobile Optimized */}
-                    {initialQuery && (
-                        <div className="flex justify-center gap-1 md:gap-2 mt-4 md:mt-6 flex-wrap">
-                            {['all', 'videos', 'pdfs', 'articles'].map((type) => (
-                                <button
-                                    key={type}
-                                    onClick={() => setSearchType(type)}
-                                    className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg transition-colors text-sm ${
-                                        searchType === type
-                                            ? type === 'videos' ? 'bg-red-600 text-white' :
-                                              type === 'pdfs' ? 'bg-green-600 text-white' :
-                                              type === 'articles' ? 'bg-yellow-600 text-white' :
-                                              'bg-blue-600 text-white'
-                                            : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                                    }`}
-                                >
-                                    <i className={`fas fa-${
-                                        type === 'videos' ? 'video' :
-                                        type === 'pdfs' ? 'file-pdf' :
-                                        type === 'articles' ? 'newspaper' : 'layer-group'
-                                    } mr-1 md:mr-2`}></i>
-                                    <span className="capitalize">{type}</span>
-                                </button>
-                            ))}
-                        </div>
-                    )}
                 </div>
             </div>
 
             {/* Main Content - Mobile Optimized */}
-            <div className="container mx-auto px-3 md:px-4 py-4 md:py-8">
+            <div className="search-page-container container mx-auto px-4 sm:px-6 md:px-8 py-4 md:py-8">
                 {loading ? (
                     <div className="text-center py-12 md:py-16">
                         <div className="w-12 h-12 md:w-16 md:h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -216,10 +183,10 @@ export default function SearchPage() {
                         <p className="text-gray-500 text-sm md:text-base mt-2">Fetching results from multiple sources</p>
                     </div>
                 ) : results ? (
-                    <SearchResults 
-                        results={results} 
-                        query={initialQuery} 
-                        type={searchType} 
+                    <SearchResults
+                        results={results}
+                        query={initialQuery}
+                        type={searchType}
                         onRefresh={(newResults) => setResults(newResults)}
                     />
                 ) : initialQuery ? (
@@ -307,7 +274,7 @@ export default function SearchPage() {
                                     <p className="text-gray-400 text-xs md:text-sm">Research articles and blogs</p>
                                 </div>
                             </div>
-                            
+
                             <div className="border-t border-gray-800 pt-4 md:pt-6">
                                 <h4 className="font-bold text-white mb-3 md:mb-4 text-center text-sm md:text-base">Try searching for academic topics:</h4>
                                 <div className="flex flex-wrap gap-2 justify-center">
