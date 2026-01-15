@@ -130,27 +130,27 @@ export default function SearchPage() {
 
     return (
         <MainLayout>
-            {/* Search Header - Mobile Optimized */}
-            <div className="sticky top-16 z-40 bg-gray-900/95 backdrop-blur-xl border-b border-gray-800 py-4">
-                <div className="w-full px-4 sm:px-6">
-                    <form onSubmit={handleSearch} className="w-full max-w-full mx-auto">
-                        <div className="relative w-full">
-                            <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
-                                <i className="fas fa-search text-gray-500"></i>
+            {/* Search Header - ULTRA MOBILE OPTIMIZED */}
+            <div className="sticky top-16 z-40 bg-gray-900/95 backdrop-blur-xl border-b border-gray-800 py-3">
+                <div className="w-full px-3">
+                    <form onSubmit={handleSearch} className="w-full">
+                        <div className="relative">
+                            <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                                <i className="fas fa-search text-gray-500 text-sm"></i>
                             </div>
                             <input
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search research topics, videos, papers..."
-                                className="w-full pl-12 pr-28 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+                                placeholder="Search research..."
+                                className="w-full pl-10 pr-24 py-2.5 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent text-sm"
                                 autoFocus
                             />
-                            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                            <div className="absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
                                 <select
                                     value={searchType}
                                     onChange={(e) => setSearchType(e.target.value)}
-                                    className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white text-xs focus:outline-none"
                                 >
                                     <option value="all">All</option>
                                     <option value="videos">Videos</option>
@@ -160,7 +160,7 @@ export default function SearchPage() {
                                 <button
                                     type="submit"
                                     disabled={loading || !searchQuery.trim()}
-                                    className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed rounded-lg text-white font-medium text-sm transition-all duration-200"
+                                    className="px-2.5 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed rounded text-white font-medium text-xs"
                                 >
                                     {loading ? (
                                         <i className="fas fa-spinner fa-spin"></i>
