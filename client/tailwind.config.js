@@ -1,4 +1,3 @@
-// client/tailwind.config.js
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -7,18 +6,36 @@ module.exports = {
     './src/app/**/*.{js,jsx,ts,tsx}',
   ],
   theme: {
+    // ✅ CORRECT: Screens should be at root level, not inside extend
+    screens: {
+      'xs': '475px',
+      'sm': '640px',
+      'md': '768px',
+      'lg': '1024px',
+      'xl': '1280px',
+      '2xl': '1536px',
+      '3xl': '1920px',
+      'hot-60i': '720px', // Custom for your device
+    },
     extend: {
-      // Add screens here (inside extend) for additional breakpoints
-      screens: {
-        'xs': '475px',     // Extra small: for very mobile
-        'sm': '640px',     // Small: mobile
-        'md': '768px',     // Medium: tablet
-        'lg': '1024px',    // Large: laptop
-        'xl': '1280px',    // Extra large: desktop
-        '2xl': '1536px',   // 2X large: large desktop
-        '3xl': '1920px',   // 3X large: 4K monitors
+      // Keep all other extensions here
+      colors: {
+        primary: '#3b82f6',
+        'primary-hover': '#2563eb',
+        success: '#10b981',
+        warning: '#f59e0b',
+        danger: '#ef4444',
+        purple: '#a855f7',
+        'bg-primary': '#0a0a0a',
+        'bg-secondary': '#111111',
+        'bg-tertiary': '#1a1a1a',
+        'bg-card': '#1e1e1e',
+        'border-color': '#27272a',
+        'text-primary': '#fafafa',
+        'text-secondary': '#a1a1aa',
+        'text-muted': '#71717a',
       },
-      
+
       // Your existing colors, animations, etc. remain the same
       colors: {
         primary: '#3b82f6',
