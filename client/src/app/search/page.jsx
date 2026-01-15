@@ -45,6 +45,45 @@ export default function SearchPage() {
         }
     };
 
+    const handleSaveSession = async () => {
+        if (!results) {
+            await alert({
+                title: 'No Results',
+                message: 'Please wait for search results before saving a session.',
+                variant: 'warning'
+            });
+            return;
+        }
+
+        try {
+            const sessionData = {
+                query: initialQuery,
+                results: results,
+                filters: searchType !== 'all' ? { type: searchType } : {},
+                total_results: results.total_results || 0
+            };
+
+            // Store in localStorage temporarily
+            localStorage.setItem('current_search', JSON.stringify(sessionData));
+
+            const response = await AuthService.createSearchSession(sessionData);
+            if (response.success) {
+                await alert({
+                    title: 'Session Saved',
+                    message: 'Search session saved successfully!',
+                    variant: 'success'
+                });
+            }
+        } catch (error) {
+            console.error('Error saving session:', error);
+            await alert({
+                title: 'Save Failed',
+                message: 'Failed to save search session. Please try again.',
+                variant: 'danger'
+            });
+        }
+    };
+
     const performSearch = async (query, type = 'all') => {
         if (!query.trim()) return;
 
@@ -174,6 +213,24 @@ export default function SearchPage() {
                             </div>
                         </div>
                     </form>
+                    {results && (
+                        <div className="flex items-center gap-2 mt-3">
+                            <button
+                                onClick={handleSaveSession}
+                                className="px-3 py-1.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium hover:opacity-90 text-sm"
+                            >
+                                <i className="fas fa-bookmark mr-2"></i>
+                                Save Session
+                            </button>
+                            <button
+                                onClick={() => router.push('/search-sessions')}
+                                className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded-lg text-sm"
+                            >
+                                <i className="fas fa-history mr-2"></i>
+                                View All
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
