@@ -73,3 +73,12 @@ Route::middleware('auth:api')->prefix('search')->group(function () {
     Route::delete('/history', [SearchController::class, 'clearSearchHistory']);
     Route::post('/save', [SearchController::class, 'saveResult']);
 });
+
+
+// Add to your existing routes
+Route::middleware('auth:api')->prefix('search-sessions')->group(function () {
+    Route::get('/', [SearchSessionsController::class, 'index']);
+    Route::post('/', [SearchSessionsController::class, 'store']);
+    Route::put('/{id}', [SearchSessionsController::class, 'update']);
+    Route::delete('/{id}', [SearchSessionsController::class, 'destroy']);
+});

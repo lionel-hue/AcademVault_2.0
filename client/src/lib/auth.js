@@ -497,6 +497,116 @@ class AuthService {
         }
     }
 
+    // Add these methods to your AuthService class:
+
+    async getSearchSessions() {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/search-sessions`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    this.clearAuthData();
+                    window.location.href = '/login';
+                    throw new Error('Session expired');
+                }
+                throw new Error('Failed to fetch search sessions');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error getting search sessions:', error);
+            throw error;
+        }
+    }
+
+    async createSearchSession(sessionData) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/search-sessions`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(sessionData)
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    this.clearAuthData();
+                    window.location.href = '/login';
+                    throw new Error('Session expired');
+                }
+                throw new Error('Failed to create search session');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error creating search session:', error);
+            throw error;
+        }
+    }
+
+    async updateSearchSession(id, updates) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/search-sessions/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updates)
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update search session');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error updating search session:', error);
+            throw error;
+        }
+    }
+
+    async deleteSearchSession(id) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/search-sessions/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete search session');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error deleting search session:', error);
+            throw error;
+        }
+    }
+
     async saveSearchResult(data) {
         try {
             const token = this.getToken();
@@ -679,6 +789,82 @@ class AuthService {
             return await response.json();
         } catch (error) {
             console.error('Educational alternatives error:', error);
+            throw error;
+        }
+    }
+
+    // client/src/lib/auth.js - ADD THESE METHODS
+
+    // Get all search sessions for current user
+    async getSearchSessions() {
+        try {
+            const token = this.getToken();
+            const response = await fetch(`${API_URL}/search-sessions`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching search sessions:', error);
+            throw error;
+        }
+    }
+
+    // Create a new search session
+    async createSearchSession(sessionData) {
+        try {
+            const token = this.getToken();
+            const response = await fetch(`${API_URL}/search-sessions`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(sessionData)
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Error creating search session:', error);
+            throw error;
+        }
+    }
+
+    // Update a search session
+    async updateSearchSession(id, updates) {
+        try {
+            const token = this.getToken();
+            const response = await fetch(`${API_URL}/search-sessions/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updates)
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Error updating search session:', error);
+            throw error;
+        }
+    }
+
+    // Delete a search session
+    async deleteSearchSession(id) {
+        try {
+            const token = this.getToken();
+            const response = await fetch(`${API_URL}/search-sessions/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Error deleting search session:', error);
             throw error;
         }
     }
