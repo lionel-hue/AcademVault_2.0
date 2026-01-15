@@ -1,4 +1,4 @@
-// client/src/app/signup/page.jsx - FINAL FIXED VERSION
+// client/src/app/signup/page.jsx - FINAL FIXED VERSION WITH EMAIL VERIFICATION LINK SUPPORT
 "use client";
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -26,6 +26,7 @@ export default function SignupPage() {
   const [verificationSent, setVerificationSent] = useState(false);
   const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
   const [isClient, setIsClient] = useState(false);
+  const [formDataLoaded, setFormDataLoaded] = useState(false);
   const codeInputsRef = useRef([]);
 
   // Updated form data to match database schema
@@ -37,11 +38,13 @@ export default function SignupPage() {
     password: '',
     confirmPassword: '',
     registration_date: '', // Will be set on client side
+    
     // Optional fields
     institution: '',
     department: '',
     phone: '',
     bio: '',
+    
     // Terms acceptance
     termsAccepted: false
   });
@@ -70,18 +73,52 @@ export default function SignupPage() {
     if (/[A-Z]/.test(formData.password)) strength += 25;
     if (/[0-9]/.test(formData.password)) strength += 25;
     if (/[^A-Za-z0-9]/.test(formData.password)) strength += 25;
+    
     setPasswordStrength(strength);
   }, [formData.password]);
 
-  // Auto-verify when code is complete
+  // Save form data to localStorage on changes (except password for security)
   useEffect(() => {
-    if (currentStep === 5 && verificationCode.join('').length === 6) {
-      handleVerifyEmail();
+    if (!isClient || !formDataLoaded) return;
+    
+    const dataToSave = {
+      name: formData.name,
+      type: formData.type,
+      email: formData.email,
+      institution: formData.institution,
+      department: formData.department,
+      phone: formData.phone,
+      bio: formData.bio,
+      termsAccepted: formData.termsAccepted,
+      registration_date: formData.registration_date
+    };
+    
+    localStorage.setItem('academvault_signup_data', JSON.stringify(dataToSave));
+  }, [formData, isClient, formDataLoaded]);
+
+  // Load saved form data from localStorage
+  useEffect(() => {
+    if (!isClient) return;
+    
+    const savedData = localStorage.getItem('academvault_signup_data');
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData);
+        setFormData(prev => ({
+          ...prev,
+          ...parsedData
+        }));
+      } catch (e) {
+        console.error('Error loading saved form data:', e);
+      }
     }
-  }, [verificationCode, currentStep]);
+    setFormDataLoaded(true);
+  }, [isClient]);
 
   // Check for URL verification parameters
   useEffect(() => {
+    if (!isClient) return;
+    
     // Check for verification parameters in URL
     const urlParams = new URLSearchParams(window.location.search);
     const verifyParam = urlParams.get('verify');
@@ -89,7 +126,7 @@ export default function SignupPage() {
     const codeParam = urlParams.get('code');
     
     if (verifyParam === '1' && emailParam && codeParam) {
-      // Set the email and auto-fill code
+      // Set the email
       setFormData(prev => ({
         ...prev,
         email: emailParam
@@ -111,7 +148,7 @@ export default function SignupPage() {
         }, 1000);
       }
     }
-  }, []);
+  }, [isClient]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -152,6 +189,7 @@ export default function SignupPage() {
           });
           return false;
         }
+        
         if (!formData.email.includes('@') || !formData.email.includes('.')) {
           await alert({
             title: 'Invalid Email',
@@ -162,6 +200,7 @@ export default function SignupPage() {
           return false;
         }
         return true;
+        
       case 2:
         if (!formData.institution.trim()) {
           await alert({
@@ -173,6 +212,7 @@ export default function SignupPage() {
           return false;
         }
         return true;
+        
       case 3:
         if (formData.password.length < 8) {
           await alert({
@@ -183,6 +223,7 @@ export default function SignupPage() {
           });
           return false;
         }
+        
         if (passwordStrength < 50) {
           await alert({
             title: 'Weak Password',
@@ -192,6 +233,7 @@ export default function SignupPage() {
           });
           return false;
         }
+        
         if (formData.password !== formData.confirmPassword) {
           await alert({
             title: 'Password Mismatch',
@@ -202,6 +244,7 @@ export default function SignupPage() {
           return false;
         }
         return true;
+        
       case 4:
         if (!formData.termsAccepted) {
           await alert({
@@ -213,6 +256,7 @@ export default function SignupPage() {
           return false;
         }
         return true;
+        
       default:
         return true;
     }
@@ -224,6 +268,7 @@ export default function SignupPage() {
     
     if (currentStep < 5) {
       setCurrentStep(currentStep + 1);
+      
       // When moving to verification step, send verification code
       if (currentStep === 4) {
         await sendVerificationCode();
@@ -292,7 +337,25 @@ export default function SignupPage() {
     try {
       const result = await AuthService.verifyEmail(formData.email, code);
       if (result.success) {
-        // Auto-register after verification
+        // Check if we have all required data before registering
+        const requiredFields = ['name', 'type', 'email', 'password', 'confirmPassword', 'registration_date'];
+        const missingFields = requiredFields.filter(field => !formData[field] || formData[field].trim() === '');
+        
+        if (missingFields.length > 0) {
+          // We're coming from email verification link - need to complete registration
+          await alert({
+            title: 'Complete Registration',
+            message: 'Email verified! Please fill in the remaining information to complete your registration.',
+            variant: 'success',
+            confirmText: 'Continue'
+          });
+          
+          // Go to step 1 to fill missing info
+          setCurrentStep(1);
+          return;
+        }
+        
+        // All data is present, proceed with registration
         await registerUser();
       }
     } catch (error) {
@@ -306,9 +369,17 @@ export default function SignupPage() {
     } finally {
       setLoading(false);
     }
-  }, [verificationCode, formData.email, alert]);
+  }, [verificationCode, formData, alert]);
 
   const registerUser = useCallback(async () => {
+    // Check if we have all required form data
+    const requiredFields = ['name', 'type', 'email', 'password', 'confirmPassword', 'registration_date'];
+    const missingFields = requiredFields.filter(field => !formData[field] || formData[field].trim() === '');
+    
+    if (missingFields.length > 0) {
+      throw new Error('Missing required fields: ' + missingFields.join(', '));
+    }
+
     setLoading(true);
     try {
       // Prepare data for backend
@@ -327,6 +398,9 @@ export default function SignupPage() {
 
       const result = await AuthService.register(userData);
       if (result.success) {
+        // Clear saved data from localStorage
+        localStorage.removeItem('academvault_signup_data');
+        
         await alert({
           title: 'Registration Successful! 🎉',
           message: 'Your account has been created successfully. Please login to continue.',
@@ -351,6 +425,15 @@ export default function SignupPage() {
           variant: 'warning',
           confirmText: 'OK'
         });
+      } else if (error.message && error.message.includes('Missing required fields')) {
+        // We're missing form data
+        await alert({
+          title: 'Complete Registration',
+          message: 'Please fill in the missing information to complete your registration.',
+          variant: 'info',
+          confirmText: 'Continue'
+        });
+        setCurrentStep(1);
       } else {
         await alert({
           title: 'Registration Failed',
@@ -370,6 +453,7 @@ export default function SignupPage() {
       message: `Send a new 6-digit code to ${formData.email}?`,
       variant: 'default'
     });
+    
     if (confirmed) {
       await sendVerificationCode();
     }
@@ -414,6 +498,7 @@ export default function SignupPage() {
           {currentStep === 1 && (
             <>
               <h3 className="text-2xl font-bold text-white mb-6">Basic Information</h3>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 {[
                   { id: 'student', icon: 'fas fa-graduation-cap', label: 'Student', desc: 'Access course materials and research' },
@@ -429,13 +514,13 @@ export default function SignupPage() {
                       className="sr-only"
                     />
                     <div className={`p-6 rounded-2xl border-2 transition-all duration-300 group-hover:scale-105 ${
-                      formData.type === type.id 
-                        ? 'border-blue-500 bg-blue-500/10' 
+                      formData.type === type.id
+                        ? 'border-blue-500 bg-blue-500/10'
                         : 'border-gray-700 bg-gray-800/30 hover:border-gray-600'
                     }`}>
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${
-                        formData.type === type.id 
-                          ? 'bg-gradient-to-br from-blue-500 to-purple-600' 
+                        formData.type === type.id
+                          ? 'bg-gradient-to-br from-blue-500 to-purple-600'
                           : 'bg-gray-700'
                       }`}>
                         <i className={`${type.icon} text-white text-lg`}></i>
@@ -446,6 +531,7 @@ export default function SignupPage() {
                   </label>
                 ))}
               </div>
+
               <div className="space-y-4">
                 <div className="group">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
@@ -462,6 +548,7 @@ export default function SignupPage() {
                     required
                   />
                 </div>
+
                 <div className="group">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
                     <i className="fas fa-envelope text-blue-400"></i>
@@ -475,6 +562,7 @@ export default function SignupPage() {
                     placeholder="you@university.edu"
                     className="w-full bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-xl py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
                     required
+                    readOnly={verificationSent} // Prevent email change after verification sent
                   />
                 </div>
               </div>
@@ -485,6 +573,7 @@ export default function SignupPage() {
           {currentStep === 2 && (
             <>
               <h3 className="text-2xl font-bold text-white mb-6">Academic Information</h3>
+              
               <div className="space-y-6">
                 <div className="group">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
@@ -501,6 +590,7 @@ export default function SignupPage() {
                     required
                   />
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="group">
                     <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
@@ -516,6 +606,7 @@ export default function SignupPage() {
                       className="w-full bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-xl py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
                     />
                   </div>
+
                   <div className="group">
                     <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
                       <i className="fas fa-phone text-blue-400"></i>
@@ -531,6 +622,7 @@ export default function SignupPage() {
                     />
                   </div>
                 </div>
+
                 <div className="group">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
                     <i className="fas fa-info-circle text-blue-400"></i>
@@ -553,6 +645,7 @@ export default function SignupPage() {
           {currentStep === 3 && (
             <>
               <h3 className="text-2xl font-bold text-white mb-6">Account Security</h3>
+              
               <div className="space-y-6">
                 <div className="group">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
@@ -568,22 +661,27 @@ export default function SignupPage() {
                     className="w-full bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-xl py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
                     required
                   />
+                  
                   {formData.password && (
                     <div className="mt-2">
                       <div className="flex justify-between text-xs mb-1">
                         <span className="text-gray-400">Password strength</span>
                         <span className={`${
                           passwordStrength >= 75 ? 'text-green-400' :
-                          passwordStrength >= 50 ? 'text-yellow-400' : 'text-red-400'
+                          passwordStrength >= 50 ? 'text-yellow-400' :
+                          'text-red-400'
                         }`}>
-                          {passwordStrength >= 75 ? 'Strong' : passwordStrength >= 50 ? 'Medium' : 'Weak'}
+                          {passwordStrength >= 75 ? 'Strong' :
+                           passwordStrength >= 50 ? 'Medium' :
+                           'Weak'}
                         </span>
                       </div>
                       <div className="w-full bg-gray-800 rounded-full h-2">
                         <div
                           className={`h-2 rounded-full transition-all duration-300 ${
                             passwordStrength >= 75 ? 'bg-green-500' :
-                            passwordStrength >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                            passwordStrength >= 50 ? 'bg-yellow-500' :
+                            'bg-red-500'
                           }`}
                           style={{ width: `${passwordStrength}%` }}
                         ></div>
@@ -594,6 +692,7 @@ export default function SignupPage() {
                     </div>
                   )}
                 </div>
+
                 <div className="group">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
                     <i className="fas fa-lock text-blue-400"></i>
@@ -617,6 +716,7 @@ export default function SignupPage() {
           {currentStep === 4 && (
             <>
               <h3 className="text-2xl font-bold text-white mb-6">Terms & Conditions</h3>
+              
               <div className="bg-gray-900/30 backdrop-blur-sm rounded-2xl p-6 border border-gray-700 max-h-60 overflow-y-auto">
                 <h4 className="font-bold text-white mb-4">AcademVault Terms of Service</h4>
                 <div className="space-y-3 text-gray-400 text-sm">
@@ -631,6 +731,7 @@ export default function SignupPage() {
                   <p className="mt-4">By checking the box below, you acknowledge that you have read and agree to these terms.</p>
                 </div>
               </div>
+
               <label className="flex items-start gap-3 p-4 bg-gray-900/30 backdrop-blur-sm rounded-2xl border border-gray-700 cursor-pointer group hover:border-gray-600 transition-colors">
                 <div className="relative mt-1">
                   <input
@@ -642,8 +743,8 @@ export default function SignupPage() {
                     required
                   />
                   <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
-                    formData.termsAccepted 
-                      ? 'bg-gradient-to-br from-blue-500 to-purple-600 border-transparent' 
+                    formData.termsAccepted
+                      ? 'bg-gradient-to-br from-blue-500 to-purple-600 border-transparent'
                       : 'border-gray-600 group-hover:border-gray-500'
                   }`}>
                     {formData.termsAccepted && (
@@ -666,6 +767,7 @@ export default function SignupPage() {
                 <div className="w-20 h-20 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
                   <i className="fas fa-envelope-open-text text-3xl text-blue-400"></i>
                 </div>
+                
                 {verificationSent ? (
                   <>
                     <h3 className="text-2xl font-bold text-white mb-2">Verify Your Email</h3>
@@ -705,6 +807,7 @@ export default function SignupPage() {
                           </>
                         )}
                       </button>
+                      
                       <button
                         onClick={resendVerificationCode}
                         disabled={loading}
@@ -719,8 +822,7 @@ export default function SignupPage() {
                   <>
                     <h3 className="text-2xl font-bold text-white mb-4">Email Verification Required</h3>
                     <p className="text-gray-400 mb-8 max-w-md mx-auto">
-                      We need to verify your email address before creating your account. 
-                      A 6-digit code will be sent to {formData.email}
+                      We need to verify your email address before creating your account. A 6-digit code will be sent to {formData.email}
                     </p>
                     <button
                       onClick={sendVerificationCode}
@@ -758,12 +860,13 @@ export default function SignupPage() {
                 Back
               </button>
             )}
+            
             <button
               onClick={nextStep}
               disabled={loading}
               className={`flex-1 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 ${
-                currentStep === 4 
-                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white' 
+                currentStep === 4
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white'
                   : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
               } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
@@ -808,9 +911,11 @@ export default function SignupPage() {
                   <div className="absolute top-8 left-8 w-16 h-16 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl rotate-12 animate-float">
                     <i className="fas fa-user-plus absolute inset-0 flex items-center justify-center text-blue-400 text-xl"></i>
                   </div>
+                  
                   <div className="absolute top-24 right-12 w-20 h-20 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl -rotate-12 animate-float" style={{ animationDelay: '0.3s' }}>
                     <i className="fas fa-graduation-cap absolute inset-0 flex items-center justify-center text-purple-400 text-2xl"></i>
                   </div>
+                  
                   <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 w-24 h-24">
                     <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full blur-xl"></div>
                     <div className="relative w-24 h-24 bg-gradient-to-br from-blue-500/30 to-purple-600/30 rounded-2xl flex items-center justify-center">
@@ -834,7 +939,7 @@ export default function SignupPage() {
                     ))}
                   </svg>
                 </div>
-
+                
                 {/* Benefits */}
                 <div className="space-y-4">
                   <h4 className="text-xl font-bold text-white mb-4">Join Our Academic Community</h4>
@@ -888,6 +993,7 @@ export default function SignupPage() {
                   AcademVault
                 </h1>
               </div>
+              
               <h2 className="text-4xl font-bold text-white mb-4">
                 Create Your Account
                 <div className="text-lg font-normal text-gray-400 mt-2">
@@ -899,7 +1005,7 @@ export default function SignupPage() {
             {/* Form Container */}
             <div className="auth-card bg-gray-900/30 backdrop-blur-xl rounded-3xl p-8 border border-gray-700/50 shadow-2xl">
               {renderStep()}
-
+              
               {/* Footer */}
               <div className="mt-8 pt-6 border-t border-gray-800">
                 <p className="text-center text-gray-400">
