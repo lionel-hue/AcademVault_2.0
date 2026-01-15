@@ -45,6 +45,7 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
         type: item.type,
         data: item.data
       });
+      
       if (response.success) {
         setSavedItems(prev => ({ ...prev, [item.data.id]: true }));
         await alert({
@@ -101,16 +102,18 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-3 py-2 rounded-lg font-medium whitespace-nowrap flex items-center gap-1.5 ${activeTab === tab.id
+                className={`px-3 py-2 rounded-lg font-medium whitespace-nowrap flex items-center gap-1.5 ${
+                  activeTab === tab.id
                     ? 'bg-blue-600 text-white shadow'
                     : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                  } ${isMobile ? 'text-xs' : 'text-sm'}`}
+                } ${isMobile ? 'text-xs' : 'text-sm'}`}
               >
                 <i className={tab.icon}></i>
                 <span>{tab.label}</span>
                 {!isMobile && tab.count !== undefined && (
-                  <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-white/20' : 'bg-gray-700'
-                    }`}>
+                  <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${
+                    activeTab === tab.id ? 'bg-white/20' : 'bg-gray-700'
+                  }`}>
                     {tab.count}
                   </span>
                 )}
@@ -130,7 +133,7 @@ export default function SearchResults({ results, query, type = 'all', onRefresh 
       ) : (
         <>
           {/* Grid - 1 column on mobile, 2 on tablet, 3 on desktop */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 w-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 w-full">
             {activeTab === 'all' ? (
               // Show limited items on mobile for "all" tab
               <>
