@@ -118,6 +118,7 @@ export default function MainLayout({ children }) {
         { icon: 'fas fa-chart-line', label: 'Analytics', href: '/analytics', mobile: false },
         { icon: 'fas fa-cog', label: 'Settings', href: '/settings', mobile: false },
         { icon: 'fas fa-comments', label: 'Search Sessions', href: '/search-sessions', count: 0, mobile: true },
+        { icon: 'fas fa-search-plus', label: 'Search Sessions', href: '/search-sessions', count: 0, mobile: true, highlight: true },
     ];
 
     // Get user initials for mobile
