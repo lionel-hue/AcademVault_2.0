@@ -128,16 +128,16 @@ export default function LoginPage() {
                                     Email Address
                                 </label>
                                 <div className="relative">
+                                    <i className="fas fa-user-graduate absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 z-10"></i>
                                     <input
                                         type="email"
                                         name="email"
                                         value={formData.email}
                                         onChange={handleInputChange}
                                         placeholder="you@university.edu"
-                                        className="w-full bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-xl py-4 px-4 pl-12 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
+                                        className="w-full bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-xl py-4 px-12 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
                                         required
                                     />
-                                    <i className="fas fa-user-graduate absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
                                 </div>
                             </div>
 
@@ -148,33 +148,34 @@ export default function LoginPage() {
                                         <i className="fas fa-lock text-blue-400"></i>
                                         Password
                                     </label>
-                                    <button type="button" onClick={handleForgotPassword}
+                                    <button
+                                        type="button"
+                                        onClick={handleForgotPassword}
                                         className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
                                     >
                                         Forgot password?
                                     </button>
                                 </div>
                                 <div className="relative">
+                                    <i className="fas fa-key absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 z-10"></i>
                                     <input
                                         type={showPassword ? "text" : "password"}
                                         name="password"
                                         value={formData.password}
                                         onChange={handleInputChange}
                                         placeholder="Enter your password"
-                                        className="w-full bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-xl py-4 px-4 pl-12 pr-12 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
+                                        className="w-full bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-xl py-4 px-12 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
                                         required
                                     />
-                                    <i className="fas fa-key absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                                        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-300 z-10"
                                     >
                                         <i className={`fas fa-eye${showPassword ? '' : '-slash'} text-sm`}></i>
                                     </button>
                                 </div>
                             </div>
-
                             {/* Remember Me */}
                             <div className="flex items-center justify-between">
                                 <label className="flex items-center gap-3 cursor-pointer">

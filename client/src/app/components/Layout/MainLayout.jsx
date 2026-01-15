@@ -172,20 +172,11 @@ export default function MainLayout({ children }) {
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         onKeyPress={handleKeyPress}
                                         placeholder="Search documents, discussions, or users..."
-                                        className="w-full max-w-full pl-10 pr-32 py-2 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full max-w-full pl-10 pr-24 py-2 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
                                     <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
-                                        <select
-                                            value={searchType}
-                                            onChange={(e) => setSearchType(e.target.value)}
-                                            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-[100px]"
-                                        >
-                                            <option value="all">All</option>
-                                            <option value="videos">Videos</option>
-                                            <option value="pdfs">PDFs</option>
-                                            <option value="articles">Articles</option>
-                                        </select>
-                                        <button type="submit"
+                                        <button
+                                            type="submit"
                                             className="ml-1 p-2 text-blue-400 hover:text-blue-300 hover:bg-gray-800 rounded-lg"
                                         >
                                             <i className="fas fa-arrow-right"></i>

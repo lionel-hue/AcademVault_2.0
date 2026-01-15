@@ -173,19 +173,6 @@ export default function SearchPage() {
                                 </button>
                             </div>
                         </div>
-                        {/* Mobile search type selector */}
-                        <div className="flex gap-2 mt-2 sm:hidden">
-                            {['all', 'videos', 'pdfs', 'articles'].map((type) => (
-                                <button
-                                    key={type}
-                                    type="button"
-                                    onClick={() => setSearchType(type)}
-                                    className={`px-3 py-1.5 text-xs rounded ${searchType === type ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300'}`}
-                                >
-                                    {type === 'all' ? 'All' : type.charAt(0).toUpperCase() + type.slice(1)}
-                                </button>
-                            ))}
-                        </div>
                     </form>
                 </div>
             </div>
