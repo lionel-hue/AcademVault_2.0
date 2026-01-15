@@ -8,7 +8,7 @@ module.exports = {
   theme: {
     // ✅ CORRECT: Screens should be at root level, not inside extend
     screens: {
-      'xs': '475px',
+      'xs': '375px',
       'sm': '640px',
       'md': '768px',
       'lg': '1024px',
@@ -18,25 +18,6 @@ module.exports = {
       'hot-60i': '720px', // Custom for your device
     },
     extend: {
-      // Keep all other extensions here
-      colors: {
-        primary: '#3b82f6',
-        'primary-hover': '#2563eb',
-        success: '#10b981',
-        warning: '#f59e0b',
-        danger: '#ef4444',
-        purple: '#a855f7',
-        'bg-primary': '#0a0a0a',
-        'bg-secondary': '#111111',
-        'bg-tertiary': '#1a1a1a',
-        'bg-card': '#1e1e1e',
-        'border-color': '#27272a',
-        'text-primary': '#fafafa',
-        'text-secondary': '#a1a1aa',
-        'text-muted': '#71717a',
-      },
-
-      // Your existing colors, animations, etc. remain the same
       colors: {
         primary: '#3b82f6',
         'primary-hover': '#2563eb',
