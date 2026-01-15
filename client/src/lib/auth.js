@@ -533,25 +533,33 @@ class AuthService {
             const token = this.getToken();
             if (!token) throw new Error('No authentication token');
 
+            // Ensure data is properly structured
+            const payload = {
+                query: sessionData.query || '',
+                results: sessionData.results || { videos: [], pdfs: [], articles: [] },
+                filters: sessionData.filters || {},
+                total_results: sessionData.total_results || 0,
+                title: sessionData.title || `Search: ${sessionData.query?.substring(0, 30) || 'Untitled'}`
+            };
+
+            console.log('Saving search session payload:', payload);
+
             const response = await fetch(`${API_URL}/search-sessions`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
-                body: JSON.stringify(sessionData)
+                body: JSON.stringify(payload)
             });
 
             if (!response.ok) {
-                if (response.status === 401) {
-                    this.clearAuthData();
-                    window.location.href = '/login';
-                    throw new Error('Session expired');
-                }
-                throw new Error('Failed to create search session');
+                throw new Error(`Failed to save search session: ${response.status}`);
             }
 
-            return await response.json();
+            const data = await response.json();
+            return data;
         } catch (error) {
             console.error('Error creating search session:', error);
             throw error;
