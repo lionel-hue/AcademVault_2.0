@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\SearchSessionsController;
 
 Route::prefix('auth')->group(function () {
     // Public routes
