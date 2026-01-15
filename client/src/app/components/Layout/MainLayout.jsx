@@ -108,15 +108,15 @@ export default function MainLayout({ children }) {
     }
 
     const navItems = [
-        { icon: 'fas fa-home', label: 'Dashboard', href: '/dashboard' },
-        { icon: 'fas fa-folder', label: 'Categories', href: '/categories', count: 12 },
-        { icon: 'fas fa-file-alt', label: 'Documents', href: '/documents', count: 45 },
-        { icon: 'fas fa-layer-group', label: 'Collections', href: '/collections', count: 8 },
-        { icon: 'fas fa-comments', label: 'Discussions', href: '/discussions', count: 5 },
-        { icon: 'fas fa-users', label: 'Friends', href: '/friends', count: 18 },
-        { icon: 'fas fa-bookmark', label: 'Bookmarks', href: '/bookmarks', count: 23 },
-        { icon: 'fas fa-chart-line', label: 'Analytics', href: '/analytics' },
-        { icon: 'fas fa-cog', label: 'Settings', href: '/settings' },
+        { icon: 'fas fa-home', label: 'Dashboard', href: '/dashboard', mobile: true },
+        { icon: 'fas fa-folder', label: 'Categories', href: '/categories', count: 12, mobile: false },
+        { icon: 'fas fa-file-alt', label: 'Documents', href: '/documents', count: 45, mobile: true },
+        { icon: 'fas fa-layer-group', label: 'Collections', href: '/collections', count: 8, mobile: false },
+        { icon: 'fas fa-comments', label: 'Discussions', href: '/discussions', count: 5, mobile: true },
+        { icon: 'fas fa-users', label: 'Friends', href: '/friends', count: 18, mobile: false },
+        { icon: 'fas fa-bookmark', label: 'Bookmarks', href: '/bookmarks', count: 23, mobile: true },
+        { icon: 'fas fa-chart-line', label: 'Analytics', href: '/analytics', mobile: false },
+        { icon: 'fas fa-cog', label: 'Settings', href: '/settings', mobile: false },
     ];
 
     // Get user initials for mobile
@@ -450,24 +450,23 @@ export default function MainLayout({ children }) {
 
                             {/* Mobile Navigation */}
                             <nav className="space-y-1 mb-8">
-                                {navItems.map((item) => (
-                                    <Link
-                                        key={item.label}
-                                        href={item.href}
-                                        onClick={() => setSidebarOpen(false)}
-                                        className="flex items-center justify-between px-3 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800/50 transition-colors"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <i className={`${item.icon} w-5 text-gray-400`}></i>
-                                            <span className="font-medium">{item.label}</span>
-                                        </div>
-                                        {item.count !== undefined && (
-                                            <span className="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded-full">
-                                                {item.count}
-                                            </span>
-                                        )}
-                                    </Link>
-                                ))}
+                                {navItems
+                                    .filter(item => item.mobile) // Only show mobile-optimized items
+                                    .map((item) => (
+                                        <Link key={item.label} href={item.href} onClick={() => setSidebarOpen(false)}
+                                            className="flex items-center justify-between px-3 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800/50 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <i className={`${item.icon} w-5 text-gray-400`}></i>
+                                                <span className="font-medium">{item.label}</span>
+                                            </div>
+                                            {item.count !== undefined && (
+                                                <span className="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded-full">
+                                                    {item.count}
+                                                </span>
+                                            )}
+                                        </Link>
+                                    ))}
                             </nav>
 
                             {/* User Info */}
