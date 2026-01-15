@@ -963,7 +963,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 overflow-x-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl"></div>
@@ -971,7 +971,7 @@ export default function SignupPage() {
       </div>
 
       <div className="relative container mx-auto px-4 py-8 md:py-16">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 lg:gap-12 items-center">
           {/* Left Column - Illustration */}
           <div className="order-2 lg:order-1 animate-fade-in">
             <div className="relative">
@@ -1077,7 +1077,7 @@ export default function SignupPage() {
             </div>
 
             {/* Form Container */}
-            <div className="auth-card bg-gray-900/30 backdrop-blur-xl rounded-3xl p-8 border border-gray-700/50 shadow-2xl">
+            <div className="auth-card bg-gray-900/30 backdrop-blur-xl rounded-3xl p-4 md:p-6 lg:p-8 border border-gray-700/50 shadow-2xl max-w-full overflow-hidden">
               {renderStep()}
               
               {/* Footer */}
