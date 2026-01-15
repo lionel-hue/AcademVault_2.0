@@ -1,4 +1,4 @@
-// client/src/app/signup/page.jsx - FINAL FIXED VERSION WITH EMAIL VERIFICATION LINK SUPPORT
+// client/src/app/signup/page.jsx - UPDATED WITH VERIFICATION LINK FIX
 "use client";
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -6,7 +6,6 @@ import Link from 'next/link';
 import AuthService from '@/lib/auth';
 import { useModal } from '@/app/components/UI/Modal/ModalContext';
 
-// Fixed SVG circle positions to avoid hydration mismatch
 const FIXED_CIRCLE_POSITIONS = [
   { cx: '10%', cy: '20%', delay: '0s' },
   { cx: '90%', cy: '80%', delay: '0.2s' },
@@ -27,128 +26,141 @@ export default function SignupPage() {
   const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
   const [isClient, setIsClient] = useState(false);
   const [formDataLoaded, setFormDataLoaded] = useState(false);
+  const [verificationMode, setVerificationMode] = useState('manual'); // 'manual' or 'link'
   const codeInputsRef = useRef([]);
 
-  // Updated form data to match database schema
   const [formData, setFormData] = useState({
-    // Required fields
     name: '',
-    type: 'student', // 'teacher' or 'student' (matches database enum)
+    type: 'student',
     email: '',
     password: '',
     confirmPassword: '',
-    registration_date: '', // Will be set on client side
-    
-    // Optional fields
+    registration_date: '',
     institution: '',
     department: '',
     phone: '',
     bio: '',
-    
-    // Terms acceptance
     termsAccepted: false
   });
 
   const [passwordStrength, setPasswordStrength] = useState(0);
 
-  // Set client-side flag and registration date
   useEffect(() => {
     setIsClient(true);
-    // Set registration_date on client side only
     setFormData(prev => ({
       ...prev,
       registration_date: new Date().toISOString().split('T')[0]
     }));
   }, []);
 
-  // Calculate password strength
   useEffect(() => {
     if (!formData.password) {
       setPasswordStrength(0);
       return;
     }
-    
     let strength = 0;
     if (formData.password.length >= 8) strength += 25;
     if (/[A-Z]/.test(formData.password)) strength += 25;
     if (/[0-9]/.test(formData.password)) strength += 25;
     if (/[^A-Za-z0-9]/.test(formData.password)) strength += 25;
-    
     setPasswordStrength(strength);
   }, [formData.password]);
 
-  // Save form data to localStorage on changes (except password for security)
-  useEffect(() => {
-    if (!isClient || !formDataLoaded) return;
-    
-    const dataToSave = {
-      name: formData.name,
-      type: formData.type,
-      email: formData.email,
-      institution: formData.institution,
-      department: formData.department,
-      phone: formData.phone,
-      bio: formData.bio,
-      termsAccepted: formData.termsAccepted,
-      registration_date: formData.registration_date
-    };
-    
-    localStorage.setItem('academvault_signup_data', JSON.stringify(dataToSave));
-  }, [formData, isClient, formDataLoaded]);
-
-  // Load saved form data from localStorage
+  // NEW: Load form data from URL parameters if coming from verification link
   useEffect(() => {
     if (!isClient) return;
-    
-    const savedData = localStorage.getItem('academvault_signup_data');
-    if (savedData) {
-      try {
-        const parsedData = JSON.parse(savedData);
-        setFormData(prev => ({
-          ...prev,
-          ...parsedData
-        }));
-      } catch (e) {
-        console.error('Error loading saved form data:', e);
-      }
-    }
-    setFormDataLoaded(true);
-  }, [isClient]);
 
-  // Check for URL verification parameters
-  useEffect(() => {
-    if (!isClient) return;
-    
-    // Check for verification parameters in URL
     const urlParams = new URLSearchParams(window.location.search);
     const verifyParam = urlParams.get('verify');
     const emailParam = urlParams.get('email');
     const codeParam = urlParams.get('code');
-    
+
     if (verifyParam === '1' && emailParam && codeParam) {
-      // Set the email
-      setFormData(prev => ({
-        ...prev,
-        email: emailParam
-      }));
+      // We're coming from a verification link
+      console.log('📧 Verification link detected:', { emailParam, codeParam });
       
-      // Fill verification code
+      // Check if we have saved form data for this email
+      const savedData = localStorage.getItem(`academvault_signup_${emailParam}`);
+      
+      if (savedData) {
+        try {
+          const parsedData = JSON.parse(savedData);
+          console.log('📦 Found saved form data for email:', emailParam);
+          
+          // Set all form data from saved data
+          setFormData(prev => ({
+            ...prev,
+            ...parsedData,
+            email: emailParam // Ensure email from link is used
+          }));
+          
+          // Fill verification code
+          const codeArray = codeParam.split('').slice(0, 6);
+          setVerificationCode(codeArray);
+          
+          // Set verification mode to 'link' and skip to verification step
+          setVerificationMode('link');
+          setVerificationSent(true);
+          setCurrentStep(5);
+          
+          // Auto-verify after short delay if we have full code
+          if (codeArray.length === 6) {
+            console.log('✅ Auto-verifying with code from link');
+            setTimeout(() => {
+              handleVerifyEmail();
+            }, 1000);
+          }
+          
+          return;
+        } catch (e) {
+          console.error('Error parsing saved data:', e);
+        }
+      }
+      
+      // If no saved data, just pre-fill email and code
+      console.log('⚠️ No saved form data found, pre-filling email and code only');
+      setFormData(prev => ({ ...prev, email: emailParam }));
       const codeArray = codeParam.split('').slice(0, 6);
       setVerificationCode(codeArray);
       
-      // Set to verification step
-      setCurrentStep(5);
-      setVerificationSent(true);
-      
-      // Auto-verify if we have all 6 digits
-      if (codeArray.length === 6) {
-        // Auto-verify after a short delay
-        setTimeout(() => {
-          handleVerifyEmail();
-        }, 1000);
-      }
+      // Show alert asking user to complete registration
+      alert({
+        title: 'Complete Your Registration',
+        message: 'We found your verification code, but need you to complete the registration form first. Please fill in your details below.',
+        variant: 'info',
+        confirmText: 'OK'
+      }).then(() => {
+        // Stay at step 1 to complete form
+        setVerificationMode('link');
+        setVerificationSent(true);
+      });
     }
-  }, [isClient]);
+    
+    setFormDataLoaded(true);
+  }, [isClient, alert]);
+
+  // Save form data to localStorage with email as key
+  useEffect(() => {
+    if (!isClient || !formData.email || !formDataLoaded) return;
+    
+    // Save form data with email as identifier
+    const dataToSave = {
+      name: formData.name,
+      type: formData.type,
+      email: formData.email,
+      password: formData.password,
+      confirmPassword: formData.confirmPassword,
+      registration_date: formData.registration_date,
+      institution: formData.institution,
+      department: formData.department,
+      phone: formData.phone,
+      bio: formData.bio,
+      termsAccepted: formData.termsAccepted
+    };
+    
+    localStorage.setItem(`academvault_signup_${formData.email}`, JSON.stringify(dataToSave));
+    console.log('💾 Saved form data for email:', formData.email);
+  }, [formData, isClient, formDataLoaded]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -164,7 +176,6 @@ export default function SignupPage() {
       newCode[index] = value;
       setVerificationCode(newCode);
       
-      // Auto-focus next input
       if (value && index < 5) {
         codeInputsRef.current[index + 1]?.focus();
       }
@@ -189,7 +200,6 @@ export default function SignupPage() {
           });
           return false;
         }
-        
         if (!formData.email.includes('@') || !formData.email.includes('.')) {
           await alert({
             title: 'Invalid Email',
@@ -200,7 +210,6 @@ export default function SignupPage() {
           return false;
         }
         return true;
-        
       case 2:
         if (!formData.institution.trim()) {
           await alert({
@@ -212,7 +221,6 @@ export default function SignupPage() {
           return false;
         }
         return true;
-        
       case 3:
         if (formData.password.length < 8) {
           await alert({
@@ -223,7 +231,6 @@ export default function SignupPage() {
           });
           return false;
         }
-        
         if (passwordStrength < 50) {
           await alert({
             title: 'Weak Password',
@@ -233,7 +240,6 @@ export default function SignupPage() {
           });
           return false;
         }
-        
         if (formData.password !== formData.confirmPassword) {
           await alert({
             title: 'Password Mismatch',
@@ -244,7 +250,6 @@ export default function SignupPage() {
           return false;
         }
         return true;
-        
       case 4:
         if (!formData.termsAccepted) {
           await alert({
@@ -256,7 +261,6 @@ export default function SignupPage() {
           return false;
         }
         return true;
-        
       default:
         return true;
     }
@@ -269,7 +273,6 @@ export default function SignupPage() {
     if (currentStep < 5) {
       setCurrentStep(currentStep + 1);
       
-      // When moving to verification step, send verification code
       if (currentStep === 4) {
         await sendVerificationCode();
       }
@@ -285,7 +288,6 @@ export default function SignupPage() {
   const sendVerificationCode = async () => {
     setLoading(true);
     try {
-      // First check if email already exists
       const checkResult = await AuthService.checkEmail(formData.email);
       if (checkResult.data && checkResult.data.exists) {
         await alert({
@@ -297,10 +299,10 @@ export default function SignupPage() {
         return;
       }
       
-      // Send verification code
       const result = await AuthService.sendVerificationCode(formData.email);
       if (result.success) {
         setVerificationSent(true);
+        setVerificationMode('manual');
         await alert({
           title: 'Verification Code Sent! ✅',
           message: `A 6-digit code has been sent to ${formData.email}. Please check your email (including spam folder).`,
@@ -337,25 +339,6 @@ export default function SignupPage() {
     try {
       const result = await AuthService.verifyEmail(formData.email, code);
       if (result.success) {
-        // Check if we have all required data before registering
-        const requiredFields = ['name', 'type', 'email', 'password', 'confirmPassword', 'registration_date'];
-        const missingFields = requiredFields.filter(field => !formData[field] || formData[field].trim() === '');
-        
-        if (missingFields.length > 0) {
-          // We're coming from email verification link - need to complete registration
-          await alert({
-            title: 'Complete Registration',
-            message: 'Email verified! Please fill in the remaining information to complete your registration.',
-            variant: 'success',
-            confirmText: 'Continue'
-          });
-          
-          // Go to step 1 to fill missing info
-          setCurrentStep(1);
-          return;
-        }
-        
-        // All data is present, proceed with registration
         await registerUser();
       }
     } catch (error) {
@@ -369,20 +352,18 @@ export default function SignupPage() {
     } finally {
       setLoading(false);
     }
-  }, [verificationCode, formData, alert]);
+  }, [verificationCode, formData]);
 
   const registerUser = useCallback(async () => {
-    // Check if we have all required form data
     const requiredFields = ['name', 'type', 'email', 'password', 'confirmPassword', 'registration_date'];
     const missingFields = requiredFields.filter(field => !formData[field] || formData[field].trim() === '');
     
     if (missingFields.length > 0) {
       throw new Error('Missing required fields: ' + missingFields.join(', '));
     }
-
+    
     setLoading(true);
     try {
-      // Prepare data for backend
       const userData = {
         name: formData.name,
         type: formData.type,
@@ -395,10 +376,11 @@ export default function SignupPage() {
         phone: formData.phone || null,
         bio: formData.bio || null
       };
-
+      
       const result = await AuthService.register(userData);
       if (result.success) {
-        // Clear saved data from localStorage
+        // Clean up saved data
+        localStorage.removeItem(`academvault_signup_${formData.email}`);
         localStorage.removeItem('academvault_signup_data');
         
         await alert({
@@ -408,16 +390,13 @@ export default function SignupPage() {
           confirmText: 'Go to Login'
         });
         
-        // Clear auth data and redirect to login
         AuthService.clearAuthData();
         router.push('/login');
       }
     } catch (error) {
       console.error('Registration error:', error);
       
-      // Check if it's a verification error
       if (error.message && error.message.includes('verify your email first')) {
-        // Resend verification code
         await sendVerificationCode();
         await alert({
           title: 'Verification Required',
@@ -426,7 +405,6 @@ export default function SignupPage() {
           confirmText: 'OK'
         });
       } else if (error.message && error.message.includes('Missing required fields')) {
-        // We're missing form data
         await alert({
           title: 'Complete Registration',
           message: 'Please fill in the missing information to complete your registration.',
@@ -498,11 +476,20 @@ export default function SignupPage() {
           {currentStep === 1 && (
             <>
               <h3 className="text-2xl font-bold text-white mb-6">Basic Information</h3>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 {[
-                  { id: 'student', icon: 'fas fa-graduation-cap', label: 'Student', desc: 'Access course materials and research' },
-                  { id: 'teacher', icon: 'fas fa-chalkboard-teacher', label: 'Teacher', desc: 'Share resources and collaborate' },
+                  {
+                    id: 'student',
+                    icon: 'fas fa-graduation-cap',
+                    label: 'Student',
+                    desc: 'Access course materials and research'
+                  },
+                  {
+                    id: 'teacher',
+                    icon: 'fas fa-chalkboard-teacher',
+                    label: 'Teacher',
+                    desc: 'Share resources and collaborate'
+                  },
                 ].map((type) => (
                   <label key={type.id} className="cursor-pointer group">
                     <input
@@ -531,7 +518,7 @@ export default function SignupPage() {
                   </label>
                 ))}
               </div>
-
+              
               <div className="space-y-4">
                 <div className="group">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
@@ -548,7 +535,7 @@ export default function SignupPage() {
                     required
                   />
                 </div>
-
+                
                 <div className="group">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
                     <i className="fas fa-envelope text-blue-400"></i>
@@ -562,8 +549,14 @@ export default function SignupPage() {
                     placeholder="you@university.edu"
                     className="w-full bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-xl py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
                     required
-                    readOnly={verificationSent} // Prevent email change after verification sent
+                    readOnly={verificationSent && verificationMode === 'link'}
                   />
+                  {verificationSent && verificationMode === 'link' && (
+                    <p className="text-sm text-green-400 mt-2">
+                      <i className="fas fa-check-circle mr-2"></i>
+                      Email pre-filled from verification link
+                    </p>
+                  )}
                 </div>
               </div>
             </>
@@ -573,7 +566,6 @@ export default function SignupPage() {
           {currentStep === 2 && (
             <>
               <h3 className="text-2xl font-bold text-white mb-6">Academic Information</h3>
-              
               <div className="space-y-6">
                 <div className="group">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
@@ -590,7 +582,7 @@ export default function SignupPage() {
                     required
                   />
                 </div>
-
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="group">
                     <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
@@ -606,7 +598,7 @@ export default function SignupPage() {
                       className="w-full bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-xl py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
                     />
                   </div>
-
+                  
                   <div className="group">
                     <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
                       <i className="fas fa-phone text-blue-400"></i>
@@ -622,7 +614,7 @@ export default function SignupPage() {
                     />
                   </div>
                 </div>
-
+                
                 <div className="group">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
                     <i className="fas fa-info-circle text-blue-400"></i>
@@ -645,7 +637,6 @@ export default function SignupPage() {
           {currentStep === 3 && (
             <>
               <h3 className="text-2xl font-bold text-white mb-6">Account Security</h3>
-              
               <div className="space-y-6">
                 <div className="group">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
@@ -661,7 +652,6 @@ export default function SignupPage() {
                     className="w-full bg-gray-900/50 backdrop-blur-sm border border-gray-700 rounded-xl py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
                     required
                   />
-                  
                   {formData.password && (
                     <div className="mt-2">
                       <div className="flex justify-between text-xs mb-1">
@@ -672,8 +662,7 @@ export default function SignupPage() {
                           'text-red-400'
                         }`}>
                           {passwordStrength >= 75 ? 'Strong' :
-                           passwordStrength >= 50 ? 'Medium' :
-                           'Weak'}
+                           passwordStrength >= 50 ? 'Medium' : 'Weak'}
                         </span>
                       </div>
                       <div className="w-full bg-gray-800 rounded-full h-2">
@@ -692,7 +681,7 @@ export default function SignupPage() {
                     </div>
                   )}
                 </div>
-
+                
                 <div className="group">
                   <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-2">
                     <i className="fas fa-lock text-blue-400"></i>
@@ -716,7 +705,6 @@ export default function SignupPage() {
           {currentStep === 4 && (
             <>
               <h3 className="text-2xl font-bold text-white mb-6">Terms & Conditions</h3>
-              
               <div className="bg-gray-900/30 backdrop-blur-sm rounded-2xl p-6 border border-gray-700 max-h-60 overflow-y-auto">
                 <h4 className="font-bold text-white mb-4">AcademVault Terms of Service</h4>
                 <div className="space-y-3 text-gray-400 text-sm">
@@ -731,7 +719,7 @@ export default function SignupPage() {
                   <p className="mt-4">By checking the box below, you acknowledge that you have read and agree to these terms.</p>
                 </div>
               </div>
-
+              
               <label className="flex items-start gap-3 p-4 bg-gray-900/30 backdrop-blur-sm rounded-2xl border border-gray-700 cursor-pointer group hover:border-gray-600 transition-colors">
                 <div className="relative mt-1">
                   <input
@@ -768,7 +756,52 @@ export default function SignupPage() {
                   <i className="fas fa-envelope-open-text text-3xl text-blue-400"></i>
                 </div>
                 
-                {verificationSent ? (
+                {verificationMode === 'link' ? (
+                  <>
+                    <h3 className="text-2xl font-bold text-white mb-2">Verification Complete!</h3>
+                    <p className="text-gray-400 mb-2">Your email has been verified:</p>
+                    <p className="font-medium text-green-400 mb-8">{formData.email}</p>
+                    
+                    <div className="flex justify-center gap-2 mb-8">
+                      {[0, 1, 2, 3, 4, 5].map(i => (
+                        <input
+                          key={i}
+                          ref={el => codeInputsRef.current[i] = el}
+                          type="text"
+                          maxLength="1"
+                          value={verificationCode[i]}
+                          onChange={(e) => handleCodeChange(i, e.target.value)}
+                          onKeyDown={(e) => handleCodeKeyDown(i, e)}
+                          className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl sm:text-2xl font-bold bg-green-500/10 border-2 border-green-500 rounded-xl text-white focus:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 transition-all duration-300"
+                          readOnly
+                        />
+                      ))}
+                    </div>
+                    
+                    <p className="text-green-400 mb-4">
+                      <i className="fas fa-check-circle mr-2"></i>
+                      Code verified from email link
+                    </p>
+                    
+                    <button
+                      onClick={() => handleVerifyEmail()}
+                      disabled={loading}
+                      className="w-full max-w-md mx-auto group relative overflow-hidden bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 rounded-xl font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loading ? (
+                        <>
+                          <i className="fas fa-spinner fa-spin mr-2"></i>
+                          Creating Account...
+                        </>
+                      ) : (
+                        <>
+                          Complete Registration
+                          <i className="fas fa-check-circle ml-2"></i>
+                        </>
+                      )}
+                    </button>
+                  </>
+                ) : verificationSent ? (
                   <>
                     <h3 className="text-2xl font-bold text-white mb-2">Verify Your Email</h3>
                     <p className="text-gray-400 mb-2">Enter the 6-digit code sent to:</p>
@@ -822,7 +855,8 @@ export default function SignupPage() {
                   <>
                     <h3 className="text-2xl font-bold text-white mb-4">Email Verification Required</h3>
                     <p className="text-gray-400 mb-8 max-w-md mx-auto">
-                      We need to verify your email address before creating your account. A 6-digit code will be sent to {formData.email}
+                      We need to verify your email address before creating your account. 
+                      A 6-digit code will be sent to {formData.email}
                     </p>
                     <button
                       onClick={sendVerificationCode}
@@ -860,7 +894,6 @@ export default function SignupPage() {
                 Back
               </button>
             )}
-            
             <button
               onClick={nextStep}
               disabled={loading}
