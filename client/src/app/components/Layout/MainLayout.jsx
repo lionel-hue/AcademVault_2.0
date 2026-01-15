@@ -379,17 +379,28 @@ export default function MainLayout({ children }) {
                                 <Link
                                     key={item.label}
                                     href={item.href}
-                                    className="flex items-center justify-between px-3 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-gray-800/50 transition-colors group"
+                                    className={`flex items-center justify-between px-3 py-3 rounded-xl transition-colors group ${item.highlight
+                                            ? 'border-l-4 border-blue-500 bg-blue-500/5 text-white hover:bg-blue-500/10'
+                                            : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
+                                        }`}
                                 >
                                     <div className="flex items-center gap-3">
-                                        <i className={`${item.icon} w-5 text-gray-400 group-hover:text-blue-400`}></i>
+                                        <i className={`${item.icon} w-5 ${item.highlight ? 'text-blue-400' : 'text-gray-400 group-hover:text-blue-400'
+                                            }`}></i>
                                         <span className="font-medium">{item.label}</span>
                                     </div>
-                                    {item.count !== undefined && (
-                                        <span className="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded-full">
-                                            {item.count}
-                                        </span>
-                                    )}
+                                    <div className="flex items-center gap-2">
+                                        {item.count !== undefined && (
+                                            <span className="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded-full">
+                                                {item.count}
+                                            </span>
+                                        )}
+                                        {item.highlight && (
+                                            <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xs px-2 py-0.5 rounded-full">
+                                                New
+                                            </span>
+                                        )}
+                                    </div>
                                 </Link>
                             ))}
                         </nav>
