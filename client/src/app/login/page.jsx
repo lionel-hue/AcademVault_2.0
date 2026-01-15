@@ -148,9 +148,7 @@ export default function LoginPage() {
                                         <i className="fas fa-lock text-blue-400"></i>
                                         Password
                                     </label>
-                                    <button
-                                        type="button"
-                                        onClick={handleForgotPassword}
+                                    <button type="button" onClick={handleForgotPassword}
                                         className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
                                     >
                                         Forgot password?
@@ -172,7 +170,7 @@ export default function LoginPage() {
                                         onClick={() => setShowPassword(!showPassword)}
                                         className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-300"
                                     >
-                                        <i className={`fas fa-eye${showPassword ? '' : '-slash'}`}></i>
+                                        <i className={`fas fa-eye${showPassword ? '' : '-slash'} text-sm`}></i>
                                     </button>
                                 </div>
                             </div>

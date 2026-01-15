@@ -130,9 +130,9 @@ export default function SearchPage() {
 
     return (
         <MainLayout>
-            {/* Search Header - ULTRA MOBILE OPTIMIZED */}
+            {/* Search Header - FIXED FOR MOBILE */}
             <div className="sticky top-16 z-40 bg-gray-900/95 backdrop-blur-xl border-b border-gray-800 py-3">
-                <div className="w-full px-3">
+                <div className="w-full px-4 sm:px-6">
                     <form onSubmit={handleSearch} className="w-full">
                         <div className="relative">
                             <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
@@ -143,14 +143,14 @@ export default function SearchPage() {
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Search research..."
-                                className="w-full pl-10 pr-24 py-2.5 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent text-sm"
+                                className="w-full pl-10 pr-28 py-2.5 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
                                 autoFocus
                             />
-                            <div className="absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+                            <div className="absolute right-1.5 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
                                 <select
                                     value={searchType}
                                     onChange={(e) => setSearchType(e.target.value)}
-                                    className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white text-xs focus:outline-none"
+                                    className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white text-xs focus:outline-none hidden sm:block"
                                 >
                                     <option value="all">All</option>
                                     <option value="videos">Videos</option>
@@ -160,15 +160,31 @@ export default function SearchPage() {
                                 <button
                                     type="submit"
                                     disabled={loading || !searchQuery.trim()}
-                                    className="px-2.5 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed rounded text-white font-medium text-xs"
+                                    className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed rounded text-white font-medium text-sm"
                                 >
                                     {loading ? (
                                         <i className="fas fa-spinner fa-spin"></i>
                                     ) : (
-                                        <i className="fas fa-search"></i>
+                                        <>
+                                            <span className="hidden sm:inline">Search</span>
+                                            <i className="fas fa-search sm:ml-2"></i>
+                                        </>
                                     )}
                                 </button>
                             </div>
+                        </div>
+                        {/* Mobile search type selector */}
+                        <div className="flex gap-2 mt-2 sm:hidden">
+                            {['all', 'videos', 'pdfs', 'articles'].map((type) => (
+                                <button
+                                    key={type}
+                                    type="button"
+                                    onClick={() => setSearchType(type)}
+                                    className={`px-3 py-1.5 text-xs rounded ${searchType === type ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300'}`}
+                                >
+                                    {type === 'all' ? 'All' : type.charAt(0).toUpperCase() + type.slice(1)}
+                                </button>
+                            ))}
                         </div>
                     </form>
                 </div>
