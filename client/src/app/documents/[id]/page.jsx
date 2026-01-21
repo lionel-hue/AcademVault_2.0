@@ -27,7 +27,14 @@ export default function DocumentDetailPage() {
     try {
       const response = await AuthService.getDocument(params.id);
       if (response.success) {
-        setDocument(response.data);
+        // Format the document with icons and colors
+        const formattedDoc = {
+          ...response.data,
+          icon: getDocumentIcon(response.data.type),
+          color: getDocumentColor(response.data.type),
+          formatted_file_size: formatFileSize(response.data.file_size)
+        };
+        setDocument(formattedDoc);
       } else {
         await alert({
           title: 'Document Not Found',
@@ -38,12 +45,7 @@ export default function DocumentDetailPage() {
       }
     } catch (error) {
       console.error('Error loading document:', error);
-      await alert({
-        title: 'Error',
-        message: 'Failed to load document',
-        variant: 'danger'
-      });
-      router.push('/documents');
+      handleDocumentError(error);
     } finally {
       setLoading(false);
     }
@@ -56,48 +58,74 @@ export default function DocumentDetailPage() {
         sort_by: 'created_at',
         sort_order: 'desc'
       });
+      
       if (response.success) {
-        setRelatedDocuments(response.data.data.filter(doc => doc.id !== params.id));
+        const filtered = response.data.data
+          .filter(doc => doc.id !== params.id)
+          .map(doc => ({
+            ...doc,
+            icon: getDocumentIcon(doc.type),
+            color: getDocumentColor(doc.type),
+            formatted_date: formatDocumentDate(doc.created_at)
+          }));
+        setRelatedDocuments(filtered);
       }
     } catch (error) {
       console.error('Error loading related documents:', error);
     }
   };
 
+  const getDocumentIcon = (type) => {
+    switch (type?.toLowerCase()) {
+      case 'pdf': return 'fas fa-file-pdf text-red-400';
+      case 'video': return 'fas fa-video text-blue-400';
+      case 'article_link': return 'fas fa-newspaper text-green-400';
+      case 'website': return 'fas fa-globe text-purple-400';
+      case 'image': return 'fas fa-image text-yellow-400';
+      case 'presentation': return 'fas fa-presentation text-pink-400';
+      default: return 'fas fa-file text-gray-400';
+    }
+  };
 
-  // Add this function inside the component
-const handleDocumentError = (error) => {
-  console.error('Document error:', error);
-  
-  // Check for specific error types
-  if (error.message.includes('404') || error.message.includes('not found')) {
-    alert({
-      title: 'Document Not Found',
-      message: 'The document you\'re looking for doesn\'t exist or has been deleted.',
-      variant: 'danger'
-    }).then(() => router.push('/documents'));
-  } else if (error.message.includes('401') || error.message.includes('403')) {
-    alert({
-      title: 'Access Denied',
-      message: 'You don\'t have permission to view this document.',
-      variant: 'warning'
-    }).then(() => router.push('/documents'));
-  } else {
-    alert({
-      title: 'Error Loading Document',
-      message: 'There was an error loading the document. Please try again.',
-      variant: 'danger'
-    }).then(() => router.push('/documents'));
-  }
-};  
+  const getDocumentColor = (type) => {
+    switch (type?.toLowerCase()) {
+      case 'pdf': return 'bg-red-500/20 border-red-500/30';
+      case 'video': return 'bg-blue-500/20 border-blue-500/30';
+      case 'article_link': return 'bg-green-500/20 border-green-500/30';
+      case 'website': return 'bg-purple-500/20 border-purple-500/30';
+      case 'image': return 'bg-yellow-500/20 border-yellow-500/30';
+      case 'presentation': return 'bg-pink-500/20 border-pink-500/30';
+      default: return 'bg-gray-500/20 border-gray-500/30';
+    }
+  };
 
+  const handleDocumentError = (error) => {
+    console.error('Document error:', error);
+    
+    if (error.message.includes('404') || error.message.includes('not found')) {
+      alert({
+        title: 'Document Not Found',
+        message: 'The document you\'re looking for doesn\'t exist or has been deleted.',
+        variant: 'danger'
+      }).then(() => router.push('/documents'));
+    } else if (error.message.includes('401') || error.message.includes('403')) {
+      alert({
+        title: 'Access Denied',
+        message: 'You don\'t have permission to view this document.',
+        variant: 'warning'
+      }).then(() => router.push('/documents'));
+    } else {
+      alert({
+        title: 'Error Loading Document',
+        message: 'There was an error loading the document. Please try again.',
+        variant: 'danger'
+      }).then(() => router.push('/documents'));
+    }
+  };
 
   const handleDownload = async () => {
     try {
-      const response = await AuthService.downloadDocument(params.id);
-      if (response.success && response.data.download_url) {
-        window.open(response.data.download_url, '_blank');
-      }
+      await AuthService.downloadDocument(params.id);
     } catch (error) {
       await alert({
         title: 'Download Failed',
@@ -145,6 +173,34 @@ const handleDocumentError = (error) => {
     });
   };
 
+  const formatDocumentDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return 'N/A';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let size = parseFloat(bytes);
+    let unitIndex = 0;
+    
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex++;
+    }
+    
+    return `${size.toFixed(1)} ${units[unitIndex]}`;
+  };
+
   if (loading) {
     return (
       <MainLayout>
@@ -169,7 +225,7 @@ const handleDocumentError = (error) => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-2">
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${document.color} bg-opacity-10`}>
+              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${document.color} border`}>
                 <i className={`${document.icon} text-2xl`}></i>
               </div>
               <div>
@@ -182,7 +238,6 @@ const handleDocumentError = (error) => {
               </div>
             </div>
           </div>
-          
           <div className="flex gap-2">
             <button
               onClick={handleDownload}
@@ -239,7 +294,7 @@ const handleDocumentError = (error) => {
                     <p className="text-gray-300 whitespace-pre-line">{document.description}</p>
                   </div>
                 )}
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <h4 className="font-medium text-gray-300 mb-2">Type</h4>
@@ -274,22 +329,22 @@ const handleDocumentError = (error) => {
                   
                   <div>
                     <h4 className="font-medium text-gray-300 mb-2">File Size</h4>
-                    <p className="text-white">{document.formatted_file_size || 'N/A'}</p>
+                    <p className="text-white">{document.formatted_file_size || formatFileSize(document.file_size)}</p>
                   </div>
                   
                   <div>
                     <h4 className="font-medium text-gray-300 mb-2">Views</h4>
-                    <p className="text-white">{document.view_count}</p>
+                    <p className="text-white">{document.view_count || 0}</p>
                   </div>
                   
                   <div>
                     <h4 className="font-medium text-gray-300 mb-2">Downloads</h4>
-                    <p className="text-white">{document.download_count}</p>
+                    <p className="text-white">{document.download_count || 0}</p>
                   </div>
                 </div>
               </div>
             )}
-            
+
             {activeTab === 'preview' && (
               <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800">
                 <h3 className="text-xl font-bold text-white mb-4">Document Preview</h3>
@@ -322,11 +377,10 @@ const handleDocumentError = (error) => {
                 )}
               </div>
             )}
-            
+
             {activeTab === 'metadata' && (
               <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800">
                 <h3 className="text-xl font-bold text-white mb-4">Technical Metadata</h3>
-                
                 <div className="space-y-4">
                   {document.file_type && (
                     <div>
@@ -352,16 +406,14 @@ const handleDocumentError = (error) => {
                   {document.license && (
                     <div>
                       <h4 className="font-medium text-gray-300 mb-1">License</h4>
-                      <p className="text-white capitalize">{document.license.replace('-', ' ')}</p>
+                      <p className="text-white capitalize">{document.license.replace(/-/g, ' ')}</p>
                     </div>
                   )}
                   
-                  {document.is_public !== undefined && (
-                    <div>
-                      <h4 className="font-medium text-gray-300 mb-1">Visibility</h4>
-                      <p className="text-white">{document.is_public ? 'Public' : 'Private'}</p>
-                    </div>
-                  )}
+                  <div>
+                    <h4 className="font-medium text-gray-300 mb-1">Visibility</h4>
+                    <p className="text-white">{document.is_public ? 'Public' : 'Private'}</p>
+                  </div>
                 </div>
               </div>
             )}
@@ -445,7 +497,7 @@ const handleDocumentError = (error) => {
                       className="flex items-center gap-3 p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 cursor-pointer"
                       onClick={() => router.push(`/documents/${doc.id}`)}
                     >
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${doc.color} bg-opacity-10`}>
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${doc.color} border`}>
                         <i className={doc.icon}></i>
                       </div>
                       <div className="flex-1 min-w-0">
