@@ -1,12 +1,14 @@
-// client/src/app/search/components/VideoCard.jsx - FULLY MOBILE OPTIMIZED
+// client/src/app/search/components/VideoCard.jsx - UPDATED WITH SAVE TO DOCUMENTS BUTTON
 "use client";
+
 import { useState } from 'react';
 import { useModal } from '@/app/components/UI/Modal/ModalContext';
 import AuthService from '@/lib/auth';
 
 export default function VideoCard({ video, onSave, saved, isMobile = false }) {
   const [isHovered, setIsHovered] = useState(false);
-  const [loadingDownload, setLoadingDownload] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [savingToDocuments, setSavingToDocuments] = useState(false);
   const { alert } = useModal();
 
   const formatViews = (views) => {
@@ -22,7 +24,6 @@ export default function VideoCard({ video, onSave, saved, isMobile = false }) {
       const date = new Date(dateString);
       const now = new Date();
       const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
-      
       if (diffDays === 0) return 'Today';
       if (diffDays === 1) return '1d';
       if (diffDays < 7) return `${diffDays}d`;
@@ -34,51 +35,71 @@ export default function VideoCard({ video, onSave, saved, isMobile = false }) {
     }
   };
 
+  // NEW FUNCTION: Save video to documents library
+  const handleSaveToDocuments = async () => {
+    setSavingToDocuments(true);
+    try {
+      const documentData = {
+        type: 'video',
+        data: {
+          title: video.title,
+          description: video.description || `Video from YouTube channel: ${video.channel}`,
+          url: video.url,
+          thumbnail: video.thumbnail,
+          duration: video.duration,
+          channel: video.channel,
+          views: video.views,
+          published_at: video.published_at,
+          source: 'youtube',
+          source_id: video.id
+        }
+      };
+
+      const response = await AuthService.saveSearchResultToDocuments(documentData);
+      
+      if (response.success) {
+        await alert({
+          title: 'Saved to Documents!',
+          message: 'Video has been added to your documents library',
+          variant: 'success'
+        });
+      }
+    } catch (error) {
+      console.error('Error saving to documents:', error);
+      await alert({
+        title: 'Save Failed',
+        message: 'Could not save video to documents',
+        variant: 'danger'
+      });
+    } finally {
+      setSavingToDocuments(false);
+    }
+  };
+
   const handleWatchOnYouTube = () => {
     window.open(video.url, '_blank');
   };
 
-  const handleDownload = async () => {
-    setLoadingDownload(true);
-    try {
-      await alert({
-        title: 'Coming Soon',
-        message: 'Video download feature will be available soon!',
-        variant: 'info'
-      });
-    } catch (error) {
-      console.error('Download error:', error);
-    } finally {
-      setLoadingDownload(false);
-    }
-  };
-
-  const handleEmbed = () => {
-    alert({
-      title: 'Embed Code',
-      message: `Use this code to embed: <iframe src="https://www.youtube.com/embed/${video.id}" width="560" height="315"></iframe>`,
-      variant: 'info'
-    });
-  };
-
-  // MOBILE-OPTIMIZED CARD - EXTRA COMPACT FOR 720px
+  // MOBILE-OPTIMIZED CARD
   if (isMobile) {
     return (
       <div className="w-full max-w-full bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-lg overflow-hidden mx-0">
-        {/* Thumbnail - Optimized for mobile */}
+        {/* Thumbnail */}
         <div className="relative aspect-video w-full overflow-hidden bg-gray-800">
-          <img
-            src={video.thumbnail || `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`}
+          <img 
+            src={video.thumbnail || `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`} 
             alt={video.title}
             className="w-full h-full object-cover"
             loading="lazy"
           />
+          
           {/* Duration Badge */}
           {video.duration && (
             <div className="absolute bottom-1 right-1 bg-black/90 text-white text-xs px-1 py-0.5 rounded">
               {video.duration}
             </div>
           )}
+          
           {/* YouTube Badge */}
           <div className="absolute top-1 left-1 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded flex items-center gap-1">
             <i className="fab fa-youtube"></i>
@@ -86,24 +107,37 @@ export default function VideoCard({ video, onSave, saved, isMobile = false }) {
           </div>
         </div>
 
-        {/* Content - Ultra compact for mobile */}
+        {/* Content */}
         <div className="p-2">
           <div className="flex items-start justify-between mb-1">
-            {/* Title - Very compact */}
+            {/* Title */}
             <h3 className="text-white text-xs font-medium line-clamp-2 flex-1 mr-2">
               {video.title}
             </h3>
-            {/* Save button - smaller */}
-            <button
-              onClick={() => onSave && onSave()}
-              className={`p-1 rounded ${saved ? 'text-yellow-400' : 'text-gray-400'}`}
-              title={saved ? 'Saved' : 'Save'}
-            >
-              <i className={`fas ${saved ? 'fa-bookmark' : 'fa-bookmark'} text-xs`}></i>
-            </button>
+            
+            {/* Save button */}
+            <div className="flex gap-1">
+              <button
+                onClick={() => onSave && onSave()}
+                className={`p-1 rounded ${saved ? 'text-yellow-400' : 'text-gray-400'}`}
+                title={saved ? 'Saved' : 'Save'}
+              >
+                <i className={`fas ${saved ? 'fa-bookmark' : 'fa-bookmark'} text-xs`}></i>
+              </button>
+              
+              {/* NEW: Save to Documents button */}
+              <button
+                onClick={handleSaveToDocuments}
+                disabled={savingToDocuments}
+                className={`p-1 rounded ${savingToDocuments ? 'text-blue-400' : 'text-gray-400'}`}
+                title="Save to Documents"
+              >
+                <i className={`fas ${savingToDocuments ? 'fa-spinner fa-spin' : 'fa-folder-plus'} text-xs`}></i>
+              </button>
+            </div>
           </div>
 
-          {/* Channel and metadata - single line */}
+          {/* Channel and metadata */}
           <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
             <span className="truncate max-w-[60%]">{video.channel}</span>
             <div className="flex items-center gap-1 flex-shrink-0">
@@ -113,14 +147,25 @@ export default function VideoCard({ video, onSave, saved, isMobile = false }) {
             </div>
           </div>
 
-          {/* Single Action Button */}
-          <button
-            onClick={handleWatchOnYouTube}
-            className="w-full bg-red-600 hover:bg-red-700 text-white py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1"
-          >
-            <i className="fab fa-youtube"></i>
-            Watch on YouTube
-          </button>
+          {/* Action Buttons */}
+          <div className="flex gap-1">
+            <button
+              onClick={handleWatchOnYouTube}
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1"
+            >
+              <i className="fab fa-youtube"></i>
+              Watch
+            </button>
+            
+            <button
+              onClick={handleSaveToDocuments}
+              disabled={savingToDocuments}
+              className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 disabled:opacity-50"
+            >
+              <i className={`fas ${savingToDocuments ? 'fa-spinner fa-spin' : 'fa-folder-plus'} text-xs`}></i>
+              Save
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -128,21 +173,22 @@ export default function VideoCard({ video, onSave, saved, isMobile = false }) {
 
   // DESKTOP/TABLET VERSION
   return (
-    <div
+    <div 
       className="w-full h-full bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl overflow-hidden hover:border-gray-700 hover:shadow-xl transition-all duration-300"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Thumbnail */}
       <div className="relative aspect-video w-full overflow-hidden bg-gray-800">
-        <img
-          src={video.thumbnail || `https://img.youtube.com/vi/${video.id}/maxresdefault.jpg`}
+        <img 
+          src={video.thumbnail || `https://img.youtube.com/vi/${video.id}/maxresdefault.jpg`} 
           alt={video.title}
           className={`w-full h-full object-cover transition-transform duration-500 ${
             isHovered ? 'scale-110' : 'scale-100'
           }`}
           loading="lazy"
         />
+        
         {/* Play Button Overlay */}
         {isHovered && (
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
@@ -154,12 +200,14 @@ export default function VideoCard({ video, onSave, saved, isMobile = false }) {
             </button>
           </div>
         )}
+        
         {/* Duration Badge */}
         {video.duration && (
           <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
             {video.duration}
           </div>
         )}
+        
         {/* Source Badge */}
         <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
           <i className="fab fa-youtube"></i>
@@ -173,17 +221,35 @@ export default function VideoCard({ video, onSave, saved, isMobile = false }) {
           <h3 className="text-white font-semibold line-clamp-2 flex-1 text-sm md:text-base">
             {video.title}
           </h3>
-          <button
-            onClick={() => onSave && onSave()}
-            className={`p-1.5 rounded-lg transition-colors ${
-              saved
-                ? 'text-yellow-400 bg-yellow-400/10'
-                : 'text-gray-400 hover:text-yellow-400 hover:bg-yellow-400/10'
-            }`}
-            title={saved ? 'Saved to collection' : 'Save to collection'}
-          >
-            <i className={`fas ${saved ? 'fa-bookmark' : 'fa-bookmark'} text-sm`}></i>
-          </button>
+          
+          {/* Save Actions */}
+          <div className="flex gap-1">
+            <button
+              onClick={() => onSave && onSave()}
+              className={`p-1.5 rounded-lg transition-colors ${
+                saved 
+                  ? 'text-yellow-400 bg-yellow-400/10' 
+                  : 'text-gray-400 hover:text-yellow-400 hover:bg-yellow-400/10'
+              }`}
+              title={saved ? 'Saved to collection' : 'Save to collection'}
+            >
+              <i className={`fas ${saved ? 'fa-bookmark' : 'fa-bookmark'} text-sm`}></i>
+            </button>
+            
+            {/* NEW: Save to Documents Button */}
+            <button
+              onClick={handleSaveToDocuments}
+              disabled={savingToDocuments}
+              className={`p-1.5 rounded-lg transition-colors ${
+                savingToDocuments 
+                  ? 'text-blue-400 bg-blue-400/10' 
+                  : 'text-gray-400 hover:text-blue-400 hover:bg-blue-400/10'
+              }`}
+              title="Save to Documents Library"
+            >
+              <i className={`fas ${savingToDocuments ? 'fa-spinner fa-spin' : 'fa-folder-plus'} text-sm`}></i>
+            </button>
+          </div>
         </div>
 
         {/* Channel Info */}
@@ -214,39 +280,24 @@ export default function VideoCard({ video, onSave, saved, isMobile = false }) {
             <i className="fab fa-youtube"></i>
             Watch Video
           </button>
+          
           <button
-            onClick={handleDownload}
-            disabled={loadingDownload}
+            onClick={handleSaveToDocuments}
+            disabled={savingToDocuments}
             className="flex-1 min-w-[120px] bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-2 px-2 rounded-lg font-medium transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-2 text-xs md:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loadingDownload ? (
+            {savingToDocuments ? (
               <>
                 <i className="fas fa-spinner fa-spin"></i>
-                Loading...
+                Saving...
               </>
             ) : (
               <>
-                <i className="fas fa-download"></i>
-                Download
+                <i className="fas fa-folder-plus"></i>
+                Save to Docs
               </>
             )}
           </button>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="flex items-center justify-between mt-2">
-          <button
-            onClick={handleEmbed}
-            className="text-xs text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg px-2 py-1 flex items-center gap-1"
-            title="Copy embed code"
-          >
-            <i className="fas fa-code text-xs"></i>
-            <span className="hidden sm:inline">Embed</span>
-          </button>
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500">Educational</span>
-            <i className="fas fa-graduation-cap text-blue-400 text-xs"></i>
-          </div>
         </div>
       </div>
     </div>

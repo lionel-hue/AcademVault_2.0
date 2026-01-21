@@ -1,16 +1,13 @@
-// database/migrations/xxxx_create_documents_table.php
 <?php
-
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
-    public function up(): void
-    {
+return new class extends Migration {
+    public function up(): void {
         Schema::create('documents', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade'); // AJOUT
             $table->enum('type', ['pdf', 'video', 'article_link', 'website', 'image', 'presentation']);
             $table->string('title');
             $table->text('description')->nullable();
@@ -32,14 +29,18 @@ return new class extends Migration
             $table->boolean('is_public')->default(true);
             $table->enum('license', ['cc-by', 'cc-by-sa', 'cc-by-nc', 'cc-by-nc-sa', 'copyright', 'public_domain'])->default('copyright');
             $table->json('metadata')->nullable();
+            $table->json('source_metadata')->nullable(); // AJOUT: stocke info source (youtube, arxiv, etc)
             $table->timestamp('generated_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
+            
+            // AJOUT: Index pour performance
+            $table->index(['user_id', 'type']);
+            $table->index(['user_id', 'created_at']);
         });
     }
 
-    public function down(): void
-    {
+    public function down(): void {
         Schema::dropIfExists('documents');
     }
 };

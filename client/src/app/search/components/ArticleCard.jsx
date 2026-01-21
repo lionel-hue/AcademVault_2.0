@@ -1,5 +1,6 @@
-// client/src/app/search/components/ArticleCard.jsx - MOBILE OPTIMIZED
+// client/src/app/search/components/ArticleCard.jsx - UPDATED WITH SAVE TO DOCUMENTS BUTTON
 "use client";
+
 import { useState } from 'react';
 import { useModal } from '@/app/components/UI/Modal/ModalContext';
 import AuthService from '@/lib/auth';
@@ -7,6 +8,8 @@ import AuthService from '@/lib/auth';
 export default function ArticleCard({ article, onSave, saved, isMobile = false }) {
   const [isHovered, setIsHovered] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [savingToDocuments, setSavingToDocuments] = useState(false);
+  const { alert } = useModal();
 
   const formatDomain = (url) => {
     try {
@@ -21,16 +24,42 @@ export default function ArticleCard({ article, onSave, saved, isMobile = false }
     return time;
   };
 
-  const handleSave = async () => {
-    setLoading(true);
+  // NEW FUNCTION: Save article to documents library
+  const handleSaveToDocuments = async () => {
+    setSavingToDocuments(true);
     try {
-      if (onSave) {
-        await onSave({ type: 'article', data: article });
+      const documentData = {
+        type: 'article',
+        data: {
+          title: article.title,
+          description: article.snippet || article.description,
+          url: article.url,
+          domain: formatDomain(article.url),
+          reading_time: article.reading_time,
+          published_at: article.published_at,
+          author: article.author,
+          source: 'web'
+        }
+      };
+
+      const response = await AuthService.saveSearchResultToDocuments(documentData);
+      
+      if (response.success) {
+        await alert({
+          title: 'Saved to Documents!',
+          message: 'Article has been added to your documents library',
+          variant: 'success'
+        });
       }
     } catch (error) {
-      console.error('Error saving article:', error);
+      console.error('Error saving to documents:', error);
+      await alert({
+        title: 'Save Failed',
+        message: 'Could not save article to documents',
+        variant: 'danger'
+      });
     } finally {
-      setLoading(false);
+      setSavingToDocuments(false);
     }
   };
 
@@ -59,14 +88,26 @@ export default function ArticleCard({ article, onSave, saved, isMobile = false }
               </div>
             </div>
           </div>
-          <button
-            onClick={handleSave}
-            disabled={loading}
-            className={`p-1 rounded ${saved ? 'text-yellow-400' : 'text-gray-400'} ${loading ? 'opacity-50' : ''}`}
-            title={saved ? 'Saved' : 'Save'}
-          >
-            <i className={`fas ${saved ? 'fa-bookmark' : 'fa-bookmark'} text-xs`}></i>
-          </button>
+          
+          {/* Save Actions */}
+          <div className="flex gap-1">
+            <button
+              onClick={() => onSave && onSave()}
+              className={`p-1 rounded ${saved ? 'text-yellow-400' : 'text-gray-400'}`}
+              title={saved ? 'Saved' : 'Save'}
+            >
+              <i className={`fas ${saved ? 'fa-bookmark' : 'fa-bookmark'} text-xs`}></i>
+            </button>
+            
+            <button
+              onClick={handleSaveToDocuments}
+              disabled={savingToDocuments}
+              className={`p-1 rounded ${savingToDocuments ? 'text-blue-400' : 'text-gray-400'}`}
+              title="Save to Documents"
+            >
+              <i className={`fas ${savingToDocuments ? 'fa-spinner fa-spin' : 'fa-folder-plus'} text-xs`}></i>
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -83,14 +124,25 @@ export default function ArticleCard({ article, onSave, saved, isMobile = false }
             {article.snippet || article.description}
           </p>
 
-          {/* Single Action Button */}
-          <button
-            onClick={handleVisit}
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1"
-          >
-            <i className="fas fa-external-link-alt text-xs"></i>
-            Read Article
-          </button>
+          {/* Action Buttons */}
+          <div className="flex gap-1">
+            <button
+              onClick={handleVisit}
+              className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1"
+            >
+              <i className="fas fa-external-link-alt text-xs"></i>
+              Read
+            </button>
+            
+            <button
+              onClick={handleSaveToDocuments}
+              disabled={savingToDocuments}
+              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 disabled:opacity-50"
+            >
+              <i className={`fas ${savingToDocuments ? 'fa-spinner fa-spin' : 'fa-folder-plus'} text-xs`}></i>
+              Save
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -116,14 +168,35 @@ export default function ArticleCard({ article, onSave, saved, isMobile = false }
             </div>
           </div>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={loading}
-          className={`p-1.5 md:p-2 rounded-lg transition-colors ${saved ? 'text-yellow-400 bg-yellow-400/10' : 'text-gray-400 hover:text-yellow-400 hover:bg-yellow-400/10'} ${loading ? 'opacity-50' : ''}`}
-          title={saved ? 'Saved to collection' : 'Save to collection'}
-        >
-          <i className={`fas ${saved ? 'fa-bookmark' : 'fa-bookmark'}`}></i>
-        </button>
+        
+        {/* Save Actions */}
+        <div className="flex gap-1">
+          <button
+            onClick={() => onSave && onSave()}
+            className={`p-1.5 md:p-2 rounded-lg transition-colors ${
+              saved 
+                ? 'text-yellow-400 bg-yellow-400/10' 
+                : 'text-gray-400 hover:text-yellow-400 hover:bg-yellow-400/10'
+            }`}
+            title={saved ? 'Saved to collection' : 'Save to collection'}
+          >
+            <i className={`fas ${saved ? 'fa-bookmark' : 'fa-bookmark'}`}></i>
+          </button>
+          
+          {/* NEW: Save to Documents Button */}
+          <button
+            onClick={handleSaveToDocuments}
+            disabled={savingToDocuments}
+            className={`p-1.5 md:p-2 rounded-lg transition-colors ${
+              savingToDocuments 
+                ? 'text-blue-400 bg-blue-400/10' 
+                : 'text-gray-400 hover:text-blue-400 hover:bg-blue-400/10'
+            }`}
+            title="Save to Documents Library"
+          >
+            <i className={`fas ${savingToDocuments ? 'fa-spinner fa-spin' : 'fa-folder-plus'}`}></i>
+          </button>
+        </div>
       </div>
 
       {/* Content */}
@@ -149,12 +222,13 @@ export default function ArticleCard({ article, onSave, saved, isMobile = false }
             <i className="fas fa-external-link-alt"></i>
             Read Article
           </button>
+          
           <button
-            onClick={() => navigator.clipboard.writeText(article.url)}
-            className="p-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg md:rounded-xl text-white transition-colors"
-            title="Copy link"
+            onClick={handleSaveToDocuments}
+            disabled={savingToDocuments}
+            className="px-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-2 rounded-lg md:rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            <i className="fas fa-link"></i>
+            <i className={`fas ${savingToDocuments ? 'fa-spinner fa-spin' : 'fa-folder-plus'}`}></i>
           </button>
         </div>
       </div>
