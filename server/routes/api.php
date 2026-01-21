@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SearchSessionsController;
+use App\Http\Controllers\Api\DocumentsController; // AJOUT
 
 Route::prefix('auth')->group(function () {
     // Public routes
@@ -82,4 +83,20 @@ Route::middleware('auth:api')->prefix('search-sessions')->group(function () {
     Route::post('/', [SearchSessionsController::class, 'store']);
     Route::put('/{id}', [SearchSessionsController::class, 'update']);
     Route::delete('/{id}', [SearchSessionsController::class, 'destroy']);
+});
+
+
+
+// Documents routes (protected)
+Route::middleware('auth:api')->prefix('documents')->group(function () {
+    Route::get('/', [DocumentsController::class, 'index']);
+    Route::get('/stats', [DocumentsController::class, 'stats']);
+    Route::post('/', [DocumentsController::class, 'store']);
+    Route::post('/save-from-search', [DocumentsController::class, 'saveFromSearch']);
+    Route::get('/{id}', [DocumentsController::class, 'show']);
+    Route::put('/{id}', [DocumentsController::class, 'update']);
+    Route::delete('/{id}', [DocumentsController::class, 'destroy']);
+    Route::get('/{id}/download', [DocumentsController::class, 'download']);
+    Route::post('/{id}/categories', [DocumentsController::class, 'attachCategories']);
+    Route::delete('/{id}/categories/{categoryId}', [DocumentsController::class, 'detachCategory']);
 });

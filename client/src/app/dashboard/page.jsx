@@ -114,11 +114,16 @@ export default function DashboardPage() {
     }
   };
 
+  // Remplacer la fonction loadRecentDocuments :
   const loadRecentDocuments = async () => {
     try {
-      const response = await AuthService.fetchRecentDocuments();
+      const response = await AuthService.fetchUserDocuments({
+        per_page: 4,
+        sort_by: 'created_at',
+        sort_order: 'desc'
+      });
       if (response.success) {
-        setRecentDocuments(response.documents || []);
+        setRecentDocuments(response.data.data || []);
       }
     } catch (error) {
       console.error('Error loading recent documents:', error.message);

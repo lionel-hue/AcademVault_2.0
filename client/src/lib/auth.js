@@ -876,6 +876,82 @@ class AuthService {
             throw error;
         }
     }
+
+
+    // Ajoute ces méthodes à la fin de la classe AuthService :
+
+    // ============= DOCUMENTS API METHODS =============
+    async fetchUserDocuments(params = {}) {
+        return this.makeRequest('/documents', {
+            method: 'GET',
+            params
+        });
+    }
+
+    async fetchDocumentStats() {
+        return this.makeRequest('/documents/stats');
+    }
+
+    async createDocument(documentData) {
+        // Handle file upload with FormData
+        if (documentData.file) {
+            const formData = new FormData();
+            Object.keys(documentData).forEach(key => {
+                if (key === 'file') {
+                    formData.append('file', documentData.file);
+                } else if (key === 'categories' && Array.isArray(documentData[key])) {
+                    documentData[key].forEach(categoryId => {
+                        formData.append('categories[]', categoryId);
+                    });
+                } else {
+                    formData.append(key, documentData[key]);
+                }
+            });
+
+            const headers = this.getHeaders();
+            delete headers['Content-Type']; // Let browser set it for FormData
+
+            return this.makeRequest('/documents', {
+                method: 'POST',
+                headers,
+                body: formData
+            });
+        }
+
+        // Regular JSON request
+        return this.makeRequest('/documents', {
+            method: 'POST',
+            body: JSON.stringify(documentData)
+        });
+    }
+
+    async saveSearchResultToDocuments(data) {
+        return this.makeRequest('/documents/save-from-search', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async getDocument(id) {
+        return this.makeRequest(`/documents/${id}`);
+    }
+
+    async updateDocument(id, updates) {
+        return this.makeRequest(`/documents/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(updates)
+        });
+    }
+
+    async deleteDocument(id) {
+        return this.makeRequest(`/documents/${id}`, {
+            method: 'DELETE'
+        });
+    }
+
+    async downloadDocument(id) {
+        return this.makeRequest(`/documents/${id}/download`);
+    }
 }
 
 // Export singleton instance
