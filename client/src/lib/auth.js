@@ -952,6 +952,234 @@ class AuthService {
     async downloadDocument(id) {
         return this.makeRequest(`/documents/${id}/download`);
     }
+
+    // client/src/lib/auth.js - UPDATED WITH COMPLETE DOCUMENT METHODS
+
+    // Add these methods inside the AuthService class:
+
+    // ============= ENHANCED DOCUMENT METHODS =============
+    async fetchUserDocuments(params = {}) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            // Build query string from params
+            const queryString = new URLSearchParams();
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    if (Array.isArray(value)) {
+                        value.forEach(v => queryString.append(`${key}[]`, v));
+                    } else {
+                        queryString.append(key, value);
+                    }
+                }
+            });
+
+            const query = queryString.toString();
+            const endpoint = `/documents${query ? `?${query}` : ''}`;
+
+            return await this.makeRequest(endpoint, { method: 'GET' });
+        } catch (error) {
+            console.error('Error fetching documents:', error);
+            throw error;
+        }
+    }
+
+    async fetchDocumentStats() {
+        try {
+            return await this.makeRequest('/documents/stats');
+        } catch (error) {
+            console.error('Error fetching document stats:', error);
+            return {
+                success: false,
+                data: {
+                    total: 0,
+                    by_type: { pdf: 0, video: 0, article_link: 0, website: 0, image: 0, presentation: 0 },
+                    storage_used: '0 MB'
+                }
+            };
+        }
+    }
+
+    async createDocument(documentData) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            // Handle file upload with FormData
+            if (documentData.file) {
+                const formData = new FormData();
+
+                // Append all fields to FormData
+                Object.entries(documentData).forEach(([key, value]) => {
+                    if (key === 'file') {
+                        formData.append('file', value);
+                    } else if (key === 'categories' && Array.isArray(value)) {
+                        value.forEach(catId => formData.append('categories[]', catId));
+                    } else if (value !== undefined && value !== null) {
+                        formData.append(key, value);
+                    }
+                });
+
+                const response = await fetch(`${API_URL}/documents`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        // Don't set Content-Type for FormData, browser will set it with boundary
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to upload document');
+                }
+
+                return await response.json();
+            } else {
+                // Regular JSON request for URL-based documents
+                return await this.makeRequest('/documents', {
+                    method: 'POST',
+                    body: JSON.stringify(documentData)
+                });
+            }
+        } catch (error) {
+            console.error('Error creating document:', error);
+            throw error;
+        }
+    }
+
+    async saveSearchResultToDocuments(data) {
+        try {
+            console.log('Saving search result to documents:', data);
+
+            // Format the data based on type
+            const documentData = {
+                title: data.data?.title || 'Untitled',
+                type: data.type,
+                description: data.data?.description || data.data?.snippet || '',
+                author: data.data?.author || data.data?.channel || 'Unknown',
+                url: data.data?.url || data.data?.pdf_url || '',
+                thumbnail: data.data?.thumbnail || null,
+                is_public: true,
+                source_metadata: {
+                    source: data.data?.source || data.type,
+                    saved_at: new Date().toISOString(),
+                    original_id: data.data?.id || null
+                }
+            };
+
+            // Add type-specific fields
+            if (data.type === 'video') {
+                documentData.duration = data.data?.duration;
+            } else if (data.type === 'pdf') {
+                documentData.author = data.data?.authors?.join(', ') || 'Unknown';
+                documentData.publication_year = new Date(data.data?.published_at).getFullYear();
+            }
+
+            return await this.createDocument(documentData);
+        } catch (error) {
+            console.error('Error saving search result:', error);
+            throw error;
+        }
+    }
+
+    async getDocument(id) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/documents/${id}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error('Document not found');
+                }
+                throw new Error('Failed to fetch document');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error getting document:', error);
+            throw error;
+        }
+    }
+
+    async updateDocument(id, updates) {
+        try {
+            return await this.makeRequest(`/documents/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(updates)
+            });
+        } catch (error) {
+            console.error('Error updating document:', error);
+            throw error;
+        }
+    }
+
+    async deleteDocument(id) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/documents/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete document');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error deleting document:', error);
+            throw error;
+        }
+    }
+
+    async downloadDocument(id) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/documents/${id}/download`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to download document');
+            }
+
+            const data = await response.json();
+
+            // If we get a download URL, open it
+            if (data.data?.download_url) {
+                window.open(data.data.download_url, '_blank');
+            } else if (data.data?.file_url) {
+                window.open(data.data.file_url, '_blank');
+            } else if (data.data?.url) {
+                window.open(data.data.url, '_blank');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error downloading document:', error);
+            throw error;
+        }
+    }
 }
 
 // Export singleton instance
