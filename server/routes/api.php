@@ -5,7 +5,9 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SearchSessionsController;
-use App\Http\Controllers\Api\DocumentsController; // AJOUT
+use App\Http\Controllers\Api\DocumentsController;
+use App\Http\Controllers\Api\ProfileController;
+
 
 Route::prefix('auth')->group(function () {
     // Public routes
@@ -99,4 +101,19 @@ Route::middleware('auth:api')->prefix('documents')->group(function () {
     Route::get('/{id}/download', [DocumentsController::class, 'download']);
     Route::post('/{id}/categories', [DocumentsController::class, 'attachCategories']);
     Route::delete('/{id}/categories/{categoryId}', [DocumentsController::class, 'detachCategory']);
+});
+
+
+
+// Profile Routes
+Route::middleware(['auth:api'])->group(function () {
+    Route::prefix('profile')->group(function () {
+        Route::get('/', [ProfileController::class, 'show']);
+        Route::post('/update', [ProfileController::class, 'update']);
+        Route::post('/change-password', [ProfileController::class, 'changePassword']);
+        Route::get('/activity', [ProfileController::class, 'getActivityHistory']);
+        Route::get('/preferences', [ProfileController::class, 'getPreferences']);
+        Route::post('/preferences', [ProfileController::class, 'updatePreferences']);
+        Route::delete('/account', [ProfileController::class, 'deleteAccount']);
+    });
 });

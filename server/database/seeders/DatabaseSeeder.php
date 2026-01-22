@@ -57,6 +57,42 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
+        // Create user preferences for all users
+        $allUserIds = array_merge([$userId], $otherUserIds);
+        foreach ($allUserIds as $uid) {
+            DB::table('user_preferences')->insert([
+                'user_id' => $uid,
+                'theme' => 'dark',
+                'language' => 'en',
+                'timezone' => 'UTC',
+                'notification_settings' => json_encode([
+                    'email_notifications' => true,
+                    'push_notifications' => true,
+                    'document_updates' => true,
+                    'friend_requests' => true,
+                    'discussion_replies' => true
+                ]),
+                'privacy_settings' => json_encode([
+                    'profile_visibility' => 'public',
+                    'document_visibility' => 'private',
+                    'show_email' => false,
+                    'show_phone' => false
+                ]),
+                'document_settings' => json_encode([
+                    'default_visibility' => 'private',
+                    'auto_categorize' => true,
+                    'thumbnail_generation' => true
+                ]),
+                'ui_settings' => json_encode([
+                    'compact_view' => false,
+                    'show_animations' => true,
+                    'font_size' => 'medium'
+                ]),
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        }
+
         // Create categories
         $categories = [
             ['name' => 'Artificial Intelligence', 'color' => '#3B82F6', 'icon' => 'fas fa-robot'],
@@ -132,20 +168,21 @@ class DatabaseSeeder extends Seeder
 
         // Add documents to collections - FIXED: Use unique documents for each collection
         $usedDocumentPairs = []; // Track used (collection_id, document_id) pairs
-        
+
         foreach ($collectionIds as $collectionId) {
             $docCount = rand(2, 5);
-            $availableDocs = array_values(array_diff($documentIds, 
-                array_keys(array_filter($usedDocumentPairs, function($docId) use ($collectionId) {
+            $availableDocs = array_values(array_diff(
+                $documentIds,
+                array_keys(array_filter($usedDocumentPairs, function ($docId) use ($collectionId) {
                     return $docId === $collectionId;
                 }, ARRAY_FILTER_USE_KEY))
             ));
-            
+
             $selectedDocs = [];
             if (count($availableDocs) > 0) {
                 shuffle($availableDocs);
                 $selectedDocs = array_slice($availableDocs, 0, min($docCount, count($availableDocs)));
-                
+
                 foreach ($selectedDocs as $docId) {
                     // Check if this pair already exists
                     $pairKey = "{$collectionId}-{$docId}";

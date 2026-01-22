@@ -1180,6 +1180,589 @@ class AuthService {
             throw error;
         }
     }
+
+    // Profile methods
+    async getProfile() {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch profile');
+            }
+
+            const data = await response.json();
+            if (data.data) {
+                this.user = data.data;
+                localStorage.setItem('academvault_user', JSON.stringify(data.data));
+            }
+            return data;
+        } catch (error) {
+            console.error('Error fetching profile:', error);
+            throw error;
+        }
+    }
+
+    async updateProfile(profileData) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const formData = new FormData();
+
+            // Append text fields
+            Object.keys(profileData).forEach(key => {
+                if (key !== 'profile_image' && profileData[key] !== undefined) {
+                    formData.append(key, profileData[key]);
+                }
+            });
+
+            // Append file if exists
+            if (profileData.profile_image instanceof File) {
+                formData.append('profile_image', profileData.profile_image);
+            }
+
+            const response = await fetch(`${API_URL}/profile/update`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update profile');
+            }
+
+            const data = await response.json();
+            if (data.data) {
+                this.user = { ...this.user, ...data.data };
+                localStorage.setItem('academvault_user', JSON.stringify(this.user));
+            }
+            return data;
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            throw error;
+        }
+    }
+
+    async changePassword(passwordData) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/change-password`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(passwordData)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to change password');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error changing password:', error);
+            throw error;
+        }
+    }
+
+    async getActivityHistory(params = {}) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const queryString = new URLSearchParams(params).toString();
+            const endpoint = `/profile/activity${queryString ? `?${queryString}` : ''}`;
+
+            return await this.makeRequest(endpoint);
+        } catch (error) {
+            console.error('Error fetching activity history:', error);
+            throw error;
+        }
+    }
+
+    async getPreferences() {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/preferences`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch preferences');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching preferences:', error);
+            throw error;
+        }
+    }
+
+    async updatePreferences(preferences) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/preferences`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(preferences)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update preferences');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error updating preferences:', error);
+            throw error;
+        }
+    }
+
+    async deleteAccount(confirmation) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/account`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ confirmation })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to delete account');
+            }
+
+            // Clear auth data after successful deletion
+            this.clearAuthData();
+            return await response.json();
+        } catch (error) {
+            console.error('Error deleting account:', error);
+            throw error;
+        }
+    }
+
+
+    // Profile methods
+    async getProfile() {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch profile');
+            }
+
+            const data = await response.json();
+            if (data.data) {
+                this.user = data.data;
+                localStorage.setItem('academvault_user', JSON.stringify(data.data));
+            }
+            return data;
+        } catch (error) {
+            console.error('Error fetching profile:', error);
+            throw error;
+        }
+    }
+
+    async updateProfile(profileData) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const formData = new FormData();
+
+            // Append text fields
+            Object.keys(profileData).forEach(key => {
+                if (key !== 'profile_image' && profileData[key] !== undefined) {
+                    formData.append(key, profileData[key]);
+                }
+            });
+
+            // Append file if exists
+            if (profileData.profile_image instanceof File) {
+                formData.append('profile_image', profileData.profile_image);
+            }
+
+            const response = await fetch(`${API_URL}/profile/update`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update profile');
+            }
+
+            const data = await response.json();
+            if (data.data) {
+                this.user = { ...this.user, ...data.data };
+                localStorage.setItem('academvault_user', JSON.stringify(this.user));
+            }
+            return data;
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            throw error;
+        }
+    }
+
+    async changePassword(passwordData) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/change-password`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(passwordData)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to change password');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error changing password:', error);
+            throw error;
+        }
+    }
+
+    async getActivityHistory(params = {}) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const queryString = new URLSearchParams(params).toString();
+            const endpoint = `/profile/activity${queryString ? `?${queryString}` : ''}`;
+
+            return await this.makeRequest(endpoint);
+        } catch (error) {
+            console.error('Error fetching activity history:', error);
+            throw error;
+        }
+    }
+
+    async getPreferences() {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/preferences`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch preferences');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching preferences:', error);
+            throw error;
+        }
+    }
+
+    async updatePreferences(preferences) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/preferences`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(preferences)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update preferences');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error updating preferences:', error);
+            throw error;
+        }
+    }
+
+    async deleteAccount(confirmation) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/account`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ confirmation })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to delete account');
+            }
+
+            // Clear auth data after successful deletion
+            this.clearAuthData();
+            return await response.json();
+        } catch (error) {
+            console.error('Error deleting account:', error);
+            throw error;
+        }
+    }
+
+    // Profile methods
+    async getProfile() {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch profile');
+            }
+
+            const data = await response.json();
+            if (data.data) {
+                this.user = data.data;
+                localStorage.setItem('academvault_user', JSON.stringify(data.data));
+            }
+            return data;
+        } catch (error) {
+            console.error('Error fetching profile:', error);
+            throw error;
+        }
+    }
+
+    async updateProfile(profileData) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const formData = new FormData();
+
+            // Append text fields
+            Object.keys(profileData).forEach(key => {
+                if (key !== 'profile_image' && profileData[key] !== undefined) {
+                    formData.append(key, profileData[key]);
+                }
+            });
+
+            // Append file if exists
+            if (profileData.profile_image instanceof File) {
+                formData.append('profile_image', profileData.profile_image);
+            }
+
+            const response = await fetch(`${API_URL}/profile/update`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update profile');
+            }
+
+            const data = await response.json();
+            if (data.data) {
+                this.user = { ...this.user, ...data.data };
+                localStorage.setItem('academvault_user', JSON.stringify(this.user));
+            }
+            return data;
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            throw error;
+        }
+    }
+
+    async changePassword(passwordData) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/change-password`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(passwordData)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to change password');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error changing password:', error);
+            throw error;
+        }
+    }
+
+    async getActivityHistory(params = {}) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const queryString = new URLSearchParams(params).toString();
+            const endpoint = `/profile/activity${queryString ? `?${queryString}` : ''}`;
+
+            return await this.makeRequest(endpoint);
+        } catch (error) {
+            console.error('Error fetching activity history:', error);
+            throw error;
+        }
+    }
+
+    async getPreferences() {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/preferences`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch preferences');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching preferences:', error);
+            throw error;
+        }
+    }
+
+    async updatePreferences(preferences) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/preferences`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(preferences)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update preferences');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error updating preferences:', error);
+            throw error;
+        }
+    }
+
+    async deleteAccount(confirmation) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/account`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ confirmation })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to delete account');
+            }
+
+            // Clear auth data after successful deletion
+            this.clearAuthData();
+            return await response.json();
+        } catch (error) {
+            console.error('Error deleting account:', error);
+            throw error;
+        }
+    }
 }
 
 // Export singleton instance
