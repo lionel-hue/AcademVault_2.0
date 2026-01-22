@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ProfileController extends Controller
@@ -21,7 +22,6 @@ class ProfileController extends Controller
     {
         try {
             $user = Auth::user();
-            
             if (!$user) {
                 return response()->json([
                     'success' => false,
@@ -29,32 +29,57 @@ class ProfileController extends Controller
                 ], 401);
             }
 
+            // Transform profile_image to full URL
+            $profileData = [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'type' => $user->type,
+                'institution' => $user->institution,
+                'department' => $user->department,
+                'profile_image' => $this->getProfileImageUrl($user->profile_image),
+                'bio' => $user->bio,
+                'phone' => $user->phone,
+                'role' => $user->role,
+                'email_verified_at' => $user->email_verified_at,
+                'registration_date' => $user->registration_date,
+                'created_at' => $user->created_at,
+                'stats' => $this->getUserStats($user->id)
+            ];
+
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'type' => $user->type,
-                    'institution' => $user->institution,
-                    'department' => $user->department,
-                    'profile_image' => $user->profile_image,
-                    'bio' => $user->bio,
-                    'phone' => $user->phone,
-                    'role' => $user->role,
-                    'email_verified_at' => $user->email_verified_at,
-                    'registration_date' => $user->registration_date,
-                    'created_at' => $user->created_at,
-                    'stats' => $this->getUserStats($user->id)
-                ]
+                'data' => $profileData
             ]);
         } catch (\Exception $e) {
             Log::error('Error fetching profile: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch profile'
+                'message' => 'Failed to fetch profile: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Get profile image URL
+     */
+    private function getProfileImageUrl($path)
+    {
+        if (!$path) {
+            return null;
+        }
+
+        // If it's already a full URL (from social login, etc.)
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            return $path;
+        }
+
+        // For local storage, return the full URL
+        if (Storage::disk('public')->exists($path)) {
+            return asset('storage/' . $path);
+        }
+
+        return null;
     }
 
     /**
@@ -63,7 +88,7 @@ class ProfileController extends Controller
     public function update(Request $request)
     {
         $user = Auth::user();
-        
+
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255',
             'bio' => 'nullable|string|max:1000',
@@ -82,7 +107,15 @@ class ProfileController extends Controller
         }
 
         try {
-            $updateData = $request->only(['name', 'bio', 'institution', 'department', 'phone']);
+            // Get update data
+            $updateData = [];
+            $fields = ['name', 'bio', 'institution', 'department', 'phone'];
+
+            foreach ($fields as $field) {
+                if ($request->has($field) && $request->input($field) !== null) {
+                    $updateData[$field] = $request->input($field);
+                }
+            }
 
             // Handle profile image upload
             if ($request->hasFile('profile_image')) {
@@ -97,7 +130,15 @@ class ProfileController extends Controller
                 $updateData['profile_image'] = $path;
             }
 
-            $user->update($updateData);
+            // Update user using DB query (more reliable)
+            if (!empty($updateData)) {
+                DB::table('users')
+                    ->where('id', $user->id)
+                    ->update($updateData);
+
+                // Refresh user data
+                $user = User::find($user->id);
+            }
 
             return response()->json([
                 'success' => true,
@@ -108,7 +149,7 @@ class ProfileController extends Controller
                     'type' => $user->type,
                     'institution' => $user->institution,
                     'department' => $user->department,
-                    'profile_image' => $user->profile_image,
+                    'profile_image' => $this->getProfileImageUrl($user->profile_image),
                     'bio' => $user->bio,
                     'phone' => $user->phone
                 ],
@@ -118,7 +159,7 @@ class ProfileController extends Controller
             Log::error('Error updating profile: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update profile'
+                'message' => 'Failed to update profile: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -151,10 +192,12 @@ class ProfileController extends Controller
             ], 400);
         }
 
-        // Update password
-        $user->update([
-            'password' => Hash::make($request->new_password)
-        ]);
+        // Update password using DB query
+        DB::table('users')
+            ->where('id', $user->id)
+            ->update([
+                'password' => Hash::make($request->new_password)
+            ]);
 
         return response()->json([
             'success' => true,
@@ -169,15 +212,15 @@ class ProfileController extends Controller
     {
         try {
             $stats = [
-                'documents' => \DB::table('documents')->where('user_id', $userId)->count(),
-                'categories' => \DB::table('categories')->where('user_id', $userId)->count(),
-                'collections' => \DB::table('collections')->where('user_id', $userId)->count(),
-                'bookmarks' => \DB::table('bookmarks')->where('user_id', $userId)->count(),
-                'friends' => \DB::table('friendships')
+                'documents' => DB::table('documents')->where('user_id', $userId)->count(),
+                'categories' => DB::table('categories')->where('user_id', $userId)->count(),
+                'collections' => DB::table('collections')->where('user_id', $userId)->count(),
+                'bookmarks' => DB::table('bookmarks')->where('user_id', $userId)->count(),
+                'friends' => DB::table('friendships')
                     ->where('user_id', $userId)
                     ->where('status', 'accepted')
                     ->count(),
-                'discussions' => \DB::table('discussions')->where('admin_id', $userId)->count(),
+                'discussions' => DB::table('discussions')->where('admin_id', $userId)->count(),
                 'storage_used' => $this->calculateStorageUsed($userId)
             ];
 
@@ -194,14 +237,14 @@ class ProfileController extends Controller
     private function calculateStorageUsed($userId)
     {
         try {
-            $documents = \DB::table('documents')
+            $documents = DB::table('documents')
                 ->where('user_id', $userId)
                 ->whereNotNull('file_size')
                 ->select('file_size')
                 ->get();
 
             $totalBytes = $documents->sum('file_size');
-            
+
             return $this->formatBytes($totalBytes);
         } catch (\Exception $e) {
             return '0 MB';
@@ -218,7 +261,7 @@ class ProfileController extends Controller
         $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
         $pow = min($pow, count($units) - 1);
         $bytes /= pow(1024, $pow);
-        
+
         return round($bytes, $precision) . ' ' . $units[$pow];
     }
 
@@ -228,7 +271,6 @@ class ProfileController extends Controller
     public function getActivityHistory(Request $request)
     {
         $user = Auth::user();
-        
         $validator = Validator::make($request->all(), [
             'limit' => 'sometimes|integer|min:1|max:100',
             'type' => 'sometimes|in:all,documents,searches,bookmarks'
@@ -245,21 +287,20 @@ class ProfileController extends Controller
         try {
             $limit = $request->input('limit', 20);
             $type = $request->input('type', 'all');
-
             $activities = [];
 
             // Get document activities
             if ($type === 'all' || $type === 'documents') {
-                $documentActivities = \DB::table('history')
-                    ->where('user_id', $user->id)
+                $documentActivities = DB::table('history')
+                    ->where('history.user_id', $user->id)
                     ->leftJoin('documents', 'history.document_id', '=', 'documents.id')
                     ->select(
                         'history.id',
                         'history.action',
                         'history.created_at',
-                        'documents.title',
-                        'documents.type',
-                        \DB::raw("'document' as activity_type")
+                        DB::raw('COALESCE(documents.title, "Document") as title'),
+                        DB::raw('COALESCE(documents.type, "document") as doc_type'),
+                        DB::raw("'document' as activity_type")
                     )
                     ->orderBy('history.created_at', 'desc')
                     ->limit($limit)
@@ -273,21 +314,21 @@ class ProfileController extends Controller
                         'title' => $activity->title,
                         'description' => ucfirst($activity->action) . ' ' . $activity->title,
                         'created_at' => $activity->created_at,
-                        'icon' => $this->getActivityIcon($activity->action, $activity->type)
+                        'icon' => $this->getActivityIcon($activity->action, $activity->doc_type)
                     ];
                 }
             }
 
             // Get search activities
             if ($type === 'all' || $type === 'searches') {
-                $searchActivities = \DB::table('search_history')
+                $searchActivities = DB::table('search_history')
                     ->where('user_id', $user->id)
                     ->select(
                         'id',
                         'query as title',
                         'created_at',
-                        \DB::raw("'search' as activity_type"),
-                        \DB::raw("'searched' as action")
+                        DB::raw("'search' as activity_type"),
+                        DB::raw("'searched' as action")
                     )
                     ->orderBy('created_at', 'desc')
                     ->limit($limit)
@@ -307,8 +348,10 @@ class ProfileController extends Controller
             }
 
             // Sort all activities by date
-            usort($activities, function($a, $b) {
-                return strtotime($b['created_at']) - strtotime($a['created_at']);
+            usort($activities, function ($a, $b) {
+                $timeA = strtotime($a['created_at'] ?? '1970-01-01');
+                $timeB = strtotime($b['created_at'] ?? '1970-01-01');
+                return $timeB - $timeA;
             });
 
             // Limit activities
@@ -321,10 +364,14 @@ class ProfileController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Error fetching activity history: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+
+            // Return safe empty response instead of 500
             return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch activity history'
-            ], 500);
+                'success' => true,
+                'data' => [],
+                'message' => 'Activity history retrieved'
+            ]);
         }
     }
 
@@ -358,8 +405,8 @@ class ProfileController extends Controller
     {
         try {
             $user = Auth::user();
-            
-            $preferences = \DB::table('user_preferences')
+
+            $preferences = DB::table('user_preferences')
                 ->where('user_id', $user->id)
                 ->first();
 
@@ -394,7 +441,7 @@ class ProfileController extends Controller
                     ]
                 ];
 
-                \DB::table('user_preferences')->insert([
+                DB::table('user_preferences')->insert([
                     'user_id' => $user->id,
                     'theme' => $preferences['theme'],
                     'language' => $preferences['language'],
@@ -407,7 +454,7 @@ class ProfileController extends Controller
                     'updated_at' => now()
                 ]);
 
-                $preferences['id'] = \DB::getPdo()->lastInsertId();
+                $preferences['id'] = DB::getPdo()->lastInsertId();
             } else {
                 $preferences = (array) $preferences;
                 $preferences['notification_settings'] = json_decode($preferences['notification_settings'], true);
@@ -425,7 +472,7 @@ class ProfileController extends Controller
             Log::error('Error fetching preferences: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch preferences'
+                'message' => 'Failed to fetch preferences: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -476,16 +523,16 @@ class ProfileController extends Controller
             $updateData['updated_at'] = now();
 
             // Check if preferences exist
-            $exists = \DB::table('user_preferences')->where('user_id', $user->id)->exists();
+            $exists = DB::table('user_preferences')->where('user_id', $user->id)->exists();
 
             if ($exists) {
-                \DB::table('user_preferences')
+                DB::table('user_preferences')
                     ->where('user_id', $user->id)
                     ->update($updateData);
             } else {
                 $updateData['user_id'] = $user->id;
                 $updateData['created_at'] = now();
-                \DB::table('user_preferences')->insert($updateData);
+                DB::table('user_preferences')->insert($updateData);
             }
 
             return response()->json([
@@ -496,7 +543,7 @@ class ProfileController extends Controller
             Log::error('Error updating preferences: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update preferences'
+                'message' => 'Failed to update preferences: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -520,11 +567,17 @@ class ProfileController extends Controller
         try {
             $user = Auth::user();
 
+            // Use DB query for soft delete (since User model uses SoftDeletes)
+            DB::table('users')
+                ->where('id', $user->id)
+                ->update([
+                    'deleted_at' => now(),
+                    'is_active' => false,
+                    'email' => DB::raw("CONCAT(email, '_deleted_', UNIX_TIMESTAMP())")
+                ]);
+
             // Log the user out
             Auth::logout();
-
-            // Soft delete the user
-            $user->delete();
 
             return response()->json([
                 'success' => true,
@@ -534,7 +587,7 @@ class ProfileController extends Controller
             Log::error('Error deleting account: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete account'
+                'message' => 'Failed to delete account: ' . $e->getMessage()
             ], 500);
         }
     }

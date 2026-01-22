@@ -11,14 +11,14 @@ export default function ProfilePage() {
     const router = useRouter();
     const { alert, confirm, prompt } = useModal();
     const isMobile = useIsMobile();
-    
+
     const [activeTab, setActiveTab] = useState('profile');
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState(null);
     const [activities, setActivities] = useState([]);
     const [preferences, setPreferences] = useState(null);
     const [stats, setStats] = useState(null);
-    
+
     // Form states
     const [editMode, setEditMode] = useState(false);
     const [formData, setFormData] = useState({
@@ -34,7 +34,7 @@ export default function ProfilePage() {
         new_password: '',
         new_password_confirmation: ''
     });
-    
+
     const [uploadingImage, setUploadingImage] = useState(false);
     const [changingPassword, setChangingPassword] = useState(false);
 
@@ -130,7 +130,7 @@ export default function ProfilePage() {
         try {
             setUploadingImage(true);
             const response = await AuthService.updateProfile(formData);
-            
+
             if (response.success) {
                 await alert({
                     title: 'Success',
@@ -156,7 +156,7 @@ export default function ProfilePage() {
         try {
             setChangingPassword(true);
             const response = await AuthService.changePassword(passwordData);
-            
+
             if (response.success) {
                 await alert({
                     title: 'Success',
@@ -184,7 +184,7 @@ export default function ProfilePage() {
     const handleUpdatePreferences = async () => {
         try {
             const response = await AuthService.updatePreferences(preferences);
-            
+
             if (response.success) {
                 await alert({
                     title: 'Success',
@@ -223,7 +223,7 @@ export default function ProfilePage() {
         if (confirmationText === 'DELETE MY ACCOUNT') {
             try {
                 const response = await AuthService.deleteAccount(confirmationText);
-                
+
                 if (response.success) {
                     await alert({
                         title: 'Account Deleted',
@@ -255,11 +255,27 @@ export default function ProfilePage() {
         });
     };
 
+    // Update the getProfileImageUrl function:
     const getProfileImageUrl = () => {
         if (formData.profile_image instanceof File) {
             return URL.createObjectURL(formData.profile_image);
         }
-        return profile?.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || 'User')}&background=3b82f6&color=fff`;
+
+        // Check if it's already a full URL
+        if (profile?.profile_image && (
+            profile.profile_image.startsWith('http://') ||
+            profile.profile_image.startsWith('https://') ||
+            profile.profile_image.startsWith('storage/')
+        )) {
+            // If it's a relative path starting with storage/, prepend the base URL
+            if (profile.profile_image.startsWith('storage/')) {
+                return `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/${profile.profile_image}`;
+            }
+            return profile.profile_image;
+        }
+
+        // Fallback to avatar
+        return `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || 'User')}&background=3b82f6&color=fff`;
     };
 
     if (loading) {
