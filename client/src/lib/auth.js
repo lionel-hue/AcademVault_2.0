@@ -929,81 +929,72 @@ class AuthService {
     // Replace the saveSearchResultToDocuments method with this improved version:
 
     async saveSearchResultToDocuments(data) {
+        console.log('🔄 saveSearchResultToDocuments called with:', data);
+
+        // Helper function to extract domain
+        const extractDomain = (url) => {
+            if (!url) return 'unknown.com';
+            try {
+                const domain = new URL(url).hostname.replace('www.', '');
+                return domain || 'unknown.com';
+            } catch {
+                return 'unknown.com';
+            }
+        };
+
+        // Format the data for the save-from-search endpoint
+        const formattedData = {
+            type: data.type, // This should be 'video', 'pdf', or 'article'
+            data: {
+                title: data.data?.title || `Untitled ${data.type}`,
+                description: data.data?.description || data.data?.snippet || '',
+                url: data.data?.url || data.data?.pdf_url || '',
+                // Type-specific fields
+                ...(data.type === 'video' && {
+                    channel: data.data?.channel || 'Unknown Channel',
+                    duration: data.data?.duration,
+                    thumbnail: data.data?.thumbnail,
+                    views: data.data?.views,
+                    published_at: data.data?.published_at,
+                }),
+                ...(data.type === 'pdf' && {
+                    authors: data.data?.authors || [data.data?.author || 'Unknown'],
+                    pdf_url: data.data?.pdf_url || data.data?.url,
+                    published_at: data.data?.published_at,
+                    page_count: data.data?.page_count,
+                    citation_count: data.data?.citation_count,
+                }),
+                ...(data.type === 'article' && {
+                    domain: data.data?.domain || extractDomain(data.data?.url),
+                    snippet: data.data?.snippet || data.data?.description || '',
+                    published_at: data.data?.published_at,
+                    reading_time: data.data?.reading_time,
+                }),
+            }
+        };
+
+        console.log('📤 Sending formatted data:', formattedData);
+
         try {
-            const token = this.getToken();
-            if (!token) throw new Error('No authentication token');
-
-            // Validate required fields
-            if (!data.type || !data.data) {
-                throw new Error('Missing required fields: type and data');
-            }
-
-            // Ensure data has required structure
-            const payload = {
-                type: data.type,
-                data: {
-                    title: data.data.title || 'Untitled Document',
-                    description: data.data.description || data.data.snippet || '',
-                    url: data.data.url || data.data.pdf_url || '',
-                    author: data.data.author || data.data.channel || 'Unknown',
-                    thumbnail: data.data.thumbnail || null,
-                    // Add any additional fields from data
-                    ...data.data
-                }
-            };
-
-            // Add categories if provided
-            if (data.categories && Array.isArray(data.categories)) {
-                payload.categories = data.categories;
-            }
-
-            console.log('📤 Sending save request:', {
-                type: payload.type,
-                title: payload.data.title,
-                hasUrl: !!payload.data.url
-            });
-
-            const response = await fetch(`${API_URL}/documents/save-from-search`, {
+            const response = await this.makeRequest('/documents/save-from-search', {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(formattedData)
             });
-
-            // Log response for debugging
-            const responseText = await response.text();
-            console.log('📥 Response status:', response.status);
-            console.log('📥 Response body:', responseText.substring(0, 200) + '...');
-
-            if (!response.ok) {
-                let errorData;
-                try {
-                    errorData = JSON.parse(responseText);
-                } catch (e) {
-                    errorData = { message: responseText || 'Unknown error' };
-                }
-
-                // Handle validation errors specifically
-                if (response.status === 422 && errorData.errors) {
-                    const validationErrors = Object.entries(errorData.errors)
-                        .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
-                        .join('\n');
-                    throw new Error(`Validation failed:\n${validationErrors}`);
-                }
-
-                throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const result = JSON.parse(responseText);
-            console.log('✅ Document saved successfully:', result.data?.id);
-            return result;
-
+            console.log('✅ Response:', response);
+            return response;
         } catch (error) {
-            console.error('💥 Error saving search result to documents:', error);
+            console.error('❌ Error in saveSearchResultToDocuments:', error);
             throw error;
+        }
+    }
+
+    extractDomain(url) {
+        if (!url) return 'unknown.com';
+        try {
+            const domain = new URL(url).hostname.replace('www.', '');
+            return domain || 'unknown.com';
+        } catch {
+            return 'unknown.com';
         }
     }
 
@@ -1124,40 +1115,7 @@ class AuthService {
         }
     }
 
-    async saveSearchResultToDocuments(data) {
-        try {
-            console.log('Saving search result to documents:', data);
 
-            // Format the data based on type
-            const documentData = {
-                title: data.data?.title || 'Untitled',
-                type: data.type,
-                description: data.data?.description || data.data?.snippet || '',
-                author: data.data?.author || data.data?.channel || 'Unknown',
-                url: data.data?.url || data.data?.pdf_url || '',
-                thumbnail: data.data?.thumbnail || null,
-                is_public: true,
-                source_metadata: {
-                    source: data.data?.source || data.type,
-                    saved_at: new Date().toISOString(),
-                    original_id: data.data?.id || null
-                }
-            };
-
-            // Add type-specific fields
-            if (data.type === 'video') {
-                documentData.duration = data.data?.duration;
-            } else if (data.type === 'pdf') {
-                documentData.author = data.data?.authors?.join(', ') || 'Unknown';
-                documentData.publication_year = new Date(data.data?.published_at).getFullYear();
-            }
-
-            return await this.createDocument(documentData);
-        } catch (error) {
-            console.error('Error saving search result:', error);
-            throw error;
-        }
-    }
 
     async getDocument(id) {
         try {
