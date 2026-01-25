@@ -18,7 +18,7 @@ export default function DocumentsPage() {
   const [stats, setStats] = useState(null);
   const [categories, setCategories] = useState([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
-  
+
   // Filtres
   const [filters, setFilters] = useState({
     type: 'all',
@@ -26,7 +26,7 @@ export default function DocumentsPage() {
     sort: 'newest',
     search: '',
   });
-  
+
   // Tabs pour mobile
   const documentTabs = [
     { id: 'all', label: 'All', icon: 'fas fa-layer-group', color: 'bg-gray-800' },
@@ -143,80 +143,60 @@ export default function DocumentsPage() {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-6 md:py-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8">
-          <div className="mb-4 md:mb-0">
-            <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">My Documents</h1>
-            <p className="text-gray-400 text-sm md:text-base">
+      <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl p-4 hover:border-gray-700 hover:shadow-xl transition-all duration-300 w-full max-w-full overflow-hidden">
+        {/* Header - Mobile Optimized */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6 gap-3 md:gap-4">
+          <div className="mb-2 md:mb-0">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1">
+              My Documents
+            </h1>
+            <p className="text-gray-400 text-xs sm:text-sm md:text-base">
               Manage your research library ({stats?.total || 0} documents)
             </p>
           </div>
-          <div className="flex gap-2 md:gap-3">
+          
+          <div className="flex gap-2 w-full md:w-auto">
             <button
               onClick={() => setShowUploadModal(true)}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg md:rounded-xl font-medium flex items-center gap-2"
+              className="flex-1 md:flex-none bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-3 md:px-4 lg:px-6 py-2 md:py-3 rounded-lg font-medium flex items-center justify-center gap-2 text-sm"
             >
-              <i className="fas fa-plus text-sm md:text-base"></i>
-              <span className="hidden sm:inline">Add Document</span>
+              <i className="fas fa-plus"></i>
+              <span>Add Document</span>
             </button>
             <button
               onClick={() => router.push('/categories')}
-              className="bg-gray-800 hover:bg-gray-700 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg md:rounded-xl font-medium flex items-center gap-2"
+              className="flex-1 md:flex-none bg-gray-800 hover:bg-gray-700 text-white px-3 md:px-4 lg:px-6 py-2 md:py-3 rounded-lg font-medium flex items-center justify-center gap-2 text-sm"
             >
-              <i className="fas fa-folder text-sm md:text-base"></i>
-              <span className="hidden sm:inline">Categories</span>
+              <i className="fas fa-folder"></i>
+              <span>Categories</span>
             </button>
           </div>
         </div>
 
         {/* Stats Cards - Mobile Optimized */}
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-6 md:mb-8">
-            <div className="bg-gray-900/50 backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-4 border border-gray-800">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-xs md:text-sm">Total</p>
-                  <p className="text-white text-lg md:text-xl font-bold">{stats.total || 0}</p>
-                </div>
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                  <i className="fas fa-file text-blue-400 text-sm md:text-base"></i>
-                </div>
-              </div>
-            </div>
-            <div className="bg-gray-900/50 backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-4 border border-gray-800">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-xs md:text-sm">PDFs</p>
-                  <p className="text-white text-lg md:text-xl font-bold">{stats.by_type?.pdf || 0}</p>
-                </div>
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
-                  <i className="fas fa-file-pdf text-red-400 text-sm md:text-base"></i>
-                </div>
-              </div>
-            </div>
-            <div className="bg-gray-900/50 backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-4 border border-gray-800">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-xs md:text-sm">Videos</p>
-                  <p className="text-white text-lg md:text-xl font-bold">{stats.by_type?.video || 0}</p>
-                </div>
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                  <i className="fas fa-video text-blue-400 text-sm md:text-base"></i>
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-4 md:mb-6">
+            {[
+              { title: 'Total', value: stats.total || 0, icon: 'fas fa-file', color: 'from-blue-500 to-cyan-500' },
+              { title: 'PDFs', value: stats.by_type?.pdf || 0, icon: 'fas fa-file-pdf', color: 'from-red-500 to-pink-500' },
+              { title: 'Videos', value: stats.by_type?.video || 0, icon: 'fas fa-video', color: 'from-blue-500 to-indigo-500' },
+              { title: 'Storage', value: stats.storage_used || '0 MB', icon: 'fas fa-database', color: 'from-green-500 to-emerald-500' },
+            ].map((stat, index) => (
+              <div
+                key={index}
+                className="bg-gray-900/50 backdrop-blur-sm rounded-lg md:rounded-xl p-3 border border-gray-800"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-xs md:text-sm">{stat.title}</p>
+                    <p className="text-white text-lg md:text-xl font-bold">{stat.value}</p>
+                  </div>
+                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
+                    <i className={`${stat.icon} text-white text-sm md:text-base`}></i>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="bg-gray-900/50 backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-4 border border-gray-800">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-xs md:text-sm">Storage</p>
-                  <p className="text-white text-lg md:text-xl font-bold">{stats.storage_used || '0 MB'}</p>
-                </div>
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
-                  <i className="fas fa-database text-green-400 text-sm md:text-base"></i>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         )}
 
@@ -231,32 +211,36 @@ export default function DocumentsPage() {
           </div>
         )}
 
-        {/* Filters */}
-        <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl md:rounded-2xl p-4 md:p-6 border border-gray-800 mb-6 md:mb-8">
-          <form onSubmit={handleSearch} className="space-y-4 md:space-y-0 md:flex md:items-end md:gap-4">
+        {/* Filters - Mobile Optimized */}
+        <div className="bg-gray-900/50 backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-4 border border-gray-800 mb-4 md:mb-6">
+          <form onSubmit={handleSearch} className="space-y-3 md:space-y-0 md:flex md:items-end md:gap-3">
             {/* Search */}
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-300 mb-2">Search</label>
+            <div className="flex-1 min-w-0">
+              <label className="block text-xs md:text-sm font-medium text-gray-300 mb-1 md:mb-2">
+                Search
+              </label>
               <div className="relative">
-                <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs md:text-sm"></i>
                 <input
                   type="text"
                   value={filters.search}
                   onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                   placeholder="Search documents..."
-                  className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                  className="w-full pl-9 pr-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 text-sm"
                 />
               </div>
             </div>
 
             {/* Type Filter (Desktop) */}
             {!isMobile && (
-              <div className="md:w-48">
-                <label className="block text-sm font-medium text-gray-300 mb-2">Type</label>
+              <div className="md:w-40 lg:w-48">
+                <label className="block text-xs md:text-sm font-medium text-gray-300 mb-1 md:mb-2">
+                  Type
+                </label>
                 <select
                   value={filters.type}
                   onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-                  className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                  className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 text-sm"
                 >
                   <option value="all">All Types</option>
                   <option value="pdf">PDF</option>
@@ -270,12 +254,14 @@ export default function DocumentsPage() {
             )}
 
             {/* Category Filter */}
-            <div className="md:w-48">
-              <label className="block text-sm font-medium text-gray-300 mb-2">Category</label>
+            <div className="md:w-40 lg:w-48">
+              <label className="block text-xs md:text-sm font-medium text-gray-300 mb-1 md:mb-2">
+                Category
+              </label>
               <select
                 value={filters.category}
                 onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 text-sm"
               >
                 <option value="all">All Categories</option>
                 {categories.map((cat) => (
@@ -287,12 +273,14 @@ export default function DocumentsPage() {
             </div>
 
             {/* Sort */}
-            <div className="md:w-48">
-              <label className="block text-sm font-medium text-gray-300 mb-2">Sort by</label>
+            <div className="md:w-40 lg:w-48">
+              <label className="block text-xs md:text-sm font-medium text-gray-300 mb-1 md:mb-2">
+                Sort by
+              </label>
               <select
                 value={filters.sort}
                 onChange={(e) => setFilters({ ...filters, sort: e.target.value })}
-                className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 text-sm"
               >
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
@@ -302,17 +290,17 @@ export default function DocumentsPage() {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-2 md:flex-col md:gap-1">
+            <div className="flex gap-2 md:flex-col md:gap-2">
               <button
                 type="submit"
-                className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium"
+                className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white px-3 md:px-4 py-2 rounded-lg font-medium text-sm"
               >
                 Search
               </button>
               <button
                 type="button"
                 onClick={clearFilters}
-                className="flex-1 md:flex-none bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium"
+                className="flex-1 md:flex-none bg-gray-800 hover:bg-gray-700 text-white px-3 md:px-4 py-2 rounded-lg font-medium text-sm"
               >
                 Clear
               </button>
@@ -320,36 +308,40 @@ export default function DocumentsPage() {
           </form>
         </div>
 
-        {/* Documents Grid */}
+        {/* Documents Grid - FIXED FOR MOBILE */}
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="flex justify-center py-8 md:py-12">
+            <div className="w-10 h-10 md:w-12 md:h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : documents.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6 w-full">
             {documents.map((document) => (
-              <DocumentCard
-                key={document.id}
-                document={document}
-                onDelete={() => handleDeleteDocument(document.id)}
-                onView={() => router.push(`/documents/${document.id}`)}
-              />
+              <div key={document.id} className="min-w-0 w-full">
+                <DocumentCard
+                  key={document.id}
+                  document={document}
+                  onDelete={() => handleDeleteDocument(document.id)}
+                  onView={() => router.push(`/documents/${document.id}`)}
+                />
+              </div>
             ))}
           </div>
         ) : (
-          <div className="text-center py-12 bg-gray-900/30 rounded-2xl border border-gray-800">
-            <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-              <i className="fas fa-file text-gray-600 text-2xl"></i>
+          <div className="text-center py-8 md:py-12 bg-gray-900/30 rounded-lg md:rounded-xl border border-gray-800">
+            <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+              <i className="fas fa-file text-gray-600 text-xl md:text-2xl"></i>
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">No Documents Yet</h3>
-            <p className="text-gray-400 mb-6">
+            <h3 className="text-lg md:text-xl font-bold text-white mb-2">
+              No Documents Yet
+            </h3>
+            <p className="text-gray-400 text-sm md:text-base mb-4 md:mb-6">
               {filters.search || filters.type !== 'all' || filters.category !== 'all'
                 ? 'No documents match your filters'
                 : 'Start building your research library'}
             </p>
             <button
               onClick={() => setShowUploadModal(true)}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-semibold"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold text-sm md:text-base"
             >
               <i className="fas fa-plus mr-2"></i>
               Add Your First Document
