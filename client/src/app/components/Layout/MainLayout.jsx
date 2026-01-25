@@ -13,7 +13,8 @@ export default function MainLayout({ children }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchType, setSearchType] = useState('all'); // Add search type state
+  const [searchType, setSearchType] = useState('all');
+  
   const userDropdownRef = useRef(null);
   const notificationsRef = useRef(null);
 
@@ -52,7 +53,7 @@ export default function MainLayout({ children }) {
         setNotificationsOpen(false);
       }
     };
-
+    
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [router]);
@@ -129,17 +130,14 @@ export default function MainLayout({ children }) {
       .substring(0, 2);
   };
 
-  // Get profile image URL - handles both uploaded images and social login images
+  // Get profile image URL
   const getProfileImageUrl = (profileImage) => {
     if (profileImage) {
-      // If it's a full URL (from social login)
       if (profileImage.startsWith('http://') || profileImage.startsWith('https://')) {
         return profileImage;
       }
-      // If it's a relative path from our server
       return `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/storage/${profileImage}`;
     }
-    // Fallback to avatar based on name
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=3b82f6&color=fff&size=128`;
   };
 
@@ -149,7 +147,7 @@ export default function MainLayout({ children }) {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-gray-900/95 backdrop-blur-xl border-b border-gray-800">
-        <div className="container mx-auto px-4">
+        <div className="w-full px-4">
           <div className="flex items-center justify-between h-16">
             {/* Left: Logo and Mobile Menu */}
             <div className="flex items-center">
@@ -175,7 +173,7 @@ export default function MainLayout({ children }) {
               </Link>
             </div>
 
-            {/* Center: Search Bar (Desktop) - FIXED WIDTH */}
+            {/* Center: Search Bar (Desktop) */}
             <div className="hidden md:flex flex-1 max-w-2xl mx-4 md:mx-8">
               <div className="relative w-full max-w-full">
                 <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
@@ -262,18 +260,18 @@ export default function MainLayout({ children }) {
                 >
                   {/* Mobile: Show profile picture */}
                   <div className="md:hidden relative">
-                    <img 
+                    <img
                       src={userProfileImage}
                       alt="Profile"
                       className="w-10 h-10 rounded-full border-2 border-blue-500/50 object-cover"
                     />
                     <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900"></span>
                   </div>
-
+                  
                   {/* Desktop: Show full profile */}
                   <div className="hidden md:flex items-center gap-3">
                     <div className="relative">
-                      <img 
+                      <img
                         src={userProfileImage}
                         alt="Profile"
                         className="w-10 h-10 rounded-full border-2 border-blue-500/50 object-cover"
@@ -298,24 +296,20 @@ export default function MainLayout({ children }) {
                     {/* Profile Info */}
                     <div className="px-4 py-3 border-b border-gray-800">
                       <div className="flex items-center gap-3">
-                        {/* Mobile: Show profile picture */}
                         <div className="md:hidden">
-                          <img 
+                          <img
                             src={userProfileImage}
                             alt="Profile"
                             className="w-12 h-12 rounded-full border-2 border-blue-500/50 object-cover"
                           />
                         </div>
-                        
-                        {/* Desktop: Show profile picture */}
                         <div className="hidden md:block">
-                          <img 
+                          <img
                             src={userProfileImage}
                             alt="Profile"
                             className="w-12 h-12 rounded-full border-2 border-blue-500/50 object-cover"
                           />
                         </div>
-                        
                         <div className="flex-1 min-w-0">
                           <p className="text-white font-medium truncate">{user?.name || 'User'}</p>
                           <p className="text-gray-400 text-sm truncate">{user?.email || 'user@example.com'}</p>
@@ -450,7 +444,7 @@ export default function MainLayout({ children }) {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 min-h-[calc(100vh-64px)]">
+        <main className="flex-1 w-full min-h-[calc(100vh-64px)]">
           {children}
         </main>
       </div>
@@ -482,7 +476,7 @@ export default function MainLayout({ children }) {
               {/* Mobile Navigation */}
               <nav className="space-y-1 mb-8">
                 {navItems
-                  .filter(item => item.mobile) // Only show mobile-optimized items
+                  .filter((item) => item.mobile)
                   .map((item) => (
                     <Link
                       key={item.label}
@@ -503,10 +497,10 @@ export default function MainLayout({ children }) {
                   ))}
               </nav>
 
-              {/* User Info - Updated with profile picture */}
+              {/* User Info */}
               <div className="p-4 bg-gray-800/30 rounded-xl">
                 <div className="flex items-center gap-3 mb-3">
-                  <img 
+                  <img
                     src={userProfileImage}
                     alt="Profile"
                     className="w-10 h-10 rounded-full border-2 border-blue-500/50 object-cover"
