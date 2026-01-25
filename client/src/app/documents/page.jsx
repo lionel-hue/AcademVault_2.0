@@ -12,7 +12,7 @@ export default function DocumentsPage() {
   const router = useRouter();
   const { alert, confirm } = useModal();
   const isMobile = useIsMobile();
-  
+
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
@@ -154,7 +154,6 @@ export default function DocumentsPage() {
               Manage your research library ({stats?.total || 0} documents)
             </p>
           </div>
-          
           <div className="flex gap-2 w-full md:w-auto">
             <button
               onClick={() => setShowUploadModal(true)}
@@ -182,10 +181,7 @@ export default function DocumentsPage() {
               { title: 'Videos', value: stats.by_type?.video || 0, icon: 'fas fa-video', color: 'from-blue-500 to-indigo-500' },
               { title: 'Storage', value: stats.storage_used || '0 MB', icon: 'fas fa-database', color: 'from-green-500 to-emerald-500' },
             ].map((stat, index) => (
-              <div
-                key={index}
-                className="bg-gray-900/50 backdrop-blur-sm rounded-lg md:rounded-xl p-3 border border-gray-800"
-              >
+              <div key={index} className="bg-gray-900/50 backdrop-blur-sm rounded-lg md:rounded-xl p-3 border border-gray-800">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-gray-400 text-xs md:text-sm">{stat.title}</p>
@@ -316,9 +312,11 @@ export default function DocumentsPage() {
         ) : documents.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6 w-full">
             {documents.map((document) => (
-              <div key={document.id} className="min-w-0 w-full">
+              <div 
+                key={document.id} 
+                className="min-w-0 w-full h-full" // Added h-full for equal height cards
+              >
                 <DocumentCard
-                  key={document.id}
                   document={document}
                   onDelete={() => handleDeleteDocument(document.id)}
                   onView={() => router.push(`/documents/${document.id}`)}
