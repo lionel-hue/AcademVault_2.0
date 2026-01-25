@@ -14,6 +14,14 @@ export default function DocumentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [relatedDocuments, setRelatedDocuments] = useState([]);
   const [activeTab, setActiveTab] = useState('details');
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     if (params.id) {
@@ -27,7 +35,6 @@ export default function DocumentDetailPage() {
     try {
       const response = await AuthService.getDocument(params.id);
       if (response.success) {
-        // Format the document with icons and colors
         const formattedDoc = {
           ...response.data,
           icon: getDocumentIcon(response.data.type),
@@ -58,7 +65,6 @@ export default function DocumentDetailPage() {
         sort_by: 'created_at',
         sort_order: 'desc'
       });
-      
       if (response.success) {
         const filtered = response.data.data
           .filter(doc => doc.id !== params.id)
@@ -101,7 +107,6 @@ export default function DocumentDetailPage() {
 
   const handleDocumentError = (error) => {
     console.error('Document error:', error);
-    
     if (error.message.includes('404') || error.message.includes('not found')) {
       alert({
         title: 'Document Not Found',
@@ -142,7 +147,7 @@ export default function DocumentDetailPage() {
       variant: 'danger',
       confirmText: 'Delete'
     });
-
+    
     if (confirmed) {
       try {
         await AuthService.deleteDocument(params.id);
@@ -179,12 +184,14 @@ export default function DocumentDetailPage() {
     const now = new Date();
     const diffTime = Math.abs(now - date);
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return `${diffDays} days ago`;
-    
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
   };
 
   const formatFileSize = (bytes) => {
@@ -192,12 +199,10 @@ export default function DocumentDetailPage() {
     const units = ['B', 'KB', 'MB', 'GB'];
     let size = parseFloat(bytes);
     let unitIndex = 0;
-    
     while (size >= 1024 && unitIndex < units.length - 1) {
       size /= 1024;
       unitIndex++;
     }
-    
     return `${size.toFixed(1)} ${units[unitIndex]}`;
   };
 
@@ -220,35 +225,39 @@ export default function DocumentDetailPage() {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-8">
-        {/* Header with Actions */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+      <div className="container mx-auto px-3 sm:px-4 py-4 md:py-6">
+        {/* Header with Actions - MOBILE OPTIMIZED */}
+        <div className="flex flex-col md:flex-row justify-between items-start gap-3 md:gap-4 mb-4 md:mb-6">
+          {/* Document Info */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-2">
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${document.color} border`}>
-                <i className={`${document.icon} text-2xl`}></i>
+            <div className="flex items-start md:items-center gap-3 mb-2">
+              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center ${document.color} border flex-shrink-0`}>
+                <i className={`${document.icon} text-lg md:text-xl`}></i>
               </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-white truncate">
+              <div className="flex-1 min-w-0">
+                {/* FIXED: Better title handling for mobile */}
+                <h1 className="text-lg md:text-2xl lg:text-3xl font-bold text-white break-words line-clamp-2 md:line-clamp-1">
                   {document.title}
                 </h1>
-                <p className="text-gray-400">
+                <p className="text-gray-400 text-xs md:text-sm truncate">
                   {document.author || 'Unknown author'} • {formatDate(document.created_at)}
                 </p>
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
+
+          {/* Action Buttons - Stack on mobile, row on desktop */}
+          <div className="flex flex-wrap gap-2 w-full md:w-auto">
             <button
               onClick={handleDownload}
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-medium flex items-center gap-2"
+              className="flex-1 md:flex-none bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg font-medium flex items-center justify-center gap-2 text-sm min-h-[44px]"
             >
               <i className="fas fa-download"></i>
               <span className="hidden sm:inline">Download</span>
             </button>
             <button
               onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-medium flex items-center gap-2"
+              className="flex-1 md:flex-none bg-red-600 hover:bg-red-700 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg font-medium flex items-center justify-center gap-2 text-sm min-h-[44px]"
             >
               <i className="fas fa-trash"></i>
               <span className="hidden sm:inline">Delete</span>
@@ -256,99 +265,93 @@ export default function DocumentDetailPage() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-800 mb-6">
-          <button
-            className={`px-4 py-3 font-medium ${activeTab === 'details' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
-            onClick={() => setActiveTab('details')}
-          >
-            <i className="fas fa-info-circle mr-2"></i>
-            Details
-          </button>
-          <button
-            className={`px-4 py-3 font-medium ${activeTab === 'preview' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
-            onClick={() => setActiveTab('preview')}
-          >
-            <i className="fas fa-eye mr-2"></i>
-            Preview
-          </button>
-          <button
-            className={`px-4 py-3 font-medium ${activeTab === 'metadata' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
-            onClick={() => setActiveTab('metadata')}
-          >
-            <i className="fas fa-database mr-2"></i>
-            Metadata
-          </button>
+        {/* Tabs - Mobile Optimized */}
+        <div className="flex overflow-x-auto pb-2 mb-3 md:mb-6 -mx-3 sm:-mx-4 px-3 sm:px-4">
+          <div className="flex gap-1 md:gap-2 min-w-max">
+            <button
+              className={`px-3 md:px-4 py-2 md:py-3 rounded-lg font-medium whitespace-nowrap flex items-center gap-2 min-h-[44px] text-sm md:text-base ${activeTab === 'details' ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
+              onClick={() => setActiveTab('details')}
+            >
+              <i className="fas fa-info-circle"></i>
+              <span>Details</span>
+            </button>
+            <button
+              className={`px-3 md:px-4 py-2 md:py-3 rounded-lg font-medium whitespace-nowrap flex items-center gap-2 min-h-[44px] text-sm md:text-base ${activeTab === 'preview' ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
+              onClick={() => setActiveTab('preview')}
+            >
+              <i className="fas fa-eye"></i>
+              <span>Preview</span>
+            </button>
+            <button
+              className={`px-3 md:px-4 py-2 md:py-3 rounded-lg font-medium whitespace-nowrap flex items-center gap-2 min-h-[44px] text-sm md:text-base ${activeTab === 'metadata' ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
+              onClick={() => setActiveTab('metadata')}
+            >
+              <i className="fas fa-database"></i>
+              <span>Metadata</span>
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Main Content */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-4 md:space-y-6">
             {activeTab === 'details' && (
-              <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800">
-                <h3 className="text-xl font-bold text-white mb-4">Document Information</h3>
-                
+              <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl md:rounded-2xl p-4 md:p-6 border border-gray-800">
+                <h3 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4">Document Information</h3>
                 {document.description && (
-                  <div className="mb-6">
-                    <h4 className="font-medium text-gray-300 mb-2">Description</h4>
-                    <p className="text-gray-300 whitespace-pre-line">{document.description}</p>
+                  <div className="mb-4 md:mb-6">
+                    <h4 className="font-medium text-gray-300 mb-2 text-sm md:text-base">Description</h4>
+                    <p className="text-gray-300 text-sm md:text-base whitespace-pre-line break-words">
+                      {document.description}
+                    </p>
                   </div>
                 )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                   <div>
-                    <h4 className="font-medium text-gray-300 mb-2">Type</h4>
-                    <p className="text-white capitalize">{document.type}</p>
+                    <h4 className="font-medium text-gray-300 mb-1 text-sm md:text-base">Type</h4>
+                    <p className="text-white text-sm md:text-base capitalize break-words">{document.type}</p>
                   </div>
-                  
                   {document.author && (
                     <div>
-                      <h4 className="font-medium text-gray-300 mb-2">Author</h4>
-                      <p className="text-white">{document.author}</p>
+                      <h4 className="font-medium text-gray-300 mb-1 text-sm md:text-base">Author</h4>
+                      <p className="text-white text-sm md:text-base break-words">{document.author}</p>
                     </div>
                   )}
-                  
                   {document.publication_year && (
                     <div>
-                      <h4 className="font-medium text-gray-300 mb-2">Publication Year</h4>
-                      <p className="text-white">{document.publication_year}</p>
+                      <h4 className="font-medium text-gray-300 mb-1 text-sm md:text-base">Publication Year</h4>
+                      <p className="text-white text-sm md:text-base">{document.publication_year}</p>
                     </div>
                   )}
-                  
                   {document.publisher && (
                     <div>
-                      <h4 className="font-medium text-gray-300 mb-2">Publisher</h4>
-                      <p className="text-white">{document.publisher}</p>
+                      <h4 className="font-medium text-gray-300 mb-1 text-sm md:text-base">Publisher</h4>
+                      <p className="text-white text-sm md:text-base break-words">{document.publisher}</p>
                     </div>
                   )}
-                  
                   <div>
-                    <h4 className="font-medium text-gray-300 mb-2">Added on</h4>
-                    <p className="text-white">{formatDate(document.created_at)}</p>
+                    <h4 className="font-medium text-gray-300 mb-1 text-sm md:text-base">Added on</h4>
+                    <p className="text-white text-sm md:text-base break-words">{formatDate(document.created_at)}</p>
                   </div>
-                  
                   <div>
-                    <h4 className="font-medium text-gray-300 mb-2">File Size</h4>
-                    <p className="text-white">{document.formatted_file_size || formatFileSize(document.file_size)}</p>
+                    <h4 className="font-medium text-gray-300 mb-1 text-sm md:text-base">File Size</h4>
+                    <p className="text-white text-sm md:text-base break-words">{document.formatted_file_size || formatFileSize(document.file_size)}</p>
                   </div>
-                  
                   <div>
-                    <h4 className="font-medium text-gray-300 mb-2">Views</h4>
-                    <p className="text-white">{document.view_count || 0}</p>
+                    <h4 className="font-medium text-gray-300 mb-1 text-sm md:text-base">Views</h4>
+                    <p className="text-white text-sm md:text-base">{document.view_count || 0}</p>
                   </div>
-                  
                   <div>
-                    <h4 className="font-medium text-gray-300 mb-2">Downloads</h4>
-                    <p className="text-white">{document.download_count || 0}</p>
+                    <h4 className="font-medium text-gray-300 mb-1 text-sm md:text-base">Downloads</h4>
+                    <p className="text-white text-sm md:text-base">{document.download_count || 0}</p>
                   </div>
                 </div>
               </div>
             )}
 
             {activeTab === 'preview' && (
-              <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800">
-                <h3 className="text-xl font-bold text-white mb-4">Document Preview</h3>
-                
+              <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl md:rounded-2xl p-4 md:p-6 border border-gray-800">
+                <h3 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4">Document Preview</h3>
                 {document.type === 'video' && document.url ? (
                   <div className="aspect-video rounded-lg overflow-hidden">
                     <iframe
@@ -359,7 +362,7 @@ export default function DocumentDetailPage() {
                     />
                   </div>
                 ) : document.url ? (
-                  <div className="h-96 rounded-lg overflow-hidden border border-gray-800">
+                  <div className="h-64 md:h-96 rounded-lg overflow-hidden border border-gray-800">
                     <iframe
                       src={document.url}
                       className="w-full h-full"
@@ -367,52 +370,50 @@ export default function DocumentDetailPage() {
                     />
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <i className="fas fa-file text-gray-600 text-2xl"></i>
+                  <div className="text-center py-8 md:py-12">
+                    <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                      <i className="fas fa-file text-gray-600 text-xl md:text-2xl"></i>
                     </div>
-                    <h4 className="text-xl font-bold text-white mb-2">No Preview Available</h4>
-                    <p className="text-gray-400">Download the document to view its contents</p>
+                    <h4 className="text-lg md:text-xl font-bold text-white mb-1 md:mb-2">No Preview Available</h4>
+                    <p className="text-gray-400 text-sm md:text-base">Download the document to view its contents</p>
                   </div>
                 )}
               </div>
             )}
 
             {activeTab === 'metadata' && (
-              <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800">
-                <h3 className="text-xl font-bold text-white mb-4">Technical Metadata</h3>
-                <div className="space-y-4">
+              <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl md:rounded-2xl p-4 md:p-6 border border-gray-800">
+                <h3 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4">Technical Metadata</h3>
+                <div className="space-y-3 md:space-y-4">
                   {document.file_type && (
                     <div>
-                      <h4 className="font-medium text-gray-300 mb-1">File Type</h4>
-                      <p className="text-white">{document.file_type}</p>
+                      <h4 className="font-medium text-gray-300 mb-1 text-sm md:text-base">File Type</h4>
+                      <p className="text-white text-sm md:text-base break-words">{document.file_type}</p>
                     </div>
                   )}
-                  
                   {document.page_count && (
                     <div>
-                      <h4 className="font-medium text-gray-300 mb-1">Page Count</h4>
-                      <p className="text-white">{document.page_count} pages</p>
+                      <h4 className="font-medium text-gray-300 mb-1 text-sm md:text-base">Page Count</h4>
+                      <p className="text-white text-sm md:text-base">{document.page_count} pages</p>
                     </div>
                   )}
-                  
                   {document.duration && (
                     <div>
-                      <h4 className="font-medium text-gray-300 mb-1">Duration</h4>
-                      <p className="text-white">{document.duration}</p>
+                      <h4 className="font-medium text-gray-300 mb-1 text-sm md:text-base">Duration</h4>
+                      <p className="text-white text-sm md:text-base break-words">{document.duration}</p>
                     </div>
                   )}
-                  
                   {document.license && (
                     <div>
-                      <h4 className="font-medium text-gray-300 mb-1">License</h4>
-                      <p className="text-white capitalize">{document.license.replace(/-/g, ' ')}</p>
+                      <h4 className="font-medium text-gray-300 mb-1 text-sm md:text-base">License</h4>
+                      <p className="text-white text-sm md:text-base capitalize break-words">
+                        {document.license.replace(/-/g, ' ')}
+                      </p>
                     </div>
                   )}
-                  
                   <div>
-                    <h4 className="font-medium text-gray-300 mb-1">Visibility</h4>
-                    <p className="text-white">{document.is_public ? 'Public' : 'Private'}</p>
+                    <h4 className="font-medium text-gray-300 mb-1 text-sm md:text-base">Visibility</h4>
+                    <p className="text-white text-sm md:text-base">{document.is_public ? 'Public' : 'Private'}</p>
                   </div>
                 </div>
               </div>
@@ -420,64 +421,70 @@ export default function DocumentDetailPage() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Document URL */}
             {document.url && (
-              <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800">
-                <h3 className="font-bold text-white mb-3">Document URL</h3>
+              <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl md:rounded-2xl p-4 md:p-6 border border-gray-800">
+                <h3 className="font-bold text-white mb-3 text-sm md:text-base">Document URL</h3>
                 <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={document.url}
-                    readOnly
-                    className="flex-1 bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm truncate"
-                  />
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(document.url);
-                      alert({
-                        title: 'Copied!',
-                        message: 'URL copied to clipboard',
-                        variant: 'success'
-                      });
-                    }}
-                    className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-white"
-                    title="Copy URL"
-                  >
-                    <i className="fas fa-copy"></i>
-                  </button>
-                  <button
-                    onClick={() => window.open(document.url, '_blank')}
-                    className="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white"
-                    title="Open in new tab"
-                  >
-                    <i className="fas fa-external-link-alt"></i>
-                  </button>
+                  <div className="flex-1 min-w-0">
+                    <input
+                      type="text"
+                      value={document.url}
+                      readOnly
+                      className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-white text-xs md:text-sm truncate"
+                    />
+                  </div>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(document.url);
+                        alert({
+                          title: 'Copied!',
+                          message: 'URL copied to clipboard',
+                          variant: 'success'
+                        });
+                      }}
+                      className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-white min-w-[44px] min-h-[44px] flex items-center justify-center"
+                      title="Copy URL"
+                    >
+                      <i className="fas fa-copy"></i>
+                    </button>
+                    <button
+                      onClick={() => window.open(document.url, '_blank')}
+                      className="p-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white min-w-[44px] min-h-[44px] flex items-center justify-center"
+                      title="Open in new tab"
+                    >
+                      <i className="fas fa-external-link-alt"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
 
             {/* Source Information */}
             {document.source_metadata && (
-              <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800">
-                <h3 className="font-bold text-white mb-3">Source Information</h3>
+              <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl md:rounded-2xl p-4 md:p-6 border border-gray-800">
+                <h3 className="font-bold text-white mb-3 text-sm md:text-base">Source Information</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Source</span>
-                    <span className="text-white capitalize">{document.source_metadata.source}</span>
+                    <span className="text-gray-400 text-xs md:text-sm">Source</span>
+                    <span className="text-white text-xs md:text-sm capitalize break-words">
+                      {document.source_metadata.source}
+                    </span>
                   </div>
                   {document.source_metadata.saved_at && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Saved on</span>
-                      <span className="text-white">
+                      <span className="text-gray-400 text-xs md:text-sm">Saved on</span>
+                      <span className="text-white text-xs md:text-sm">
                         {new Date(document.source_metadata.saved_at).toLocaleDateString()}
                       </span>
                     </div>
                   )}
                   {document.source_metadata.original_id && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Original ID</span>
-                      <span className="text-white text-sm truncate max-w-[120px]">
+                      <span className="text-gray-400 text-xs md:text-sm">Original ID</span>
+                      <span className="text-white text-xs md:text-sm truncate max-w-[50%]">
                         {document.source_metadata.original_id}
                       </span>
                     </div>
@@ -488,21 +495,21 @@ export default function DocumentDetailPage() {
 
             {/* Related Documents */}
             {relatedDocuments.length > 0 && (
-              <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800">
-                <h3 className="font-bold text-white mb-4">Related Documents</h3>
-                <div className="space-y-3">
+              <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl md:rounded-2xl p-4 md:p-6 border border-gray-800">
+                <h3 className="font-bold text-white mb-3 md:mb-4 text-sm md:text-base">Related Documents</h3>
+                <div className="space-y-2 md:space-y-3">
                   {relatedDocuments.slice(0, 3).map((doc) => (
                     <div
                       key={doc.id}
-                      className="flex items-center gap-3 p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 cursor-pointer"
+                      className="flex items-center gap-2 md:gap-3 p-2 md:p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 cursor-pointer min-h-[60px]"
                       onClick={() => router.push(`/documents/${doc.id}`)}
                     >
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${doc.color} border`}>
+                      <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center ${doc.color} border flex-shrink-0`}>
                         <i className={doc.icon}></i>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-white text-sm font-medium truncate">{doc.title}</p>
-                        <p className="text-gray-400 text-xs">{doc.author}</p>
+                        <p className="text-white text-xs md:text-sm font-medium truncate">{doc.title}</p>
+                        <p className="text-gray-400 text-xs truncate">{doc.author || 'Unknown'}</p>
                       </div>
                     </div>
                   ))}
