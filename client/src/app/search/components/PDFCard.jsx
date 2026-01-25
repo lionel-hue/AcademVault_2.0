@@ -24,39 +24,55 @@ export default function PDFCard({ pdf, onSave, saved, isMobile = false }) {
     return date.getFullYear();
   };
 
-  // NEW FUNCTION: Save PDF to documents library
+  // client/src/app/search/components/PDFCard.jsx
+  // Replace the ENTIRE handleSaveToDocuments function:
+
   const handleSaveToDocuments = async () => {
     setSavingToDocuments(true);
     try {
+      // Build the data object
       const documentData = {
         type: 'pdf',
         data: {
-          title: pdf.title,
-          description: pdf.description || pdf.abstract || 'Research paper from arXiv',
-          url: pdf.url || pdf.pdf_url,
+          title: pdf.title || 'Untitled PDF',
+          description: pdf.description || pdf.abstract || 'Research paper',
+          url: pdf.url || pdf.pdf_url || '',
+          pdf_url: pdf.pdf_url || pdf.url || '',
           authors: pdf.authors || [],
-          published_at: pdf.published_at,
-          source: pdf.source || 'arxiv',
-          source_id: pdf.id,
-          page_count: pdf.page_count,
-          citation_count: pdf.citation_count
+          author: pdf.author || null,
+          published_at: pdf.published_at || null,
+          id: pdf.id || null,
+          page_count: pdf.page_count || null,
+          citation_count: pdf.citation_count || null,
+          source: pdf.source || 'arxiv'
         }
       };
 
+      console.log('🔵 PDFCard - Saving to documents:', {
+        type: documentData.type,
+        title: documentData.data.title,
+        url: documentData.data.url,
+        authors: documentData.data.authors,
+        full_data: documentData
+      });
+
       const response = await AuthService.saveSearchResultToDocuments(documentData);
-      
+
       if (response.success) {
+        console.log('✅ PDF saved successfully:', response.data);
         await alert({
           title: 'Saved to Documents!',
           message: 'PDF has been added to your documents library',
           variant: 'success'
         });
+      } else {
+        throw new Error(response.message || 'Failed to save PDF');
       }
     } catch (error) {
-      console.error('Error saving to documents:', error);
+      console.error('❌ Error saving PDF:', error);
       await alert({
         title: 'Save Failed',
-        message: 'Could not save PDF to documents',
+        message: error.message || 'Could not save PDF to documents',
         variant: 'danger'
       });
     } finally {
@@ -93,7 +109,7 @@ export default function PDFCard({ pdf, onSave, saved, isMobile = false }) {
                 )}
               </div>
             </div>
-            
+
             {/* Save Actions */}
             <div className="flex gap-1">
               <button
@@ -103,7 +119,7 @@ export default function PDFCard({ pdf, onSave, saved, isMobile = false }) {
               >
                 <i className={`fas ${saved ? 'fa-bookmark' : 'fa-bookmark'} text-xs`}></i>
               </button>
-              
+
               <button
                 onClick={handleSaveToDocuments}
                 disabled={savingToDocuments}
@@ -145,7 +161,7 @@ export default function PDFCard({ pdf, onSave, saved, isMobile = false }) {
               <i className="fas fa-download text-xs"></i>
               PDF
             </button>
-            
+
             <button
               onClick={handleSaveToDocuments}
               disabled={savingToDocuments}
@@ -182,30 +198,28 @@ export default function PDFCard({ pdf, onSave, saved, isMobile = false }) {
               )}
             </div>
           </div>
-          
+
           {/* Save Actions */}
           <div className="flex gap-1">
             <button
               onClick={() => onSave && onSave()}
-              className={`p-2 rounded-lg transition-colors ${
-                saved 
-                  ? 'text-yellow-400 bg-yellow-400/10' 
-                  : 'text-gray-400 hover:text-yellow-400 hover:bg-yellow-400/10'
-              }`}
+              className={`p-2 rounded-lg transition-colors ${saved
+                ? 'text-yellow-400 bg-yellow-400/10'
+                : 'text-gray-400 hover:text-yellow-400 hover:bg-yellow-400/10'
+                }`}
               title={saved ? 'Saved to collection' : 'Save to collection'}
             >
               <i className={`fas ${saved ? 'fa-bookmark' : 'fa-bookmark'}`}></i>
             </button>
-            
+
             {/* NEW: Save to Documents Button */}
             <button
               onClick={handleSaveToDocuments}
               disabled={savingToDocuments}
-              className={`p-2 rounded-lg transition-colors ${
-                savingToDocuments 
-                  ? 'text-blue-400 bg-blue-400/10' 
-                  : 'text-gray-400 hover:text-blue-400 hover:bg-blue-400/10'
-              }`}
+              className={`p-2 rounded-lg transition-colors ${savingToDocuments
+                ? 'text-blue-400 bg-blue-400/10'
+                : 'text-gray-400 hover:text-blue-400 hover:bg-blue-400/10'
+                }`}
               title="Save to Documents Library"
             >
               <i className={`fas ${savingToDocuments ? 'fa-spinner fa-spin' : 'fa-folder-plus'}`}></i>
@@ -243,7 +257,7 @@ export default function PDFCard({ pdf, onSave, saved, isMobile = false }) {
             <i className="fas fa-download"></i>
             Download PDF
           </button>
-          
+
           <button
             onClick={handleSaveToDocuments}
             disabled={savingToDocuments}
@@ -272,7 +286,7 @@ export default function PDFCard({ pdf, onSave, saved, isMobile = false }) {
             <i className="fas fa-external-link-alt text-xs"></i>
             View Abstract
           </button>
-          
+
           {pdf.citation_count && (
             <div className="text-xs text-gray-500 flex items-center gap-1">
               <i className="fas fa-quote-right"></i>
