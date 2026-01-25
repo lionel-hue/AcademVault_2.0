@@ -239,7 +239,16 @@ class DocumentsController extends Controller
     public function saveFromSearch(Request $request)
     {
         $user = Auth::user();
-        
+
+        // Log incoming request
+        Log::info('📥 Save from search request received:', [
+            'user_id' => $user->id,
+            'request_data' => $request->all(),
+            'has_type' => $request->has('type'),
+            'has_data' => $request->has('data'),
+            'data_is_array' => is_array($request->input('data'))
+        ]);
+
         // Step 1: Validate incoming data
         $validator = Validator::make($request->all(), [
             'type' => 'required|in:video,pdf,article',
@@ -249,11 +258,11 @@ class DocumentsController extends Controller
         ]);
 
         if ($validator->fails()) {
-            Log::error('❌ Validation failed', [
+            Log::error('❌ Validation failed in saveFromSearch', [
                 'errors' => $validator->errors()->toArray(),
                 'request' => $request->all()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
@@ -262,18 +271,18 @@ class DocumentsController extends Controller
         }
 
         DB::beginTransaction();
-        
+
         try {
             $type = $request->input('type');
             $data = $request->input('data');
-            
+
             // Step 2: Map search data to document structure
             $documentData = $this->mapSearchDataToDocument($type, $data);
             $documentData['user_id'] = $user->id;
-            
+
             // Step 3: Create the document
             $document = Document::create($documentData);
-            
+
             // Step 4: Attach categories if provided
             if ($request->has('categories') && !empty($request->categories)) {
                 $validCategories = array_filter($request->categories);
@@ -281,7 +290,7 @@ class DocumentsController extends Controller
                     $document->categories()->sync($validCategories);
                 }
             }
-            
+
             // Step 5: Create history record
             DB::table('history')->insert([
                 'document_id' => $document->id,
@@ -290,35 +299,34 @@ class DocumentsController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-            
+
             DB::commit();
-            
+
             // Step 6: Format response
             $document->formatted_file_size = $document->getFormattedFileSize();
             $document->icon = $document->getIcon();
             $document->color = $document->getColor();
-            
+
             Log::info('✅ Document saved from search', [
                 'document_id' => $document->id,
                 'type' => $type,
                 'title' => $document->title
             ]);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $document,
                 'message' => 'Document saved successfully'
             ], 201);
-            
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             Log::error('❌ Error saving document from search', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'request' => $request->all()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to save document: ' . $e->getMessage()
@@ -618,13 +626,13 @@ class DocumentsController extends Controller
                 'type' => 'pdf',
                 'title' => $data['title'] ?? 'Untitled PDF',
                 'description' => $data['description'] ?? $data['abstract'] ?? null,
-                'author' => !empty($data['authors']) 
+                'author' => !empty($data['authors'])
                     ? (is_array($data['authors']) ? implode(', ', array_slice($data['authors'], 0, 3)) : $data['authors'])
                     : null,
                 'url' => $data['pdf_url'] ?? $data['url'] ?? null,
                 'page_count' => $data['page_count'] ?? null,
-                'publication_year' => isset($data['published_at']) 
-                    ? (int)date('Y', strtotime($data['published_at'])) 
+                'publication_year' => isset($data['published_at'])
+                    ? (int)date('Y', strtotime($data['published_at']))
                     : null,
                 'source_metadata' => [
                     'source' => $data['source'] ?? 'arxiv',
