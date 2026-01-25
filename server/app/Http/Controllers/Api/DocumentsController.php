@@ -240,19 +240,18 @@ class DocumentsController extends Controller
     {
         $user = Auth::user();
 
-        // Log incoming request
         Log::info('📥 Save from search request received:', [
             'user_id' => $user->id,
             'request_data' => $request->all(),
-            'has_type' => $request->has('type'),
-            'has_data' => $request->has('data'),
-            'data_is_array' => is_array($request->input('data'))
+            'headers' => $request->headers->all()
         ]);
 
-        // Step 1: Validate incoming data
+        // Step 1: Validate incoming data - MAKE IT MORE FLEXIBLE
         $validator = Validator::make($request->all(), [
             'type' => 'required|in:video,pdf,article',
             'data' => 'required|array',
+            'data.title' => 'required|string|max:255',
+            'data.url' => 'nullable|url',
             'categories' => 'nullable|array',
             'categories.*' => 'nullable|exists:categories,id',
         ]);
@@ -265,7 +264,7 @@ class DocumentsController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Validation error',
+                'message' => 'Validation error: ' . implode(', ', $validator->errors()->all()),
                 'errors' => $validator->errors()
             ], 422);
         }
@@ -276,9 +275,24 @@ class DocumentsController extends Controller
             $type = $request->input('type');
             $data = $request->input('data');
 
+            // Ensure required fields exist with defaults
+            $data = $this->ensureRequiredFields($type, $data);
+
+            Log::info('📝 Processed data for saving:', [
+                'type' => $type,
+                'data' => $data
+            ]);
+
             // Step 2: Map search data to document structure
             $documentData = $this->mapSearchDataToDocument($type, $data);
+
+            if (empty($documentData['title'])) {
+                throw new \Exception('Document title is required');
+            }
+
             $documentData['user_id'] = $user->id;
+
+            Log::info('📄 Document data to be saved:', $documentData);
 
             // Step 3: Create the document
             $document = Document::create($documentData);
@@ -329,9 +343,151 @@ class DocumentsController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to save document: ' . $e->getMessage()
+                'message' => 'Failed to save document: ' . $e->getMessage(),
+                'debug_info' => [
+                    'type' => $request->input('type'),
+                    'data_keys' => array_keys($request->input('data', []))
+                ]
             ], 500);
         }
+    }
+
+    /**
+     * Ensure required fields exist with defaults
+     */
+    private function ensureRequiredFields($type, $data)
+    {
+        $defaults = [
+            'video' => [
+                'title' => 'Untitled Video',
+                'description' => '',
+                'url' => null,
+                'thumbnail' => null,
+                'channel' => 'Unknown Channel',
+                'duration' => null,
+                'views' => null,
+                'published_at' => null,
+            ],
+            'pdf' => [
+                'title' => 'Untitled PDF',
+                'description' => '',
+                'url' => null,
+                'pdf_url' => null,
+                'authors' => [],
+                'published_at' => null,
+                'page_count' => null,
+                'citation_count' => null,
+            ],
+            'article' => [
+                'title' => 'Untitled Article',
+                'description' => '',
+                'url' => null,
+                'snippet' => '',
+                'domain' => 'unknown.com',
+                'author' => null,
+                'published_at' => null,
+                'reading_time' => null,
+            ],
+        ];
+
+        $typeDefaults = $defaults[$type] ?? [];
+
+        foreach ($typeDefaults as $key => $value) {
+            if (!isset($data[$key]) || empty($data[$key])) {
+                $data[$key] = $value;
+            }
+        }
+
+        // Ensure title is never empty
+        if (empty($data['title'])) {
+            $data['title'] = "Untitled {$type}";
+        }
+
+        return $data;
+    }
+
+    /**
+     * Map search result data to document structure - UPDATED
+     */
+    private function mapSearchDataToDocument($type, $data)
+    {
+        $mapping = [
+            'video' => [
+                'type' => 'video',
+                'title' => $data['title'] ?? 'Untitled Video',
+                'description' => $data['description'] ?? ($data['snippet'] ?? null),
+                'author' => $data['channel'] ?? null,
+                'url' => $data['url'] ?? null,
+                'thumbnail' => $data['thumbnail'] ?? null,
+                'duration' => $data['duration'] ?? null,
+                'source_metadata' => [
+                    'source' => $data['source'] ?? 'youtube',
+                    'video_id' => $data['id'] ?? null,
+                    'views' => $data['views'] ?? null,
+                    'published_at' => $data['published_at'] ?? null,
+                    'embed_url' => $data['embed_url'] ?? null,
+                    'is_real' => $data['is_real'] ?? false,
+                ]
+            ],
+            'pdf' => [
+                'type' => 'pdf',
+                'title' => $data['title'] ?? 'Untitled PDF',
+                'description' => $data['description'] ?? ($data['snippet'] ?? $data['abstract'] ?? null),
+                'author' => !empty($data['authors'])
+                    ? (is_array($data['authors'])
+                        ? implode(', ', array_slice($data['authors'], 0, 3))
+                        : $data['authors'])
+                    : ($data['author'] ?? null),
+                'url' => $data['pdf_url'] ?? $data['url'] ?? null,
+                'page_count' => $data['page_count'] ?? null,
+                'publication_year' => isset($data['published_at'])
+                    ? (int)date('Y', strtotime($data['published_at']))
+                    : ($data['year'] ?? null),
+                'source_metadata' => [
+                    'source' => $data['source'] ?? 'arxiv',
+                    'citation_count' => $data['citation_count'] ?? null,
+                    'doi' => $data['doi'] ?? null,
+                    'categories' => $data['categories'] ?? [],
+                    'keywords' => $data['keywords'] ?? [],
+                    'is_real' => $data['is_real'] ?? false,
+                ]
+            ],
+            'article' => [
+                'type' => 'article_link',
+                'title' => $data['title'] ?? 'Untitled Article',
+                'description' => $data['snippet'] ?? $data['description'] ?? null,
+                'url' => $data['url'] ?? null,
+                'author' => $data['author'] ?? null,
+                'thumbnail' => $data['thumbnail'] ?? null,
+                'source_metadata' => [
+                    'source' => 'web',
+                    'domain' => $data['domain'] ?? null,
+                    'reading_time' => $data['reading_time'] ?? null,
+                    'published_at' => $data['published_at'] ?? null,
+                    'tags' => $data['tags'] ?? [],
+                    'is_real' => $data['is_real'] ?? false,
+                ]
+            ],
+        ];
+
+        $result = $mapping[$type] ?? [
+            'type' => 'website',
+            'title' => $data['title'] ?? 'Untitled Document',
+            'description' => $data['description'] ?? null,
+            'url' => $data['url'] ?? null,
+            'author' => $data['author'] ?? null,
+            'source_metadata' => [
+                'source' => 'web',
+                'is_real' => false,
+            ]
+        ];
+
+        // Set default values for required document fields
+        $result['is_public'] = true;
+        $result['view_count'] = 0;
+        $result['download_count'] = 0;
+
+        return $result;
     }
 
     /**
@@ -597,71 +753,6 @@ class DocumentsController extends Controller
             'success' => true,
             'message' => 'Category detached successfully'
         ]);
-    }
-
-    /**
-     * Map search result data to document structure
-     */
-    private function mapSearchDataToDocument($type, $data)
-    {
-        $mapping = [
-            'video' => [
-                'type' => 'video',
-                'title' => $data['title'] ?? 'Untitled Video',
-                'description' => $data['description'] ?? null,
-                'author' => $data['channel'] ?? null,
-                'url' => $data['url'] ?? null,
-                'thumbnail' => $data['thumbnail'] ?? null,
-                'duration' => $data['duration'] ?? null,
-                'source_metadata' => [
-                    'source' => $data['source'] ?? 'youtube',
-                    'video_id' => $data['id'] ?? null,
-                    'views' => $data['views'] ?? null,
-                    'published_at' => $data['published_at'] ?? null,
-                    'embed_url' => $data['embed_url'] ?? null,
-                    'is_real' => $data['is_real'] ?? false,
-                ]
-            ],
-            'pdf' => [
-                'type' => 'pdf',
-                'title' => $data['title'] ?? 'Untitled PDF',
-                'description' => $data['description'] ?? $data['abstract'] ?? null,
-                'author' => !empty($data['authors'])
-                    ? (is_array($data['authors']) ? implode(', ', array_slice($data['authors'], 0, 3)) : $data['authors'])
-                    : null,
-                'url' => $data['pdf_url'] ?? $data['url'] ?? null,
-                'page_count' => $data['page_count'] ?? null,
-                'publication_year' => isset($data['published_at'])
-                    ? (int)date('Y', strtotime($data['published_at']))
-                    : null,
-                'source_metadata' => [
-                    'source' => $data['source'] ?? 'arxiv',
-                    'citation_count' => $data['citation_count'] ?? null,
-                    'doi' => $data['doi'] ?? null,
-                    'categories' => $data['categories'] ?? [],
-                    'keywords' => $data['keywords'] ?? [],
-                    'is_real' => $data['is_real'] ?? false,
-                ]
-            ],
-            'article' => [
-                'type' => 'article_link',
-                'title' => $data['title'] ?? 'Untitled Article',
-                'description' => $data['snippet'] ?? $data['description'] ?? null,
-                'url' => $data['url'] ?? null,
-                'author' => $data['author'] ?? null,
-                'thumbnail' => $data['thumbnail'] ?? null,
-                'source_metadata' => [
-                    'source' => 'web',
-                    'domain' => $data['domain'] ?? null,
-                    'reading_time' => $data['reading_time'] ?? null,
-                    'published_at' => $data['published_at'] ?? null,
-                    'tags' => $data['tags'] ?? [],
-                    'is_real' => $data['is_real'] ?? false,
-                ]
-            ],
-        ];
-
-        return $mapping[$type] ?? [];
     }
 
     /**
