@@ -80,22 +80,26 @@ export default function DocumentCard({ document, onDelete, onView }) {
   };
 
   return (
-    <div
-      className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl p-4 hover:border-gray-700 hover:shadow-xl transition-all duration-300"
+    <div 
+      className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl p-4 hover:border-gray-700 hover:shadow-xl transition-all duration-300 h-full flex flex-col"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Document Header */}
       <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getTypeColor()} bg-opacity-10`}>
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getTypeColor()} bg-opacity-10 flex-shrink-0`}>
             <i className={`${getTypeIcon()} text-lg`}></i>
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-white truncate" title={document.title}>
+            {/* FIXED: Title now wraps properly on mobile */}
+            <h3 
+              className="font-semibold text-white break-words line-clamp-2 leading-snug text-sm md:text-base" 
+              title={document.title}
+            >
               {document.title}
             </h3>
-            <p className="text-sm text-gray-400 truncate">
+            <p className="text-sm text-gray-400 truncate mt-1">
               {document.author || 'Unknown'} • {formatDate(document.created_at)}
             </p>
           </div>
@@ -103,10 +107,10 @@ export default function DocumentCard({ document, onDelete, onView }) {
         
         {/* Quick Actions */}
         {isHovered && (
-          <div className="flex gap-1">
+          <div className="flex gap-1 ml-2 flex-shrink-0">
             <button
               onClick={handleView}
-              className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg"
+              className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
               title="View"
             >
               <i className="fas fa-eye"></i>
@@ -114,14 +118,14 @@ export default function DocumentCard({ document, onDelete, onView }) {
             <button
               onClick={handleDownload}
               disabled={loading}
-              className="p-1.5 text-gray-400 hover:text-green-400 hover:bg-green-400/10 rounded-lg disabled:opacity-50"
+              className="p-1.5 text-gray-400 hover:text-green-400 hover:bg-green-400/10 rounded-lg disabled:opacity-50 transition-colors"
               title="Download"
             >
               <i className={`fas ${loading ? 'fa-spinner fa-spin' : 'fa-download'}`}></i>
             </button>
             <button
               onClick={onDelete}
-              className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg"
+              className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
               title="Delete"
             >
               <i className="fas fa-trash"></i>
@@ -132,7 +136,7 @@ export default function DocumentCard({ document, onDelete, onView }) {
 
       {/* Description */}
       {document.description && (
-        <p className="text-gray-300 text-sm line-clamp-2 mb-3">
+        <p className="text-gray-300 text-sm line-clamp-2 mb-3 flex-1 break-words">
           {document.description}
         </p>
       )}
@@ -169,10 +173,10 @@ export default function DocumentCard({ document, onDelete, onView }) {
       )}
 
       {/* Action Buttons */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 mt-auto">
         <button
           onClick={handleView}
-          className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-2 rounded-lg font-medium text-sm transition-all hover:scale-[1.02]"
+          className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-2 rounded-lg font-medium text-sm transition-all hover:scale-[1.02] flex items-center justify-center gap-2 min-h-[44px]"
         >
           <i className="fas fa-eye mr-2"></i>
           View Details
@@ -180,7 +184,7 @@ export default function DocumentCard({ document, onDelete, onView }) {
         <button
           onClick={handleDownload}
           disabled={loading || (!document.url && !document.file_path)}
-          className="px-4 bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
         >
           <i className={`fas ${loading ? 'fa-spinner fa-spin' : 'fa-download'}`}></i>
         </button>
