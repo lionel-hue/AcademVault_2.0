@@ -933,12 +933,34 @@ class AuthService {
             const token = this.getToken();
             if (!token) throw new Error('No authentication token');
 
-            // Log what we're sending
-            console.log('📤 Sending to /documents/save-from-search:', {
+            // Validate required fields
+            if (!data.type || !data.data) {
+                throw new Error('Missing required fields: type and data');
+            }
+
+            // Ensure data has required structure
+            const payload = {
                 type: data.type,
-                data: data.data,
-                has_title: !!data.data?.title,
-                has_url: !!data.data?.url
+                data: {
+                    title: data.data.title || 'Untitled Document',
+                    description: data.data.description || data.data.snippet || '',
+                    url: data.data.url || data.data.pdf_url || '',
+                    author: data.data.author || data.data.channel || 'Unknown',
+                    thumbnail: data.data.thumbnail || null,
+                    // Add any additional fields from data
+                    ...data.data
+                }
+            };
+
+            // Add categories if provided
+            if (data.categories && Array.isArray(data.categories)) {
+                payload.categories = data.categories;
+            }
+
+            console.log('📤 Sending save request:', {
+                type: payload.type,
+                title: payload.data.title,
+                hasUrl: !!payload.data.url
             });
 
             const response = await fetch(`${API_URL}/documents/save-from-search`, {
@@ -948,53 +970,39 @@ class AuthService {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify(payload)
             });
 
-            // Get response text first to see what we got
+            // Log response for debugging
             const responseText = await response.text();
             console.log('📥 Response status:', response.status);
-            console.log('📥 Response body:', responseText);
+            console.log('📥 Response body:', responseText.substring(0, 200) + '...');
 
             if (!response.ok) {
-                // Try to parse as JSON for error details
                 let errorData;
                 try {
                     errorData = JSON.parse(responseText);
                 } catch (e) {
-                    errorData = { message: responseText };
+                    errorData = { message: responseText || 'Unknown error' };
                 }
 
-                console.error('❌ Save failed:', {
-                    status: response.status,
-                    error: errorData
-                });
-
-                // If 422, show validation errors
-                if (response.status === 422) {
-                    const errorMessages = [];
-                    if (errorData.errors) {
-                        Object.entries(errorData.errors).forEach(([field, messages]) => {
-                            errorMessages.push(`${field}: ${messages.join(', ')}`);
-                        });
-                    }
-
-                    throw new Error(
-                        errorMessages.length > 0
-                            ? errorMessages.join('\n')
-                            : errorData.message || 'Validation failed'
-                    );
+                // Handle validation errors specifically
+                if (response.status === 422 && errorData.errors) {
+                    const validationErrors = Object.entries(errorData.errors)
+                        .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
+                        .join('\n');
+                    throw new Error(`Validation failed:\n${validationErrors}`);
                 }
 
-                throw new Error(errorData.message || 'Failed to save document');
+                throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
             }
 
             const result = JSON.parse(responseText);
-            console.log('✅ Successfully saved:', result);
+            console.log('✅ Document saved successfully:', result.data?.id);
             return result;
 
         } catch (error) {
-            console.error('💥 Error in saveSearchResultToDocuments:', error);
+            console.error('💥 Error saving search result to documents:', error);
             throw error;
         }
     }
