@@ -39,24 +39,26 @@ export default function VideoCard({ video, onSave, saved, isMobile = false }) {
   const handleSaveToDocuments = async () => {
     setSavingToDocuments(true);
     try {
+      // ✅ FIXED: Match the exact structure expected by backend
       const documentData = {
         type: 'video',
         data: {
-          title: video.title,
-          description: video.description || `Video from YouTube channel: ${video.channel}`,
-          url: video.url,
+          title: video.title || 'Untitled Video',
+          description: video.description || 'Video from YouTube',
+          url: video.url || `https://www.youtube.com/watch?v=${video.id}`,
           thumbnail: video.thumbnail,
           duration: video.duration,
           channel: video.channel,
           views: video.views,
           published_at: video.published_at,
-          source: 'youtube',
-          source_id: video.id
+          id: video.id // Include video ID for source metadata
         }
       };
 
+      console.log('Saving video to documents:', documentData);
+
       const response = await AuthService.saveSearchResultToDocuments(documentData);
-      
+
       if (response.success) {
         await alert({
           title: 'Saved to Documents!',
@@ -68,7 +70,7 @@ export default function VideoCard({ video, onSave, saved, isMobile = false }) {
       console.error('Error saving to documents:', error);
       await alert({
         title: 'Save Failed',
-        message: 'Could not save video to documents',
+        message: error.message || 'Could not save video to documents',
         variant: 'danger'
       });
     } finally {
@@ -86,20 +88,20 @@ export default function VideoCard({ video, onSave, saved, isMobile = false }) {
       <div className="w-full max-w-full bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-lg overflow-hidden mx-0">
         {/* Thumbnail */}
         <div className="relative aspect-video w-full overflow-hidden bg-gray-800">
-          <img 
-            src={video.thumbnail || `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`} 
+          <img
+            src={video.thumbnail || `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`}
             alt={video.title}
             className="w-full h-full object-cover"
             loading="lazy"
           />
-          
+
           {/* Duration Badge */}
           {video.duration && (
             <div className="absolute bottom-1 right-1 bg-black/90 text-white text-xs px-1 py-0.5 rounded">
               {video.duration}
             </div>
           )}
-          
+
           {/* YouTube Badge */}
           <div className="absolute top-1 left-1 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded flex items-center gap-1">
             <i className="fab fa-youtube"></i>
@@ -114,7 +116,7 @@ export default function VideoCard({ video, onSave, saved, isMobile = false }) {
             <h3 className="text-white text-xs font-medium line-clamp-2 flex-1 mr-2">
               {video.title}
             </h3>
-            
+
             {/* Save button */}
             <div className="flex gap-1">
               <button
@@ -124,7 +126,7 @@ export default function VideoCard({ video, onSave, saved, isMobile = false }) {
               >
                 <i className={`fas ${saved ? 'fa-bookmark' : 'fa-bookmark'} text-xs`}></i>
               </button>
-              
+
               {/* NEW: Save to Documents button */}
               <button
                 onClick={handleSaveToDocuments}
@@ -156,7 +158,7 @@ export default function VideoCard({ video, onSave, saved, isMobile = false }) {
               <i className="fab fa-youtube"></i>
               Watch
             </button>
-            
+
             <button
               onClick={handleSaveToDocuments}
               disabled={savingToDocuments}
@@ -173,22 +175,21 @@ export default function VideoCard({ video, onSave, saved, isMobile = false }) {
 
   // DESKTOP/TABLET VERSION
   return (
-    <div 
+    <div
       className="w-full h-full bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl overflow-hidden hover:border-gray-700 hover:shadow-xl transition-all duration-300"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Thumbnail */}
       <div className="relative aspect-video w-full overflow-hidden bg-gray-800">
-        <img 
-          src={video.thumbnail || `https://img.youtube.com/vi/${video.id}/maxresdefault.jpg`} 
+        <img
+          src={video.thumbnail || `https://img.youtube.com/vi/${video.id}/maxresdefault.jpg`}
           alt={video.title}
-          className={`w-full h-full object-cover transition-transform duration-500 ${
-            isHovered ? 'scale-110' : 'scale-100'
-          }`}
+          className={`w-full h-full object-cover transition-transform duration-500 ${isHovered ? 'scale-110' : 'scale-100'
+            }`}
           loading="lazy"
         />
-        
+
         {/* Play Button Overlay */}
         {isHovered && (
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
@@ -200,14 +201,14 @@ export default function VideoCard({ video, onSave, saved, isMobile = false }) {
             </button>
           </div>
         )}
-        
+
         {/* Duration Badge */}
         {video.duration && (
           <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
             {video.duration}
           </div>
         )}
-        
+
         {/* Source Badge */}
         <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
           <i className="fab fa-youtube"></i>
@@ -221,30 +222,28 @@ export default function VideoCard({ video, onSave, saved, isMobile = false }) {
           <h3 className="text-white font-semibold line-clamp-2 flex-1 text-sm md:text-base">
             {video.title}
           </h3>
-          
+
           {/* Save Actions */}
           <div className="flex gap-1">
             <button
               onClick={() => onSave && onSave()}
-              className={`p-1.5 rounded-lg transition-colors ${
-                saved 
-                  ? 'text-yellow-400 bg-yellow-400/10' 
+              className={`p-1.5 rounded-lg transition-colors ${saved
+                  ? 'text-yellow-400 bg-yellow-400/10'
                   : 'text-gray-400 hover:text-yellow-400 hover:bg-yellow-400/10'
-              }`}
+                }`}
               title={saved ? 'Saved to collection' : 'Save to collection'}
             >
               <i className={`fas ${saved ? 'fa-bookmark' : 'fa-bookmark'} text-sm`}></i>
             </button>
-            
+
             {/* NEW: Save to Documents Button */}
             <button
               onClick={handleSaveToDocuments}
               disabled={savingToDocuments}
-              className={`p-1.5 rounded-lg transition-colors ${
-                savingToDocuments 
-                  ? 'text-blue-400 bg-blue-400/10' 
+              className={`p-1.5 rounded-lg transition-colors ${savingToDocuments
+                  ? 'text-blue-400 bg-blue-400/10'
                   : 'text-gray-400 hover:text-blue-400 hover:bg-blue-400/10'
-              }`}
+                }`}
               title="Save to Documents Library"
             >
               <i className={`fas ${savingToDocuments ? 'fa-spinner fa-spin' : 'fa-folder-plus'} text-sm`}></i>
@@ -280,7 +279,7 @@ export default function VideoCard({ video, onSave, saved, isMobile = false }) {
             <i className="fab fa-youtube"></i>
             Watch Video
           </button>
-          
+
           <button
             onClick={handleSaveToDocuments}
             disabled={savingToDocuments}

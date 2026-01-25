@@ -179,7 +179,6 @@ class DocumentsController extends Controller
                 $file = $request->file('file');
                 $filename = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME))
                     . '_' . time() . '.' . $file->getClientOriginalExtension();
-
                 $path = $file->storeAs('documents/' . $user->id, $filename, 'public');
 
                 $documentData['file_path'] = $path;
@@ -224,6 +223,7 @@ class DocumentsController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error creating document: ' . $e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create document',
@@ -233,18 +233,27 @@ class DocumentsController extends Controller
     }
 
     /**
-     * Sauvegarde un résultat de recherche comme document
+     * Save a search result as a document
+     * This handles videos, PDFs, and articles from search results
      */
     public function saveFromSearch(Request $request)
     {
+        $user = Auth::user();
+        
+        // Step 1: Validate incoming data
         $validator = Validator::make($request->all(), [
             'type' => 'required|in:video,pdf,article',
             'data' => 'required|array',
             'categories' => 'nullable|array',
-            'categories.*' => 'exists:categories,id',
+            'categories.*' => 'nullable|exists:categories,id',
         ]);
 
         if ($validator->fails()) {
+            Log::error('❌ Validation failed', [
+                'errors' => $validator->errors()->toArray(),
+                'request' => $request->all()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
@@ -252,55 +261,67 @@ class DocumentsController extends Controller
             ], 422);
         }
 
-        $user = Auth::user();
-        $data = $request->input('data');
-
         DB::beginTransaction();
-
+        
         try {
-            // Mappe les données selon le type
-            $documentData = $this->mapSearchDataToDocument($request->type, $data);
+            $type = $request->input('type');
+            $data = $request->input('data');
+            
+            // Step 2: Map search data to document structure
+            $documentData = $this->mapSearchDataToDocument($type, $data);
             $documentData['user_id'] = $user->id;
-            $documentData['source_metadata'] = [
-                'source' => $request->type === 'video' ? 'youtube' : ($request->type === 'pdf' ? 'arxiv' : 'web'),
-                'original_id' => $data['id'] ?? null,
-                'saved_from_search' => true,
-                'saved_at' => now()->toISOString(),
-            ];
-
-            // Crée le document
+            
+            // Step 3: Create the document
             $document = Document::create($documentData);
-
-            // Attache les catégories par défaut
-            if ($request->has('categories')) {
-                $document->categories()->sync($request->categories);
-            } else {
-                // Catégorie par défaut basée sur le type
-                $defaultCategory = Category::firstOrCreate([
-                    'user_id' => $user->id,
-                    'name' => ucfirst($request->type) . 's',
-                ], [
-                    'color' => $this->getColorForType($request->type),
-                    'icon' => $this->getIconForType($request->type),
-                ]);
-
-                $document->categories()->attach($defaultCategory->id);
+            
+            // Step 4: Attach categories if provided
+            if ($request->has('categories') && !empty($request->categories)) {
+                $validCategories = array_filter($request->categories);
+                if (!empty($validCategories)) {
+                    $document->categories()->sync($validCategories);
+                }
             }
-
+            
+            // Step 5: Create history record
+            DB::table('history')->insert([
+                'document_id' => $document->id,
+                'user_id' => $user->id,
+                'action' => 'created',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            
             DB::commit();
-
+            
+            // Step 6: Format response
+            $document->formatted_file_size = $document->getFormattedFileSize();
+            $document->icon = $document->getIcon();
+            $document->color = $document->getColor();
+            
+            Log::info('✅ Document saved from search', [
+                'document_id' => $document->id,
+                'type' => $type,
+                'title' => $document->title
+            ]);
+            
             return response()->json([
                 'success' => true,
                 'data' => $document,
-                'message' => 'Search result saved to documents'
+                'message' => 'Document saved successfully'
             ], 201);
+            
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error saving search result: ' . $e->getMessage());
+            
+            Log::error('❌ Error saving document from search', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to save search result',
-                'error' => $e->getMessage()
+                'message' => 'Failed to save document: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -311,7 +332,6 @@ class DocumentsController extends Controller
     public function update(Request $request, $id)
     {
         $user = Auth::user();
-
         $document = Document::where('user_id', $user->id)->find($id);
 
         if (!$document) {
@@ -386,7 +406,6 @@ class DocumentsController extends Controller
     public function destroy($id)
     {
         $user = Auth::user();
-
         $document = Document::where('user_id', $user->id)->find($id);
 
         if (!$document) {
@@ -423,7 +442,6 @@ class DocumentsController extends Controller
     public function download($id)
     {
         $user = Auth::user();
-
         $document = Document::where('user_id', $user->id)->find($id);
 
         if (!$document) {
@@ -515,97 +533,6 @@ class DocumentsController extends Controller
     }
 
     /**
-     * Méthodes utilitaires privées
-     */
-
-    private function mapSearchDataToDocument($type, $data)
-    {
-        $mapping = [
-            'video' => [
-                'type' => 'video',
-                'title' => $data['title'] ?? 'Untitled Video',
-                'description' => $data['description'] ?? null,
-                'author' => $data['channel'] ?? null,
-                'url' => $data['url'] ?? null,
-                'thumbnail' => $data['thumbnail'] ?? null,
-                'duration' => $data['duration'] ?? null,
-            ],
-            'pdf' => [
-                'type' => 'pdf',
-                'title' => $data['title'] ?? 'Untitled PDF',
-                'description' => $data['description'] ?? null,
-                'author' => !empty($data['authors']) ? implode(', ', array_slice($data['authors'], 0, 3)) : null,
-                'url' => $data['pdf_url'] ?? $data['url'] ?? null,
-                'page_count' => $data['page_count'] ?? null,
-                'publication_year' => isset($data['published_at']) ? date('Y', strtotime($data['published_at'])) : null,
-            ],
-            'article' => [
-                'type' => 'article_link',
-                'title' => $data['title'] ?? 'Untitled Article',
-                'description' => $data['snippet'] ?? $data['description'] ?? null,
-                'url' => $data['url'] ?? null,
-                'author' => $data['author'] ?? null,
-                'thumbnail' => $data['thumbnail'] ?? null,
-            ],
-        ];
-
-        return $mapping[$type] ?? [];
-    }
-
-    private function getTypeFromMime($mimeType)
-    {
-        $mimeMap = [
-            'application/pdf' => 'pdf',
-            'video/' => 'video',
-            'image/' => 'image',
-            'application/vnd.ms-powerpoint' => 'presentation',
-            'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'presentation',
-        ];
-
-        foreach ($mimeMap as $key => $type) {
-            if (strpos($mimeType, $key) === 0) {
-                return $type;
-            }
-        }
-
-        return 'website';
-    }
-
-    private function getColorForType($type)
-    {
-        return match ($type) {
-            'video' => '#3B82F6', // blue
-            'pdf' => '#EF4444', // red
-            'article' => '#10B981', // green
-            default => '#6B7280', // gray
-        };
-    }
-
-    private function getIconForType($type)
-    {
-        return match ($type) {
-            'video' => 'fas fa-video',
-            'pdf' => 'fas fa-file-pdf',
-            'article' => 'fas fa-newspaper',
-            default => 'fas fa-file',
-        };
-    }
-
-    private function formatBytes($bytes, $precision = 2)
-    {
-        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-
-        $bytes = max($bytes, 0);
-        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
-        $pow = min($pow, count($units) - 1);
-
-        $bytes /= pow(1024, $pow);
-
-        return round($bytes, $precision) . ' ' . $units[$pow];
-    }
-
-
-    /**
      * Attach categories to a document
      */
     public function attachCategories(Request $request, $id)
@@ -662,5 +589,106 @@ class DocumentsController extends Controller
             'success' => true,
             'message' => 'Category detached successfully'
         ]);
+    }
+
+    /**
+     * Map search result data to document structure
+     */
+    private function mapSearchDataToDocument($type, $data)
+    {
+        $mapping = [
+            'video' => [
+                'type' => 'video',
+                'title' => $data['title'] ?? 'Untitled Video',
+                'description' => $data['description'] ?? null,
+                'author' => $data['channel'] ?? null,
+                'url' => $data['url'] ?? null,
+                'thumbnail' => $data['thumbnail'] ?? null,
+                'duration' => $data['duration'] ?? null,
+                'source_metadata' => [
+                    'source' => $data['source'] ?? 'youtube',
+                    'video_id' => $data['id'] ?? null,
+                    'views' => $data['views'] ?? null,
+                    'published_at' => $data['published_at'] ?? null,
+                    'embed_url' => $data['embed_url'] ?? null,
+                    'is_real' => $data['is_real'] ?? false,
+                ]
+            ],
+            'pdf' => [
+                'type' => 'pdf',
+                'title' => $data['title'] ?? 'Untitled PDF',
+                'description' => $data['description'] ?? $data['abstract'] ?? null,
+                'author' => !empty($data['authors']) 
+                    ? (is_array($data['authors']) ? implode(', ', array_slice($data['authors'], 0, 3)) : $data['authors'])
+                    : null,
+                'url' => $data['pdf_url'] ?? $data['url'] ?? null,
+                'page_count' => $data['page_count'] ?? null,
+                'publication_year' => isset($data['published_at']) 
+                    ? (int)date('Y', strtotime($data['published_at'])) 
+                    : null,
+                'source_metadata' => [
+                    'source' => $data['source'] ?? 'arxiv',
+                    'citation_count' => $data['citation_count'] ?? null,
+                    'doi' => $data['doi'] ?? null,
+                    'categories' => $data['categories'] ?? [],
+                    'keywords' => $data['keywords'] ?? [],
+                    'is_real' => $data['is_real'] ?? false,
+                ]
+            ],
+            'article' => [
+                'type' => 'article_link',
+                'title' => $data['title'] ?? 'Untitled Article',
+                'description' => $data['snippet'] ?? $data['description'] ?? null,
+                'url' => $data['url'] ?? null,
+                'author' => $data['author'] ?? null,
+                'thumbnail' => $data['thumbnail'] ?? null,
+                'source_metadata' => [
+                    'source' => 'web',
+                    'domain' => $data['domain'] ?? null,
+                    'reading_time' => $data['reading_time'] ?? null,
+                    'published_at' => $data['published_at'] ?? null,
+                    'tags' => $data['tags'] ?? [],
+                    'is_real' => $data['is_real'] ?? false,
+                ]
+            ],
+        ];
+
+        return $mapping[$type] ?? [];
+    }
+
+    /**
+     * Get document type from MIME type
+     */
+    private function getTypeFromMime($mimeType)
+    {
+        $mimeMap = [
+            'application/pdf' => 'pdf',
+            'video/' => 'video',
+            'image/' => 'image',
+            'application/vnd.ms-powerpoint' => 'presentation',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'presentation',
+        ];
+
+        foreach ($mimeMap as $key => $type) {
+            if (strpos($mimeType, $key) === 0) {
+                return $type;
+            }
+        }
+
+        return 'website';
+    }
+
+    /**
+     * Format bytes to human readable format
+     */
+    private function formatBytes($bytes, $precision = 2)
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $bytes = max($bytes, 0);
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
+        $bytes /= pow(1024, $pow);
+
+        return round($bytes, $precision) . ' ' . $units[$pow];
     }
 }

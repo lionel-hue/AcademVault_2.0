@@ -925,11 +925,78 @@ class AuthService {
         });
     }
 
+    // client/src/lib/auth.js
+    // Replace the saveSearchResultToDocuments method with this improved version:
+
     async saveSearchResultToDocuments(data) {
-        return this.makeRequest('/documents/save-from-search', {
-            method: 'POST',
-            body: JSON.stringify(data)
-        });
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            // Log what we're sending
+            console.log('📤 Sending to /documents/save-from-search:', {
+                type: data.type,
+                data: data.data,
+                has_title: !!data.data?.title,
+                has_url: !!data.data?.url
+            });
+
+            const response = await fetch(`${API_URL}/documents/save-from-search`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            // Get response text first to see what we got
+            const responseText = await response.text();
+            console.log('📥 Response status:', response.status);
+            console.log('📥 Response body:', responseText);
+
+            if (!response.ok) {
+                // Try to parse as JSON for error details
+                let errorData;
+                try {
+                    errorData = JSON.parse(responseText);
+                } catch (e) {
+                    errorData = { message: responseText };
+                }
+
+                console.error('❌ Save failed:', {
+                    status: response.status,
+                    error: errorData
+                });
+
+                // If 422, show validation errors
+                if (response.status === 422) {
+                    const errorMessages = [];
+                    if (errorData.errors) {
+                        Object.entries(errorData.errors).forEach(([field, messages]) => {
+                            errorMessages.push(`${field}: ${messages.join(', ')}`);
+                        });
+                    }
+
+                    throw new Error(
+                        errorMessages.length > 0
+                            ? errorMessages.join('\n')
+                            : errorData.message || 'Validation failed'
+                    );
+                }
+
+                throw new Error(errorData.message || 'Failed to save document');
+            }
+
+            const result = JSON.parse(responseText);
+            console.log('✅ Successfully saved:', result);
+            return result;
+
+        } catch (error) {
+            console.error('💥 Error in saveSearchResultToDocuments:', error);
+            throw error;
+        }
     }
 
     async getDocument(id) {

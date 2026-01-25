@@ -24,38 +24,64 @@ export default function ArticleCard({ article, onSave, saved, isMobile = false }
     return time;
   };
 
-  // NEW FUNCTION: Save article to documents library
+  // client/src/app/search/components/ArticleCard.jsx
+  // Replace the ENTIRE handleSaveToDocuments function:
+
   const handleSaveToDocuments = async () => {
     setSavingToDocuments(true);
     try {
-      const documentData = {
-        type: 'article',
-        data: {
-          title: article.title,
-          description: article.snippet || article.description,
-          url: article.url,
-          domain: formatDomain(article.url),
-          reading_time: article.reading_time,
-          published_at: article.published_at,
-          author: article.author,
-          source: 'web'
+      // Helper function to get domain from URL
+      const getDomain = (url) => {
+        try {
+          const urlObj = new URL(url);
+          return urlObj.hostname.replace('www.', '');
+        } catch {
+          return article.domain || 'unknown.com';
         }
       };
 
+      // Build the data object
+      const documentData = {
+        type: 'article',
+        data: {
+          title: article.title || 'Untitled Article',
+          description: article.snippet || article.description || 'Article from web search',
+          snippet: article.snippet || article.description || '',
+          url: article.url || '',
+          domain: article.domain || getDomain(article.url),
+          author: article.author || null,
+          published_at: article.published_at || null,
+          reading_time: article.reading_time || null,
+          id: article.id || null,
+          thumbnail: article.thumbnail || null
+        }
+      };
+
+      console.log('🟢 ArticleCard - Saving to documents:', {
+        type: documentData.type,
+        title: documentData.data.title,
+        url: documentData.data.url,
+        domain: documentData.data.domain,
+        full_data: documentData
+      });
+
       const response = await AuthService.saveSearchResultToDocuments(documentData);
-      
+
       if (response.success) {
+        console.log('✅ Article saved successfully:', response.data);
         await alert({
           title: 'Saved to Documents!',
           message: 'Article has been added to your documents library',
           variant: 'success'
         });
+      } else {
+        throw new Error(response.message || 'Failed to save article');
       }
     } catch (error) {
-      console.error('Error saving to documents:', error);
+      console.error('❌ Error saving article:', error);
       await alert({
         title: 'Save Failed',
-        message: 'Could not save article to documents',
+        message: error.message || 'Could not save article to documents',
         variant: 'danger'
       });
     } finally {
@@ -88,7 +114,7 @@ export default function ArticleCard({ article, onSave, saved, isMobile = false }
               </div>
             </div>
           </div>
-          
+
           {/* Save Actions */}
           <div className="flex gap-1">
             <button
@@ -98,7 +124,7 @@ export default function ArticleCard({ article, onSave, saved, isMobile = false }
             >
               <i className={`fas ${saved ? 'fa-bookmark' : 'fa-bookmark'} text-xs`}></i>
             </button>
-            
+
             <button
               onClick={handleSaveToDocuments}
               disabled={savingToDocuments}
@@ -133,7 +159,7 @@ export default function ArticleCard({ article, onSave, saved, isMobile = false }
               <i className="fas fa-external-link-alt text-xs"></i>
               Read
             </button>
-            
+
             <button
               onClick={handleSaveToDocuments}
               disabled={savingToDocuments}
@@ -168,30 +194,28 @@ export default function ArticleCard({ article, onSave, saved, isMobile = false }
             </div>
           </div>
         </div>
-        
+
         {/* Save Actions */}
         <div className="flex gap-1">
           <button
             onClick={() => onSave && onSave()}
-            className={`p-1.5 md:p-2 rounded-lg transition-colors ${
-              saved 
-                ? 'text-yellow-400 bg-yellow-400/10' 
-                : 'text-gray-400 hover:text-yellow-400 hover:bg-yellow-400/10'
-            }`}
+            className={`p-1.5 md:p-2 rounded-lg transition-colors ${saved
+              ? 'text-yellow-400 bg-yellow-400/10'
+              : 'text-gray-400 hover:text-yellow-400 hover:bg-yellow-400/10'
+              }`}
             title={saved ? 'Saved to collection' : 'Save to collection'}
           >
             <i className={`fas ${saved ? 'fa-bookmark' : 'fa-bookmark'}`}></i>
           </button>
-          
+
           {/* NEW: Save to Documents Button */}
           <button
             onClick={handleSaveToDocuments}
             disabled={savingToDocuments}
-            className={`p-1.5 md:p-2 rounded-lg transition-colors ${
-              savingToDocuments 
-                ? 'text-blue-400 bg-blue-400/10' 
-                : 'text-gray-400 hover:text-blue-400 hover:bg-blue-400/10'
-            }`}
+            className={`p-1.5 md:p-2 rounded-lg transition-colors ${savingToDocuments
+              ? 'text-blue-400 bg-blue-400/10'
+              : 'text-gray-400 hover:text-blue-400 hover:bg-blue-400/10'
+              }`}
             title="Save to Documents Library"
           >
             <i className={`fas ${savingToDocuments ? 'fa-spinner fa-spin' : 'fa-folder-plus'}`}></i>
@@ -222,7 +246,7 @@ export default function ArticleCard({ article, onSave, saved, isMobile = false }
             <i className="fas fa-external-link-alt"></i>
             Read Article
           </button>
-          
+
           <button
             onClick={handleSaveToDocuments}
             disabled={savingToDocuments}
