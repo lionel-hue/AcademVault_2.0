@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class DiscussionsController extends Controller
 {
@@ -17,7 +18,6 @@ class DiscussionsController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        
         try {
             $discussions = DB::table('discussions as d')
                 ->leftJoin('users as u', 'u.id', '=', 'd.admin_id')
@@ -36,6 +36,7 @@ class DiscussionsController extends Controller
                     'd.is_archived',
                     'd.tags',
                     'd.created_at',
+                    'd.invite_code',
                     'u.name as admin_name',
                     'u.profile_image as admin_profile_image',
                     'doc.title as document_title',
@@ -45,16 +46,16 @@ class DiscussionsController extends Controller
                 ->where(function ($query) use ($user) {
                     // Get discussions where user is admin
                     $query->where('d.admin_id', $user->id)
-                          // Or public discussions
-                          ->orWhere('d.privacy', 'public')
-                          // Or discussions where user is a member
-                          ->orWhereExists(function ($subQuery) use ($user) {
-                              $subQuery->select(DB::raw(1))
-                                      ->from('group_members')
-                                      ->whereColumn('group_members.discussion_id', 'd.id')
-                                      ->where('group_members.user_id', $user->id)
-                                      ->where('group_members.status', 'active');
-                          });
+                        // Or public discussions
+                        ->orWhere('d.privacy', 'public')
+                        // Or discussions where user is a member
+                        ->orWhereExists(function ($subQuery) use ($user) {
+                            $subQuery->select(DB::raw(1))
+                                ->from('group_members')
+                                ->whereColumn('group_members.discussion_id', 'd.id')
+                                ->where('group_members.user_id', $user->id)
+                                ->where('group_members.status', 'active');
+                        });
                 })
                 ->where('d.is_archived', false)
                 ->orderBy('d.is_pinned', 'desc')
@@ -77,7 +78,6 @@ class DiscussionsController extends Controller
                 'data' => $discussions,
                 'message' => 'Discussions retrieved successfully'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error fetching discussions: ' . $e->getMessage());
             return response()->json([
@@ -93,7 +93,6 @@ class DiscussionsController extends Controller
     public function show(Request $request, $id)
     {
         $user = Auth::user();
-
         try {
             $discussion = DB::table('discussions as d')
                 ->leftJoin('users as u', 'u.id', '=', 'd.admin_id')
@@ -113,6 +112,7 @@ class DiscussionsController extends Controller
                     'd.is_archived',
                     'd.tags',
                     'd.settings',
+                    'd.invite_code',
                     'd.created_at',
                     'u.name as admin_name',
                     'u.email as admin_email',
@@ -132,7 +132,6 @@ class DiscussionsController extends Controller
 
             // Check if user can access this discussion
             $canAccess = $this->canAccessDiscussion($user->id, $id, $discussion->privacy);
-            
             if (!$canAccess) {
                 return response()->json([
                     'success' => false,
@@ -195,7 +194,7 @@ class DiscussionsController extends Controller
             } else {
                 $discussion->tags = [];
             }
-
+            
             if ($discussion->settings) {
                 $discussion->settings = json_decode($discussion->settings, true);
             }
@@ -217,7 +216,6 @@ class DiscussionsController extends Controller
                 ],
                 'message' => 'Discussion retrieved successfully'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error fetching discussion: ' . $e->getMessage());
             return response()->json([
@@ -228,7 +226,7 @@ class DiscussionsController extends Controller
     }
 
     /**
-     * Create new discussion
+     * Create new discussion with invite code
      */
     public function store(Request $request)
     {
@@ -252,9 +250,11 @@ class DiscussionsController extends Controller
         }
 
         $user = Auth::user();
-
         DB::beginTransaction();
         try {
+            // Generate unique invite code
+            $inviteCode = $this->generateInviteCode();
+
             // Create discussion
             $discussionId = DB::table('discussions')->insertGetId([
                 'title' => $request->input('title'),
@@ -265,6 +265,7 @@ class DiscussionsController extends Controller
                 'admin_id' => $user->id,
                 'member_count' => 1,
                 'message_count' => 0,
+                'invite_code' => $inviteCode,
                 'tags' => $request->input('tags') ? json_encode($request->input('tags')) : null,
                 'created_at' => now(),
                 'updated_at' => now()
@@ -309,13 +310,14 @@ class DiscussionsController extends Controller
                             'sender_id' => $user->id,
                             'discussion_id' => $discussionId,
                             'data' => json_encode([
-                                'discussion_title' => $request->input('title')
+                                'discussion_title' => $request->input('title'),
+                                'invite_code' => $inviteCode
                             ]),
                             'created_at' => now(),
                             'updated_at' => now()
                         ]);
                     }
-
+                    
                     DB::table('group_members')->insert($memberData);
                     
                     // Update member count
@@ -330,7 +332,6 @@ class DiscussionsController extends Controller
 
             // Create welcome message
             $welcomeMessage = "Welcome to the discussion! This is a {$request->input('type')} discussion about: " . $request->input('title');
-            
             if ($request->input('description')) {
                 $welcomeMessage .= "\n\nDescription: " . $request->input('description');
             }
@@ -348,16 +349,226 @@ class DiscussionsController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => ['id' => $discussionId],
+                'data' => [
+                    'id' => $discussionId,
+                    'invite_code' => $inviteCode,
+                    'invite_link' => url("/discussions/join?code={$inviteCode}")
+                ],
                 'message' => 'Discussion created successfully'
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error creating discussion: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create discussion'
+            ], 500);
+        }
+    }
+
+    /**
+     * Join discussion by invite code
+     */
+    public function joinByInviteCode(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'invite_code' => 'required|string|max:32'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $user = Auth::user();
+        $inviteCode = $request->input('invite_code');
+
+        try {
+            $discussion = DB::table('discussions')
+                ->where('invite_code', $inviteCode)
+                ->where('is_archived', false)
+                ->first();
+
+            if (!$discussion) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid invite code or discussion is archived'
+                ], 404);
+            }
+
+            // Check if already a member
+            $isMember = DB::table('group_members')
+                ->where('discussion_id', $discussion->id)
+                ->where('user_id', $user->id)
+                ->where('status', 'active')
+                ->exists();
+
+            if ($isMember) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Already a member of this discussion'
+                ], 400);
+            }
+
+            // Check if discussion is private and user is not invited
+            if ($discussion->privacy === 'private' || $discussion->privacy === 'invite_only') {
+                // Check if user was specifically invited
+                $isInvited = DB::table('group_invitations')
+                    ->where('discussion_id', $discussion->id)
+                    ->where('invitee_id', $user->id)
+                    ->where('status', 'pending')
+                    ->exists();
+
+                if (!$isInvited) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'This discussion is private. You need an invitation to join.'
+                    ], 403);
+                }
+            }
+
+            DB::beginTransaction();
+
+            // Add user as member
+            DB::table('group_members')->insert([
+                'user_id' => $user->id,
+                'discussion_id' => $discussion->id,
+                'role' => 'member',
+                'status' => 'active',
+                'joined_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            // Update member count
+            DB::table('discussions')
+                ->where('id', $discussion->id)
+                ->update([
+                    'member_count' => DB::raw('member_count + 1'),
+                    'updated_at' => now()
+                ]);
+
+            // Create system message for new member
+            DB::table('messages')->insert([
+                'discussion_id' => $discussion->id,
+                'user_id' => $user->id,
+                'content' => $user->name . ' joined the discussion using invite code.',
+                'message_type' => 'system',
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            // Mark invitation as accepted if exists
+            DB::table('group_invitations')
+                ->where('discussion_id', $discussion->id)
+                ->where('invitee_id', $user->id)
+                ->where('status', 'pending')
+                ->update([
+                    'status' => 'accepted',
+                    'accepted_at' => now(),
+                    'updated_at' => now()
+                ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'discussion_id' => $discussion->id,
+                    'title' => $discussion->title,
+                    'invite_code' => $discussion->invite_code
+                ],
+                'message' => 'Successfully joined the discussion'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error joining discussion by invite code: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to join discussion'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get discussion by invite code (public access)
+     */
+    public function getByInviteCode(Request $request, $inviteCode)
+    {
+        try {
+            $discussion = DB::table('discussions as d')
+                ->leftJoin('users as u', 'u.id', '=', 'd.admin_id')
+                ->leftJoin('documents as doc', 'doc.id', '=', 'd.document_id')
+                ->select(
+                    'd.id',
+                    'd.title',
+                    'd.description',
+                    'd.type',
+                    'd.privacy',
+                    'd.member_count',
+                    'd.message_count',
+                    'd.last_message_at',
+                    'd.cover_image',
+                    'd.is_pinned',
+                    'd.is_archived',
+                    'd.tags',
+                    'd.invite_code',
+                    'd.created_at',
+                    'u.name as admin_name',
+                    'u.profile_image as admin_profile_image',
+                    'doc.title as document_title'
+                )
+                ->where('d.invite_code', $inviteCode)
+                ->where('d.is_archived', false)
+                ->first();
+
+            if (!$discussion) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Discussion not found or invite code is invalid'
+                ], 404);
+            }
+
+            // Parse tags
+            if ($discussion->tags) {
+                $discussion->tags = json_decode($discussion->tags, true);
+            } else {
+                $discussion->tags = [];
+            }
+
+            // Check if user is authenticated and a member
+            $isMember = false;
+            $isAdmin = false;
+            
+            if (Auth::check()) {
+                $user = Auth::user();
+                $isMember = DB::table('group_members')
+                    ->where('discussion_id', $discussion->id)
+                    ->where('user_id', $user->id)
+                    ->where('status', 'active')
+                    ->exists();
+                
+                $isAdmin = $discussion->admin_name === $user->name;
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'discussion' => $discussion,
+                    'is_member' => $isMember,
+                    'is_admin' => $isAdmin,
+                    'can_join' => $discussion->privacy === 'public' || ($discussion->privacy === 'invite_only' && $inviteCode)
+                ],
+                'message' => 'Discussion retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching discussion by invite code: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch discussion'
             ], 500);
         }
     }
@@ -404,7 +615,6 @@ class DiscussionsController extends Controller
 
         // Check access
         $canAccess = $this->canAccessDiscussion($user->id, $discussionId, $discussion->privacy);
-        
         if (!$canAccess && !$isMember && $user->id != $discussion->admin_id) {
             return response()->json([
                 'success' => false,
@@ -479,13 +689,121 @@ class DiscussionsController extends Controller
                 'data' => $message,
                 'message' => 'Message sent successfully'
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error sending message: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to send message'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get recent messages for polling
+     */
+    public function getRecentMessages(Request $request, $discussionId)
+    {
+        $user = Auth::user();
+        
+        try {
+            $lastMessageId = $request->input('last_message_id', 0);
+            
+            // Check if user is a member
+            $isMember = DB::table('group_members')
+                ->where('discussion_id', $discussionId)
+                ->where('user_id', $user->id)
+                ->where('status', 'active')
+                ->exists();
+
+            $discussion = DB::table('discussions')
+                ->where('id', $discussionId)
+                ->first();
+
+            if (!$discussion) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Discussion not found'
+                ], 404);
+            }
+
+            // Check access
+            $canAccess = $this->canAccessDiscussion($user->id, $discussionId, $discussion->privacy);
+            if (!$canAccess && !$isMember && $user->id != $discussion->admin_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have access to this discussion'
+                ], 403);
+            }
+
+            // Get new messages since last_message_id
+            $messages = DB::table('messages as m')
+                ->join('users as u', 'u.id', '=', 'm.user_id')
+                ->leftJoin('documents as doc', 'doc.id', '=', 'm.document_id')
+                ->where('m.discussion_id', $discussionId)
+                ->where('m.id', '>', $lastMessageId)
+                ->whereNull('m.deleted_at')
+                ->select(
+                    'm.id',
+                    'm.content',
+                    'm.message_type',
+                    'm.document_id',
+                    'm.attachment_path',
+                    'm.attachment_name',
+                    'm.attachment_size',
+                    'm.reply_to',
+                    'm.is_edited',
+                    'm.is_pinned',
+                    'm.created_at',
+                    'u.id as user_id',
+                    'u.name as user_name',
+                    'u.profile_image as user_profile_image',
+                    'doc.title as document_title',
+                    'doc.type as document_type'
+                )
+                ->orderBy('m.created_at', 'asc')
+                ->get();
+
+            // Get new members since last check
+            $newMembers = DB::table('group_members as gm')
+                ->join('users as u', 'u.id', '=', 'gm.user_id')
+                ->where('gm.discussion_id', $discussionId)
+                ->where('gm.status', 'active')
+                ->where('gm.joined_at', '>', now()->subMinutes(5)) // Members who joined in last 5 minutes
+                ->select(
+                    'u.id',
+                    'u.name',
+                    'u.profile_image',
+                    'gm.joined_at'
+                )
+                ->orderBy('gm.joined_at', 'desc')
+                ->limit(10)
+                ->get();
+
+            $messages->transform(function ($message) {
+                if ($message->reactions) {
+                    $message->reactions = json_decode($message->reactions, true);
+                }
+                return $message;
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'messages' => $messages,
+                    'new_members' => $newMembers,
+                    'last_message_id' => $messages->isNotEmpty() ? $messages->last()->id : $lastMessageId,
+                    'member_count' => $discussion->member_count,
+                    'message_count' => $discussion->message_count,
+                    'last_message_at' => $discussion->last_message_at
+                ],
+                'message' => 'Recent messages retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching recent messages: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch recent messages'
             ], 500);
         }
     }
@@ -501,7 +819,8 @@ class DiscussionsController extends Controller
             'privacy' => 'sometimes|in:public,private,invite_only',
             'is_archived' => 'sometimes|boolean',
             'is_pinned' => 'sometimes|boolean',
-            'tags' => 'nullable|array'
+            'tags' => 'nullable|array',
+            'regenerate_invite_code' => 'sometimes|boolean'
         ]);
 
         if ($validator->fails()) {
@@ -528,33 +847,31 @@ class DiscussionsController extends Controller
         }
 
         try {
-            $updateData = [];
-            
+            $updateData = [
+                'updated_at' => now()
+            ];
+
             if ($request->has('title')) {
                 $updateData['title'] = $request->input('title');
             }
-            
             if ($request->has('description')) {
                 $updateData['description'] = $request->input('description');
             }
-            
             if ($request->has('privacy')) {
                 $updateData['privacy'] = $request->input('privacy');
             }
-            
             if ($request->has('is_archived')) {
                 $updateData['is_archived'] = $request->input('is_archived');
             }
-            
             if ($request->has('is_pinned')) {
                 $updateData['is_pinned'] = $request->input('is_pinned');
             }
-            
             if ($request->has('tags')) {
                 $updateData['tags'] = json_encode($request->input('tags'));
             }
-            
-            $updateData['updated_at'] = now();
+            if ($request->input('regenerate_invite_code')) {
+                $updateData['invite_code'] = $this->generateInviteCode();
+            }
 
             DB::table('discussions')
                 ->where('id', $id)
@@ -562,9 +879,11 @@ class DiscussionsController extends Controller
 
             return response()->json([
                 'success' => true,
+                'data' => [
+                    'invite_code' => $updateData['invite_code'] ?? null
+                ],
                 'message' => 'Discussion updated successfully'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error updating discussion: ' . $e->getMessage());
             return response()->json([
@@ -617,7 +936,6 @@ class DiscussionsController extends Controller
                 'success' => true,
                 'message' => 'Discussion deleted successfully'
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error deleting discussion: ' . $e->getMessage());
@@ -629,12 +947,11 @@ class DiscussionsController extends Controller
     }
 
     /**
-     * Join discussion
+     * Join discussion by ID
      */
     public function joinDiscussion(Request $request, $id)
     {
         $user = Auth::user();
-
         try {
             $discussion = DB::table('discussions')
                 ->where('id', $id)
@@ -688,6 +1005,16 @@ class DiscussionsController extends Controller
                     'updated_at' => now()
                 ]);
 
+            // Create system message
+            DB::table('messages')->insert([
+                'discussion_id' => $id,
+                'user_id' => $user->id,
+                'content' => $user->name . ' joined the discussion.',
+                'message_type' => 'system',
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
             // Send notification to admin
             DB::table('notifications')->insert([
                 'user_id' => $discussion->admin_id,
@@ -704,7 +1031,6 @@ class DiscussionsController extends Controller
                 'success' => true,
                 'message' => 'Joined discussion successfully'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error joining discussion: ' . $e->getMessage());
             return response()->json([
@@ -720,7 +1046,6 @@ class DiscussionsController extends Controller
     public function leaveDiscussion(Request $request, $id)
     {
         $user = Auth::user();
-
         try {
             // Check if user is a member
             $membership = DB::table('group_members')
@@ -767,11 +1092,20 @@ class DiscussionsController extends Controller
                     'updated_at' => now()
                 ]);
 
+            // Create system message
+            DB::table('messages')->insert([
+                'discussion_id' => $id,
+                'user_id' => $user->id,
+                'content' => $user->name . ' left the discussion.',
+                'message_type' => 'system',
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Left discussion successfully'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error leaving discussion: ' . $e->getMessage());
             return response()->json([
@@ -787,7 +1121,6 @@ class DiscussionsController extends Controller
     public function getStats()
     {
         $user = Auth::user();
-
         try {
             $totalDiscussions = DB::table('discussions')
                 ->where('admin_id', $user->id)
@@ -818,11 +1151,10 @@ class DiscussionsController extends Controller
                 'data' => [
                     'total_discussions' => $totalDiscussions,
                     'active_discussions' => $activeDiscussions,
-                    'total_messages' => $totalMessages
+                    'total_messages' => $totalMessages,
                 ],
                 'message' => 'Discussion stats retrieved successfully'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error getting discussion stats: ' . $e->getMessage());
             return response()->json([
@@ -860,5 +1192,18 @@ class DiscussionsController extends Controller
             ->exists();
 
         return $isMember;
+    }
+
+    /**
+     * Generate unique invite code
+     */
+    private function generateInviteCode()
+    {
+        do {
+            $code = Str::random(8); // 8-character alphanumeric code
+            $exists = DB::table('discussions')->where('invite_code', $code)->exists();
+        } while ($exists);
+
+        return $code;
     }
 }
