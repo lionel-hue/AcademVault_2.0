@@ -1,4 +1,3 @@
-// database/migrations/xxxx_create_discussions_table.php
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -18,6 +17,10 @@ return new class extends Migration
             $table->foreignId('admin_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('collection_id')->nullable()->constrained('collections')->onDelete('set null');
             $table->enum('privacy', ['public', 'private', 'invite_only'])->default('private');
+            
+            // CORRIGÉ : enlevez ->after('privacy')
+            $table->string('invite_code', 8)->nullable();
+            
             $table->integer('member_count')->default(1);
             $table->integer('message_count')->default(0);
             $table->timestamp('last_message_at')->nullable();
