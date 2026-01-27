@@ -18,7 +18,7 @@ class FriendsController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        
+
         try {
             $friends = DB::table('friendships as f')
                 ->join('users as u', 'u.id', '=', 'f.friend_id')
@@ -56,7 +56,6 @@ class FriendsController extends Controller
                 'data' => $friends,
                 'message' => 'Friends retrieved successfully'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error fetching friends: ' . $e->getMessage());
             return response()->json([
@@ -72,7 +71,7 @@ class FriendsController extends Controller
     public function getFriendRequests(Request $request)
     {
         $user = Auth::user();
-        
+
         try {
             $requests = DB::table('friendships as f')
                 ->join('users as u', 'u.id', '=', 'f.user_id')
@@ -98,7 +97,6 @@ class FriendsController extends Controller
                 'data' => $requests,
                 'message' => 'Friend requests retrieved successfully'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error fetching friend requests: ' . $e->getMessage());
             return response()->json([
@@ -141,11 +139,11 @@ class FriendsController extends Controller
         $existingFriendship = DB::table('friendships')
             ->where(function ($query) use ($user, $friendId) {
                 $query->where('user_id', $user->id)
-                      ->where('friend_id', $friendId);
+                    ->where('friend_id', $friendId);
             })
             ->orWhere(function ($query) use ($user, $friendId) {
                 $query->where('user_id', $friendId)
-                      ->where('friend_id', $user->id);
+                    ->where('friend_id', $user->id);
             })
             ->first();
 
@@ -185,7 +183,6 @@ class FriendsController extends Controller
                 'success' => true,
                 'message' => 'Friend request sent successfully'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error sending friend request: ' . $e->getMessage());
             return response()->json([
@@ -239,7 +236,6 @@ class FriendsController extends Controller
                 'success' => true,
                 'message' => 'Friend request accepted successfully'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error accepting friend request: ' . $e->getMessage());
             return response()->json([
@@ -281,7 +277,6 @@ class FriendsController extends Controller
                 'success' => true,
                 'message' => 'Friend request rejected successfully'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error rejecting friend request: ' . $e->getMessage());
             return response()->json([
@@ -302,13 +297,13 @@ class FriendsController extends Controller
             $deleted = DB::table('friendships')
                 ->where(function ($query) use ($user, $friendId) {
                     $query->where('user_id', $user->id)
-                          ->where('friend_id', $friendId)
-                          ->where('status', 'accepted');
+                        ->where('friend_id', $friendId)
+                        ->where('status', 'accepted');
                 })
                 ->orWhere(function ($query) use ($user, $friendId) {
                     $query->where('user_id', $friendId)
-                          ->where('friend_id', $user->id)
-                          ->where('status', 'accepted');
+                        ->where('friend_id', $user->id)
+                        ->where('status', 'accepted');
                 })
                 ->delete();
 
@@ -323,7 +318,6 @@ class FriendsController extends Controller
                 'success' => false,
                 'message' => 'Friend not found'
             ], 404);
-
         } catch (\Exception $e) {
             Log::error('Error removing friend: ' . $e->getMessage());
             return response()->json([
@@ -353,16 +347,16 @@ class FriendsController extends Controller
 
         $user = Auth::user();
         $query = $request->input('query');
-        $excludeFriends = $request->input('exclude_friends', true);
+        $excludeFriends = $request->input('exclude_friends', false);
 
         try {
             $searchQuery = DB::table('users as u')
                 ->where('u.id', '!=', $user->id)
                 ->where(function ($q) use ($query) {
                     $q->where('u.name', 'LIKE', "%{$query}%")
-                      ->orWhere('u.email', 'LIKE', "%{$query}%")
-                      ->orWhere('u.institution', 'LIKE', "%{$query}%")
-                      ->orWhere('u.department', 'LIKE', "%{$query}%");
+                        ->orWhere('u.email', 'LIKE', "%{$query}%")
+                        ->orWhere('u.institution', 'LIKE', "%{$query}%")
+                        ->orWhere('u.department', 'LIKE', "%{$query}%");
                 });
 
             // Exclude already friends
@@ -380,7 +374,7 @@ class FriendsController extends Controller
                     ->toArray();
 
                 $allFriends = array_merge($friendsIds, $receivedFriendsIds);
-                
+
                 if (!empty($allFriends)) {
                     $searchQuery->whereNotIn('u.id', $allFriends);
                 }
@@ -400,12 +394,17 @@ class FriendsController extends Controller
                 ->limit(20)
                 ->get();
 
-            // Get mutual friend count for each user
-            $users->transform(function ($userItem) use ($user) {
+            // In the searchUsers method, update the user transformation logic:
+
+            // Find the section where you transform users (around line 250-280 in the current code)
+            // Update it to include friend status check:
+
+            $users->transform(function ($userItem) use ($user, $excludeFriends) {
+                // Calculate mutual friends
                 $mutualFriends = DB::table('friendships as f1')
                     ->join('friendships as f2', function ($join) use ($userItem) {
                         $join->on('f1.friend_id', '=', 'f2.friend_id')
-                             ->where('f2.user_id', $userItem->id);
+                            ->where('f2.user_id', $userItem->id);
                     })
                     ->where('f1.user_id', $user->id)
                     ->where('f1.status', 'accepted')
@@ -413,7 +412,45 @@ class FriendsController extends Controller
                     ->count();
 
                 $userItem->mutual_friends = $mutualFriends;
-                $userItem->is_friend = false; // Since we excluded friends
+
+                // Check if they are friends
+                $isFriend = DB::table('friendships')
+                    ->where(function ($query) use ($user, $userItem) {
+                        $query->where('user_id', $user->id)
+                            ->where('friend_id', $userItem->id)
+                            ->where('status', 'accepted');
+                    })
+                    ->orWhere(function ($query) use ($user, $userItem) {
+                        $query->where('friend_id', $user->id)
+                            ->where('user_id', $userItem->id)
+                            ->where('status', 'accepted');
+                    })
+                    ->exists();
+
+                $userItem->is_friend = $isFriend;
+
+                // Check for pending requests
+                $pendingSent = DB::table('friendships')
+                    ->where('user_id', $user->id)
+                    ->where('friend_id', $userItem->id)
+                    ->where('status', 'pending')
+                    ->exists();
+
+                $pendingReceived = DB::table('friendships')
+                    ->where('friend_id', $user->id)
+                    ->where('user_id', $userItem->id)
+                    ->where('status', 'pending')
+                    ->exists();
+
+                if ($pendingSent) {
+                    $userItem->is_friend = 'pending_sent';
+                } else if ($pendingReceived) {
+                    $userItem->is_friend = 'pending_received';
+                } else if ($isFriend) {
+                    $userItem->is_friend = true;
+                } else {
+                    $userItem->is_friend = false;
+                }
 
                 return $userItem;
             });
@@ -423,7 +460,6 @@ class FriendsController extends Controller
                 'data' => $users,
                 'message' => 'Users found successfully'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error searching users: ' . $e->getMessage());
             return response()->json([
@@ -444,11 +480,11 @@ class FriendsController extends Controller
             $totalFriends = DB::table('friendships')
                 ->where(function ($query) use ($user) {
                     $query->where('user_id', $user->id)
-                          ->where('status', 'accepted');
+                        ->where('status', 'accepted');
                 })
                 ->orWhere(function ($query) use ($user) {
                     $query->where('friend_id', $user->id)
-                          ->where('status', 'accepted');
+                        ->where('status', 'accepted');
                 })
                 ->count();
 
@@ -481,7 +517,6 @@ class FriendsController extends Controller
                 ],
                 'message' => 'Friend stats retrieved successfully'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error getting friend stats: ' . $e->getMessage());
             return response()->json([

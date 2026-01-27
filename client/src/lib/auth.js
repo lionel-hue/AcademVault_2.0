@@ -1833,10 +1833,12 @@ class AuthService {
         });
     }
 
-    async searchUsers(query) {
+    // In the AuthService class, update the searchUsers method:
+
+    async searchUsers(query, exclude_friends = false) {
         return this.makeRequest('/friends/search', {
             method: 'POST',
-            body: JSON.stringify({ query, exclude_friends: true })
+            body: JSON.stringify({ query, exclude_friends })
         });
     }
 
