@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SearchSessionsController;
 use App\Http\Controllers\Api\DocumentsController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\FriendsController;
+use App\Http\Controllers\Api\DiscussionsController;
 
 
 Route::prefix('auth')->group(function () {
@@ -115,5 +117,36 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/preferences', [ProfileController::class, 'getPreferences']);
         Route::post('/preferences', [ProfileController::class, 'updatePreferences']);
         Route::delete('/account', [ProfileController::class, 'deleteAccount']);
+    });
+});
+
+
+//Friends Routes (Protected)
+Route::middleware(['auth:api'])->group(function () {
+    Route::prefix('friends')->group(function () {
+        Route::get('/', [FriendsController::class, 'index']);
+        Route::get('/requests', [FriendsController::class, 'getFriendRequests']);
+        Route::post('/send', [FriendsController::class, 'sendRequest']);
+        Route::post('/requests/{id}/accept', [FriendsController::class, 'acceptRequest']);
+        Route::post('/requests/{id}/reject', [FriendsController::class, 'rejectRequest']);
+        Route::delete('/{friendId}', [FriendsController::class, 'removeFriend']);
+        Route::post('/search', [FriendsController::class, 'searchUsers']);
+        Route::get('/stats', [FriendsController::class, 'getStats']);
+    });
+});
+
+
+//Discussions Route (Protected)
+Route::middleware(['auth:api'])->group(function () {
+    Route::prefix('discussions')->group(function () {
+        Route::get('/', [DiscussionsController::class, 'index']);
+        Route::get('/stats', [DiscussionsController::class, 'getStats']);
+        Route::post('/', [DiscussionsController::class, 'store']);
+        Route::get('/{id}', [DiscussionsController::class, 'show']);
+        Route::put('/{id}', [DiscussionsController::class, 'update']);
+        Route::delete('/{id}', [DiscussionsController::class, 'destroy']);
+        Route::post('/{id}/messages', [DiscussionsController::class, 'sendMessage']);
+        Route::post('/{id}/join', [DiscussionsController::class, 'joinDiscussion']);
+        Route::post('/{id}/leave', [DiscussionsController::class, 'leaveDiscussion']);
     });
 });

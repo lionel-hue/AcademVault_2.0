@@ -1796,6 +1796,105 @@ class AuthService {
             throw error;
         }
     }
+
+
+
+    // ============= FRIENDS API METHODS =============
+    async fetchFriends() {
+        return this.makeRequest('/friends');
+    }
+
+    async fetchFriendRequests() {
+        return this.makeRequest('/friends/requests');
+    }
+
+    async sendFriendRequest(friendId, message = '') {
+        return this.makeRequest('/friends/send', {
+            method: 'POST',
+            body: JSON.stringify({ friend_id: friendId, message })
+        });
+    }
+
+    async acceptFriendRequest(requestId) {
+        return this.makeRequest(`/friends/requests/${requestId}/accept`, {
+            method: 'POST'
+        });
+    }
+
+    async rejectFriendRequest(requestId) {
+        return this.makeRequest(`/friends/requests/${requestId}/reject`, {
+            method: 'POST'
+        });
+    }
+
+    async removeFriend(friendId) {
+        return this.makeRequest(`/friends/${friendId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    async searchUsers(query) {
+        return this.makeRequest('/friends/search', {
+            method: 'POST',
+            body: JSON.stringify({ query, exclude_friends: true })
+        });
+    }
+
+    async getFriendStats() {
+        return this.makeRequest('/friends/stats');
+    }
+
+    // ============= DISCUSSIONS API METHODS =============
+    async fetchDiscussions() {
+        return this.makeRequest('/discussions');
+    }
+
+    async fetchDiscussion(id) {
+        return this.makeRequest(`/discussions/${id}`);
+    }
+
+    async createDiscussion(data) {
+        return this.makeRequest('/discussions', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async updateDiscussion(id, data) {
+        return this.makeRequest(`/discussions/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async deleteDiscussion(id) {
+        return this.makeRequest(`/discussions/${id}`, {
+            method: 'DELETE'
+        });
+    }
+
+    async sendMessage(discussionId, messageData) {
+        return this.makeRequest(`/discussions/${discussionId}/messages`, {
+            method: 'POST',
+            body: JSON.stringify(messageData)
+        });
+    }
+
+    async joinDiscussion(discussionId) {
+        return this.makeRequest(`/discussions/${discussionId}/join`, {
+            method: 'POST'
+        });
+    }
+
+    async leaveDiscussion(discussionId) {
+        return this.makeRequest(`/discussions/${discussionId}/leave`, {
+            method: 'POST'
+        });
+    }
+
+    async getDiscussionStats() {
+        return this.makeRequest('/discussions/stats');
+    }
 }
 
 // Export singleton instance
