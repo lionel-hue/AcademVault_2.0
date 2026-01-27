@@ -1895,6 +1895,11 @@ class AuthService {
     async getDiscussionStats() {
         return this.makeRequest('/discussions/stats');
     }
+
+    // Add this method to ensure proper error handling for discussions
+    async fetchDiscussion(id) {
+        return this.makeRequest(`/discussions/${id}`);
+    }
 }
 
 // Export singleton instance

@@ -4,30 +4,28 @@ import { useRouter } from 'next/navigation';
 import MainLayout from '@/app/components/Layout/MainLayout';
 import AuthService from '@/lib/auth';
 import { useModal } from '@/app/components/UI/Modal/ModalContext';
-import { MobileTabs, MobileCard, useIsMobile, MobileButton } from '@/app/components/UI/MobileOptimized';
+import { MobileCard, useIsMobile } from '@/app/components/UI/MobileOptimized';
 
 export default function DiscussionsPage() {
   const router = useRouter();
   const { alert, confirm, prompt } = useModal();
   const isMobile = useIsMobile();
-  
   const [activeTab, setActiveTab] = useState('my-discussions');
   const [loading, setLoading] = useState(true);
   const [discussions, setDiscussions] = useState([]);
-  const [stats, setStats] = useState({
-    total_discussions: 0,
-    active_discussions: 0,
-    total_messages: 0
+  const [stats, setStats] = useState({ 
+    total_discussions: 0, 
+    active_discussions: 0, 
+    total_messages: 0 
   });
-  
   const [creatingDiscussion, setCreatingDiscussion] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newDiscussion, setNewDiscussion] = useState({
-    title: '',
-    description: '',
-    type: 'general',
-    privacy: 'private',
-    tags: []
+  const [newDiscussion, setNewDiscussion] = useState({ 
+    title: '', 
+    description: '', 
+    type: 'general', 
+    privacy: 'private', 
+    tags: [] 
   });
 
   useEffect(() => {
@@ -56,10 +54,10 @@ export default function DiscussionsPage() {
     try {
       const response = await AuthService.getDiscussionStats();
       if (response.success) {
-        setStats(response.data || {
-          total_discussions: 0,
-          active_discussions: 0,
-          total_messages: 0
+        setStats(response.data || { 
+          total_discussions: 0, 
+          active_discussions: 0, 
+          total_messages: 0 
         });
       }
     } catch (error) {
@@ -69,40 +67,40 @@ export default function DiscussionsPage() {
 
   const handleCreateDiscussion = async () => {
     if (!newDiscussion.title.trim()) {
-      await alert({
-        title: 'Validation Error',
-        message: 'Please enter a title for the discussion',
-        variant: 'warning'
+      await alert({ 
+        title: 'Validation Error', 
+        message: 'Please enter a title for the discussion', 
+        variant: 'warning' 
       });
       return;
     }
-
+    
     setCreatingDiscussion(true);
     try {
       const response = await AuthService.createDiscussion(newDiscussion);
       if (response.success) {
-        await alert({
-          title: 'Discussion Created',
-          message: 'Discussion created successfully!',
-          variant: 'success'
+        await alert({ 
+          title: 'Discussion Created', 
+          message: 'Discussion created successfully!', 
+          variant: 'success' 
         });
         setShowCreateModal(false);
-        setNewDiscussion({
-          title: '',
-          description: '',
-          type: 'general',
-          privacy: 'private',
-          tags: []
+        setNewDiscussion({ 
+          title: '', 
+          description: '', 
+          type: 'general', 
+          privacy: 'private', 
+          tags: [] 
         });
         await loadDiscussions();
         await loadStats();
       }
     } catch (error) {
       console.error('Error creating discussion:', error);
-      await alert({
-        title: 'Error',
-        message: error.message || 'Failed to create discussion',
-        variant: 'danger'
+      await alert({ 
+        title: 'Error', 
+        message: error.message || 'Failed to create discussion', 
+        variant: 'danger' 
       });
     } finally {
       setCreatingDiscussion(false);
@@ -113,28 +111,28 @@ export default function DiscussionsPage() {
     try {
       const response = await AuthService.joinDiscussion(discussionId);
       if (response.success) {
-        await alert({
-          title: 'Joined Discussion',
-          message: 'You have successfully joined the discussion',
-          variant: 'success'
+        await alert({ 
+          title: 'Joined Discussion', 
+          message: 'You have successfully joined the discussion', 
+          variant: 'success' 
         });
         await loadDiscussions();
       }
     } catch (error) {
       console.error('Error joining discussion:', error);
-      await alert({
-        title: 'Error',
-        message: error.message || 'Failed to join discussion',
-        variant: 'danger'
+      await alert({ 
+        title: 'Error', 
+        message: error.message || 'Failed to join discussion', 
+        variant: 'danger' 
       });
     }
   };
 
   const handleLeaveDiscussion = async (discussionId, discussionTitle) => {
-    const confirmed = await confirm({
-      title: 'Leave Discussion',
-      message: `Are you sure you want to leave "${discussionTitle}"?`,
-      variant: 'warning'
+    const confirmed = await confirm({ 
+      title: 'Leave Discussion', 
+      message: `Are you sure you want to leave "${discussionTitle}"?`, 
+      variant: 'warning' 
     });
     
     if (!confirmed) return;
@@ -142,29 +140,29 @@ export default function DiscussionsPage() {
     try {
       const response = await AuthService.leaveDiscussion(discussionId);
       if (response.success) {
-        await alert({
-          title: 'Left Discussion',
-          message: 'You have left the discussion',
-          variant: 'success'
+        await alert({ 
+          title: 'Left Discussion', 
+          message: 'You have left the discussion', 
+          variant: 'success' 
         });
         await loadDiscussions();
         await loadStats();
       }
     } catch (error) {
       console.error('Error leaving discussion:', error);
-      await alert({
-        title: 'Error',
-        message: error.message || 'Failed to leave discussion',
-        variant: 'danger'
+      await alert({ 
+        title: 'Error', 
+        message: error.message || 'Failed to leave discussion', 
+        variant: 'danger' 
       });
     }
   };
 
   const handleDeleteDiscussion = async (discussionId, discussionTitle) => {
-    const confirmed = await confirm({
-      title: 'Delete Discussion',
-      message: `Are you sure you want to delete "${discussionTitle}"? This action cannot be undone.`,
-      variant: 'danger'
+    const confirmed = await confirm({ 
+      title: 'Delete Discussion', 
+      message: `Are you sure you want to delete "${discussionTitle}"? This action cannot be undone.`, 
+      variant: 'danger' 
     });
     
     if (!confirmed) return;
@@ -172,20 +170,20 @@ export default function DiscussionsPage() {
     try {
       const response = await AuthService.deleteDiscussion(discussionId);
       if (response.success) {
-        await alert({
-          title: 'Discussion Deleted',
-          message: 'Discussion deleted successfully',
-          variant: 'success'
+        await alert({ 
+          title: 'Discussion Deleted', 
+          message: 'Discussion deleted successfully', 
+          variant: 'success' 
         });
         await loadDiscussions();
         await loadStats();
       }
     } catch (error) {
       console.error('Error deleting discussion:', error);
-      await alert({
-        title: 'Error',
-        message: error.message || 'Failed to delete discussion',
-        variant: 'danger'
+      await alert({ 
+        title: 'Error', 
+        message: error.message || 'Failed to delete discussion', 
+        variant: 'danger' 
       });
     }
   };
@@ -220,6 +218,28 @@ export default function DiscussionsPage() {
         return null;
     }
   };
+
+  // Mobile tabs component
+  const MobileTabs = ({ tabs, activeTab, onChange }) => (
+    <div className="flex overflow-x-auto pb-2 -mx-3 sm:-mx-4 px-3 sm:px-4">
+      <div className="flex gap-2 min-w-max">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => onChange(tab.id)}
+            className={`px-4 py-3 rounded-xl font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-2 min-h-[44px] ${
+              activeTab === tab.id
+                ? `bg-${tab.color}-600 text-white shadow-lg`
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
+          >
+            <i className={tab.icon}></i>
+            <span>{tab.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 
   const tabs = [
     { id: 'my-discussions', label: 'My Discussions', icon: 'fas fa-comments', color: 'blue' },
@@ -275,7 +295,7 @@ export default function DiscussionsPage() {
               </div>
             </div>
           </MobileCard>
-          
+
           <MobileCard className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -287,7 +307,7 @@ export default function DiscussionsPage() {
               </div>
             </div>
           </MobileCard>
-          
+
           <MobileCard className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -304,11 +324,7 @@ export default function DiscussionsPage() {
         {/* Tabs */}
         <div className="mb-4 md:mb-6">
           {isMobile ? (
-            <MobileTabs
-              tabs={tabs}
-              activeTab={activeTab}
-              onChange={setActiveTab}
-            />
+            <MobileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
           ) : (
             <div className="flex gap-2">
               {tabs.map((tab) => (
@@ -340,8 +356,12 @@ export default function DiscussionsPage() {
             {filteredDiscussions.map((discussion) => (
               <MobileCard key={discussion.id} className="p-4">
                 <div className="flex items-start gap-3 mb-3">
-                  <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg ${getDiscussionColor(discussion.type).replace('text-', 'bg-').replace('-400', '-500/20')} flex items-center justify-center`}>
-                    <i className={`${getDiscussionIcon(discussion.type)} ${getDiscussionColor(discussion.type)} text-sm md:text-base`}></i>
+                  <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg ${
+                    getDiscussionColor(discussion.type).replace('text-', 'bg-').replace('-400', '-500/20')
+                  } flex items-center justify-center`}>
+                    <i className={`${getDiscussionIcon(discussion.type)} ${
+                      getDiscussionColor(discussion.type)
+                    } text-sm md:text-base`}></i>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between">
@@ -373,10 +393,7 @@ export default function DiscussionsPage() {
                 {discussion.tags && discussion.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-3">
                     {discussion.tags.slice(0, 3).map((tag, idx) => (
-                      <span
-                        key={idx}
-                        className="text-xs px-2 py-1 bg-gray-800/50 text-gray-300 rounded"
-                      >
+                      <span key={idx} className="text-xs px-2 py-1 bg-gray-800/50 text-gray-300 rounded">
                         {tag}
                       </span>
                     ))}
@@ -437,11 +454,9 @@ export default function DiscussionsPage() {
                'No Archived Discussions'}
             </h3>
             <p className="text-gray-400 mb-6">
-              {activeTab === 'my-discussions' ? 
-                'Create your first discussion to start collaborating' : 
-                activeTab === 'public' ? 
-                'No public discussions available at the moment' : 
-                'No archived discussions'}
+              {activeTab === 'my-discussions' ? 'Create your first discussion to start collaborating' :
+               activeTab === 'public' ? 'No public discussions available at the moment' :
+               'No archived discussions'}
             </p>
             {activeTab === 'my-discussions' && (
               <button
