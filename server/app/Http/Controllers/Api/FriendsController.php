@@ -12,17 +12,19 @@ use Illuminate\Support\Facades\Log;
 
 class FriendsController extends Controller
 {
-    /**
-     * Get user's friends
-     */
+    // In the existing index() method, replace the query with:
     public function index(Request $request)
     {
         $user = Auth::user();
 
         try {
+            // Get friends from both directions (user sent OR received request)
             $friends = DB::table('friendships as f')
-                ->join('users as u', 'u.id', '=', 'f.friend_id')
-                ->where('f.user_id', $user->id)
+                ->join('users as u', function ($join) use ($user) {
+                    // When user sent request, friend is friend_id
+                    $join->on('u.id', '=', 'f.friend_id')
+                        ->where('f.user_id', $user->id);
+                })
                 ->where('f.status', 'accepted')
                 ->select(
                     'u.id',
@@ -38,7 +40,30 @@ class FriendsController extends Controller
                     'f.accepted_at',
                     'f.created_at'
                 )
-                ->orderBy('f.accepted_at', 'desc')
+                ->union(
+                    // When user received request, friend is user_id
+                    DB::table('friendships as f2')
+                        ->join('users as u2', function ($join) use ($user) {
+                            $join->on('u2.id', '=', 'f2.user_id')
+                                ->where('f2.friend_id', $user->id);
+                        })
+                        ->where('f2.status', 'accepted')
+                        ->select(
+                            'u2.id',
+                            'u2.name',
+                            'u2.email',
+                            'u2.type',
+                            'u2.institution',
+                            'u2.department',
+                            'u2.profile_image',
+                            'f2.relationship_type',
+                            'f2.shared_interests',
+                            'f2.interaction_score',
+                            'f2.accepted_at',
+                            'f2.created_at'
+                        )
+                )
+                ->orderBy('accepted_at', 'desc')
                 ->get();
 
             // Parse shared_interests JSON
@@ -71,7 +96,6 @@ class FriendsController extends Controller
     public function getFriendRequests(Request $request)
     {
         $user = Auth::user();
-
         try {
             $requests = DB::table('friendships as f')
                 ->join('users as u', 'u.id', '=', 'f.user_id')
@@ -148,9 +172,16 @@ class FriendsController extends Controller
             ->first();
 
         if ($existingFriendship) {
+            $status = $existingFriendship->status;
+            $message = $status === 'pending'
+                ? 'Friend request already pending'
+                : ($status === 'accepted'
+                    ? 'Already friends'
+                    : 'Friendship exists');
+
             return response()->json([
                 'success' => false,
-                'message' => 'Friendship already exists'
+                'message' => $message
             ], 400);
         }
 
@@ -198,7 +229,6 @@ class FriendsController extends Controller
     public function acceptRequest(Request $request, $requestId)
     {
         $user = Auth::user();
-
         try {
             $friendship = DB::table('friendships')
                 ->where('id', $requestId)
@@ -251,7 +281,6 @@ class FriendsController extends Controller
     public function rejectRequest(Request $request, $requestId)
     {
         $user = Auth::user();
-
         try {
             $friendship = DB::table('friendships')
                 ->where('id', $requestId)
@@ -292,7 +321,6 @@ class FriendsController extends Controller
     public function removeFriend(Request $request, $friendId)
     {
         $user = Auth::user();
-
         try {
             $deleted = DB::table('friendships')
                 ->where(function ($query) use ($user, $friendId) {
@@ -362,21 +390,23 @@ class FriendsController extends Controller
             // Exclude already friends
             if ($excludeFriends) {
                 $friendsIds = DB::table('friendships')
-                    ->where('user_id', $user->id)
+                    ->where(function ($q) use ($user) {
+                        $q->where('user_id', $user->id)
+                            ->orWhere('friend_id', $user->id);
+                    })
                     ->where('status', 'accepted')
-                    ->pluck('friend_id')
+                    ->pluck('user_id', 'friend_id')
+                    ->flatMap(function ($value, $key) {
+                        return [$value, $key];
+                    })
+                    ->unique()
+                    ->filter(function ($id) use ($user) {
+                        return $id != $user->id;
+                    })
                     ->toArray();
 
-                $receivedFriendsIds = DB::table('friendships')
-                    ->where('friend_id', $user->id)
-                    ->where('status', 'accepted')
-                    ->pluck('user_id')
-                    ->toArray();
-
-                $allFriends = array_merge($friendsIds, $receivedFriendsIds);
-
-                if (!empty($allFriends)) {
-                    $searchQuery->whereNotIn('u.id', $allFriends);
+                if (!empty($friendsIds)) {
+                    $searchQuery->whereNotIn('u.id', $friendsIds);
                 }
             }
 
@@ -394,12 +424,8 @@ class FriendsController extends Controller
                 ->limit(20)
                 ->get();
 
-            // In the searchUsers method, update the user transformation logic:
-
-            // Find the section where you transform users (around line 250-280 in the current code)
-            // Update it to include friend status check:
-
-            $users->transform(function ($userItem) use ($user, $excludeFriends) {
+            // Add friend status and mutual friends
+            $users->transform(function ($userItem) use ($user) {
                 // Calculate mutual friends
                 $mutualFriends = DB::table('friendships as f1')
                     ->join('friendships as f2', function ($join) use ($userItem) {
@@ -413,43 +439,36 @@ class FriendsController extends Controller
 
                 $userItem->mutual_friends = $mutualFriends;
 
-                // Check if they are friends
-                $isFriend = DB::table('friendships')
+                // Check friendship status
+                $friendship = DB::table('friendships')
                     ->where(function ($query) use ($user, $userItem) {
                         $query->where('user_id', $user->id)
-                            ->where('friend_id', $userItem->id)
-                            ->where('status', 'accepted');
+                            ->where('friend_id', $userItem->id);
                     })
                     ->orWhere(function ($query) use ($user, $userItem) {
                         $query->where('friend_id', $user->id)
-                            ->where('user_id', $userItem->id)
-                            ->where('status', 'accepted');
+                            ->where('user_id', $userItem->id);
                     })
-                    ->exists();
+                    ->first();
 
-                $userItem->is_friend = $isFriend;
-
-                // Check for pending requests
-                $pendingSent = DB::table('friendships')
-                    ->where('user_id', $user->id)
-                    ->where('friend_id', $userItem->id)
-                    ->where('status', 'pending')
-                    ->exists();
-
-                $pendingReceived = DB::table('friendships')
-                    ->where('friend_id', $user->id)
-                    ->where('user_id', $userItem->id)
-                    ->where('status', 'pending')
-                    ->exists();
-
-                if ($pendingSent) {
-                    $userItem->is_friend = 'pending_sent';
-                } else if ($pendingReceived) {
-                    $userItem->is_friend = 'pending_received';
-                } else if ($isFriend) {
-                    $userItem->is_friend = true;
+                if ($friendship) {
+                    if ($friendship->status === 'accepted') {
+                        $userItem->is_friend = true;
+                        $userItem->friendship_status = 'accepted';
+                    } elseif ($friendship->status === 'pending') {
+                        if ($friendship->user_id == $user->id) {
+                            $userItem->is_friend = 'pending_sent';
+                        } else {
+                            $userItem->is_friend = 'pending_received';
+                        }
+                        $userItem->friendship_status = 'pending';
+                    } else {
+                        $userItem->is_friend = false;
+                        $userItem->friendship_status = $friendship->status;
+                    }
                 } else {
                     $userItem->is_friend = false;
+                    $userItem->friendship_status = null;
                 }
 
                 return $userItem;
@@ -475,36 +494,40 @@ class FriendsController extends Controller
     public function getStats()
     {
         $user = Auth::user();
-
         try {
+            // 1. Count total accepted friendships (both directions)
             $totalFriends = DB::table('friendships')
                 ->where(function ($query) use ($user) {
                     $query->where('user_id', $user->id)
-                        ->where('status', 'accepted');
+                        ->orWhere('friend_id', $user->id);
                 })
-                ->orWhere(function ($query) use ($user) {
-                    $query->where('friend_id', $user->id)
-                        ->where('status', 'accepted');
-                })
+                ->where('status', 'accepted')
                 ->count();
 
+            // 2. Count pending requests received by the user
             $pendingRequests = DB::table('friendships')
                 ->where('friend_id', $user->id)
                 ->where('status', 'pending')
                 ->count();
 
-            $colleagues = DB::table('friendships as f')
-                ->join('users as u', 'u.id', '=', 'f.friend_id')
-                ->where('f.user_id', $user->id)
-                ->where('f.status', 'accepted')
-                ->where('f.relationship_type', 'colleague')
+            // 3. Count colleagues (No join needed, relationship_type is in the friendships table)
+            $colleagues = DB::table('friendships')
+                ->where('status', 'accepted')
+                ->where('relationship_type', 'colleague')
+                ->where(function ($query) use ($user) {
+                    $query->where('user_id', $user->id)
+                        ->orWhere('friend_id', $user->id);
+                })
                 ->count();
 
-            $mentors = DB::table('friendships as f')
-                ->join('users as u', 'u.id', '=', 'f.friend_id')
-                ->where('f.user_id', $user->id)
-                ->where('f.status', 'accepted')
-                ->where('f.relationship_type', 'mentor')
+            // 4. Count mentors (No join needed)
+            $mentors = DB::table('friendships')
+                ->where('status', 'accepted')
+                ->where('relationship_type', 'mentor')
+                ->where(function ($query) use ($user) {
+                    $query->where('user_id', $user->id)
+                        ->orWhere('friend_id', $user->id);
+                })
                 ->count();
 
             return response()->json([
