@@ -4,13 +4,12 @@ import { useRouter } from 'next/navigation';
 import MainLayout from '@/app/components/Layout/MainLayout';
 import AuthService from '@/lib/auth';
 import { useModal } from '@/app/components/UI/Modal/ModalContext';
-import { MobileTabs, MobileCard, useIsMobile } from '@/app/components/UI/MobileOptimized';
+import { MobileCard, useIsMobile } from '@/app/components/UI/MobileOptimized';
 
 export default function FriendsPage() {
   const router = useRouter();
   const { alert, confirm, prompt } = useModal();
   const isMobile = useIsMobile();
-  
   const [activeTab, setActiveTab] = useState('all');
   const [loading, setLoading] = useState(true);
   const [friends, setFriends] = useState([]);
@@ -18,11 +17,11 @@ export default function FriendsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
-  const [stats, setStats] = useState({
-    total_friends: 0,
-    pending_requests: 0,
-    colleagues: 0,
-    mentors: 0
+  const [stats, setStats] = useState({ 
+    total_friends: 0, 
+    pending_requests: 0, 
+    colleagues: 0, 
+    mentors: 0 
   });
 
   useEffect(() => {
@@ -76,11 +75,11 @@ export default function FriendsPage() {
     try {
       const response = await AuthService.getFriendStats();
       if (response.success) {
-        setStats(response.data || {
-          total_friends: 0,
-          pending_requests: 0,
-          colleagues: 0,
-          mentors: 0
+        setStats(response.data || { 
+          total_friends: 0, 
+          pending_requests: 0, 
+          colleagues: 0, 
+          mentors: 0 
         });
       }
     } catch (error) {
@@ -102,10 +101,10 @@ export default function FriendsPage() {
       }
     } catch (error) {
       console.error('Error searching:', error);
-      await alert({
-        title: 'Search Error',
-        message: error.message || 'Failed to search users',
-        variant: 'danger'
+      await alert({ 
+        title: 'Search Error', 
+        message: error.message || 'Failed to search users', 
+        variant: 'danger' 
       });
       setSearchResults([]);
     } finally {
@@ -117,28 +116,27 @@ export default function FriendsPage() {
     try {
       const response = await AuthService.acceptFriendRequest(requestId);
       if (response.success) {
-        await alert({
-          title: 'Friend Request Accepted',
-          message: 'You are now friends!',
+        await alert({ 
+          title: 'Friend Request Accepted', 
+          message: 'You are now friends!', 
           variant: 'success',
         });
-        // Reload data
         await loadAllData();
       }
     } catch (error) {
       console.error('Error accepting request:', error);
-      await alert({
-        title: 'Error',
-        message: error.message || 'Failed to accept friend request',
-        variant: 'danger'
+      await alert({ 
+        title: 'Error', 
+        message: error.message || 'Failed to accept friend request', 
+        variant: 'danger' 
       });
     }
   };
 
   const handleRejectRequest = async (requestId) => {
-    const confirmed = await confirm({
-      title: 'Reject Friend Request',
-      message: 'Are you sure you want to reject this request?',
+    const confirmed = await confirm({ 
+      title: 'Reject Friend Request', 
+      message: 'Are you sure you want to reject this request?', 
       variant: 'warning',
     });
     
@@ -152,20 +150,20 @@ export default function FriendsPage() {
       }
     } catch (error) {
       console.error('Error rejecting request:', error);
-      await alert({
-        title: 'Error',
-        message: error.message || 'Failed to reject friend request',
-        variant: 'danger'
+      await alert({ 
+        title: 'Error', 
+        message: error.message || 'Failed to reject friend request', 
+        variant: 'danger' 
       });
     }
   };
 
   const handleSendRequest = async (userId) => {
-    const message = await prompt({
-      title: 'Send Friend Request',
-      message: 'Add a personal message (optional):',
-      placeholder: 'Hi! I would like to connect with you...',
-      variant: 'default'
+    const message = await prompt({ 
+      title: 'Send Friend Request', 
+      message: 'Add a personal message (optional):', 
+      placeholder: 'Hi! I would like to connect with you...', 
+      variant: 'default' 
     });
     
     if (message === null) return; // User cancelled
@@ -173,30 +171,31 @@ export default function FriendsPage() {
     try {
       const response = await AuthService.sendFriendRequest(userId, message);
       if (response.success) {
-        await alert({
-          title: 'Request Sent',
-          message: 'Friend request sent successfully!',
+        await alert({ 
+          title: 'Request Sent', 
+          message: 'Friend request sent successfully!', 
           variant: 'success',
         });
-        // Update search results to reflect sent request
-        setSearchResults(prev => prev.map(user => 
-          user.id === userId ? { ...user, is_friend: 'pending' } : user
-        ));
+        setSearchResults(prev => 
+          prev.map(user => 
+            user.id === userId ? { ...user, is_friend: 'pending' } : user 
+          )
+        );
       }
     } catch (error) {
       console.error('Error sending request:', error);
-      await alert({
-        title: 'Error',
-        message: error.message || 'Failed to send friend request',
-        variant: 'danger'
+      await alert({ 
+        title: 'Error', 
+        message: error.message || 'Failed to send friend request', 
+        variant: 'danger' 
       });
     }
   };
 
   const handleRemoveFriend = async (friendId) => {
-    const confirmed = await confirm({
-      title: 'Remove Friend',
-      message: 'Are you sure you want to remove this friend?',
+    const confirmed = await confirm({ 
+      title: 'Remove Friend', 
+      message: 'Are you sure you want to remove this friend?', 
       variant: 'danger',
     });
     
@@ -205,9 +204,9 @@ export default function FriendsPage() {
     try {
       const response = await AuthService.removeFriend(friendId);
       if (response.success) {
-        await alert({
-          title: 'Friend Removed',
-          message: 'Friend removed successfully',
+        await alert({ 
+          title: 'Friend Removed', 
+          message: 'Friend removed successfully', 
           variant: 'success',
         });
         await loadFriends();
@@ -215,10 +214,10 @@ export default function FriendsPage() {
       }
     } catch (error) {
       console.error('Error removing friend:', error);
-      await alert({
-        title: 'Error',
-        message: error.message || 'Failed to remove friend',
-        variant: 'danger'
+      await alert({ 
+        title: 'Error', 
+        message: error.message || 'Failed to remove friend', 
+        variant: 'danger' 
       });
     }
   };
@@ -242,7 +241,7 @@ export default function FriendsPage() {
       const diffMins = Math.floor(diffMs / 60000);
       const diffHours = Math.floor(diffMs / 3600000);
       const diffDays = Math.floor(diffMs / 86400000);
-
+      
       if (diffMins < 5) return 'Active now';
       if (diffMins < 60) return `${diffMins}m ago`;
       if (diffHours < 24) return `${diffHours}h ago`;
@@ -252,6 +251,33 @@ export default function FriendsPage() {
       return 'Recently';
     }
   };
+
+  // Mobile tabs component
+  const MobileTabs = ({ tabs, activeTab, onChange }) => (
+    <div className="flex overflow-x-auto pb-2 -mx-3 sm:-mx-4 px-3 sm:px-4">
+      <div className="flex gap-2 min-w-max">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => onChange(tab.id)}
+            className={`px-4 py-3 rounded-xl font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-2 min-h-[44px] ${
+              activeTab === tab.id
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
+          >
+            <i className={tab.icon}></i>
+            <span>{tab.label}</span>
+            {tab.count > 0 && (
+              <span className="ml-2 bg-white/20 text-xs px-2 py-1 rounded-full">
+                {tab.count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 
   const tabs = [
     { id: 'all', label: 'All Friends', icon: 'fas fa-users', count: stats.total_friends },
@@ -275,11 +301,7 @@ export default function FriendsPage() {
         {/* Tabs */}
         <div className="mb-4 md:mb-6">
           {isMobile ? (
-            <MobileTabs
-              tabs={tabs}
-              activeTab={activeTab}
-              onChange={setActiveTab}
-            />
+            <MobileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
           ) : (
             <div className="flex gap-2">
               {tabs.map((tab) => (
@@ -365,15 +387,12 @@ export default function FriendsPage() {
                         </p>
                       </div>
                     </div>
-                    
+
                     {/* Shared Interests */}
                     {friend.shared_interests && friend.shared_interests.length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-3">
                         {friend.shared_interests.slice(0, 3).map((interest, idx) => (
-                          <span
-                            key={idx}
-                            className="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded"
-                          >
+                          <span key={idx} className="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded">
                             {interest}
                           </span>
                         ))}
@@ -445,7 +464,7 @@ export default function FriendsPage() {
                         </p>
                       </div>
                     </div>
-                    
+
                     {/* Message */}
                     {request.message && (
                       <p className="text-xs md:text-sm text-gray-300 mb-3 p-2 bg-gray-800/30 rounded">
@@ -536,7 +555,6 @@ export default function FriendsPage() {
                         )}
                       </div>
                     </div>
-                    
                     <button
                       onClick={() => handleSendRequest(user.id)}
                       disabled={user.is_friend === 'pending'}
@@ -567,7 +585,9 @@ export default function FriendsPage() {
               <div className="text-center py-12 bg-gray-900/30 rounded-xl">
                 <i className="fas fa-users text-4xl text-gray-600 mb-4"></i>
                 <h3 className="text-xl font-bold text-white mb-2">Find New Friends</h3>
-                <p className="text-gray-400 mb-6">Search for researchers by name, email, or institution</p>
+                <p className="text-gray-400 mb-6">
+                  Search for researchers by name, email, or institution
+                </p>
               </div>
             )}
           </div>
