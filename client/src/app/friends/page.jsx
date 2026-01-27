@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/app/components/Layout/MainLayout';
@@ -11,7 +10,7 @@ export default function FriendsPage() {
   const router = useRouter();
   const { alert, confirm, prompt } = useModal();
   const isMobile = useIsMobile();
-
+  
   const [activeTab, setActiveTab] = useState('all');
   const [loading, setLoading] = useState(true);
   const [friends, setFriends] = useState([]);
@@ -19,158 +18,145 @@ export default function FriendsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [stats, setStats] = useState({
+    total_friends: 0,
+    pending_requests: 0,
+    colleagues: 0,
+    mentors: 0
+  });
 
   useEffect(() => {
-    loadFriends();
-    loadFriendRequests();
+    loadAllData();
   }, []);
 
-  const loadFriends = async () => {
+  const loadAllData = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      const mockFriends = [
-        {
-          id: 1,
-          name: 'Alice Johnson',
-          email: 'alice@university.edu',
-          type: 'student',
-          institution: 'MIT',
-          department: 'Computer Science',
-          profile_image: null,
-          mutual_friends: 12,
-          shared_interests: ['AI', 'Machine Learning', 'Data Science'],
-          status: 'accepted',
-          relationship_type: 'colleague',
-          last_active: new Date().toISOString(),
-        },
-        {
-          id: 2,
-          name: 'Bob Smith',
-          email: 'bob@stanford.edu',
-          type: 'teacher',
-          institution: 'Stanford',
-          department: 'Physics',
-          profile_image: null,
-          mutual_friends: 8,
-          shared_interests: ['Quantum Computing', 'Physics'],
-          status: 'accepted',
-          relationship_type: 'mentor',
-          last_active: new Date(Date.now() - 3600000).toISOString(),
-        },
-        {
-          id: 3,
-          name: 'Carol Williams',
-          email: 'carol@harvard.edu',
-          type: 'student',
-          institution: 'Harvard',
-          department: 'Mathematics',
-          profile_image: null,
-          mutual_friends: 15,
-          shared_interests: ['Mathematics', 'Cryptography'],
-          status: 'accepted',
-          relationship_type: 'friend',
-          last_active: new Date(Date.now() - 86400000).toISOString(),
-        },
-      ];
-      setFriends(mockFriends);
+      await Promise.all([
+        loadFriends(),
+        loadFriendRequests(),
+        loadFriendStats()
+      ]);
     } catch (error) {
-      console.error('Error loading friends:', error);
+      console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const loadFriends = async () => {
+    try {
+      const response = await AuthService.fetchFriends();
+      if (response.success) {
+        setFriends(response.data || []);
+      } else {
+        setFriends([]);
+      }
+    } catch (error) {
+      console.error('Error loading friends:', error);
+      setFriends([]);
+    }
+  };
+
   const loadFriendRequests = async () => {
     try {
-      // TODO: Replace with actual API call
-      const mockRequests = [
-        {
-          id: 4,
-          name: 'David Chen',
-          email: 'david@mit.edu',
-          type: 'student',
-          institution: 'MIT',
-          department: 'Engineering',
-          profile_image: null,
-          message: 'Hi! I saw your research on neural networks. Would love to connect!',
-          sent_at: new Date(Date.now() - 3600000).toISOString(),
-        },
-        {
-          id: 5,
-          name: 'Emma Davis',
-          email: 'emma@oxford.edu',
-          type: 'teacher',
-          institution: 'Oxford',
-          department: 'Computer Science',
-          profile_image: null,
-          message: 'Hello! I\'m working on similar projects. Let\'s collaborate!',
-          sent_at: new Date(Date.now() - 7200000).toISOString(),
-        },
-      ];
-      setFriendRequests(mockRequests);
+      const response = await AuthService.fetchFriendRequests();
+      if (response.success) {
+        setFriendRequests(response.data || []);
+      } else {
+        setFriendRequests([]);
+      }
     } catch (error) {
       console.error('Error loading friend requests:', error);
+      setFriendRequests([]);
+    }
+  };
+
+  const loadFriendStats = async () => {
+    try {
+      const response = await AuthService.getFriendStats();
+      if (response.success) {
+        setStats(response.data || {
+          total_friends: 0,
+          pending_requests: 0,
+          colleagues: 0,
+          mentors: 0
+        });
+      }
+    } catch (error) {
+      console.error('Error loading friend stats:', error);
     }
   };
 
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
-
+    
     setSearching(true);
     try {
-      // TODO: Replace with actual API call
-      const mockResults = [
-        {
-          id: 6,
-          name: 'Frank Miller',
-          email: 'frank@cambridge.edu',
-          type: 'teacher',
-          institution: 'Cambridge',
-          department: 'Mathematics',
-          profile_image: null,
-          mutual_friends: 3,
-          is_friend: false,
-        },
-      ];
-      setSearchResults(mockResults);
+      const response = await AuthService.searchUsers(searchQuery.trim());
+      if (response.success) {
+        setSearchResults(response.data || []);
+      } else {
+        setSearchResults([]);
+      }
     } catch (error) {
       console.error('Error searching:', error);
+      await alert({
+        title: 'Search Error',
+        message: error.message || 'Failed to search users',
+        variant: 'danger'
+      });
+      setSearchResults([]);
     } finally {
       setSearching(false);
     }
   };
 
-  const handleAcceptRequest = async (friendId) => {
+  const handleAcceptRequest = async (requestId) => {
     try {
-      // TODO: Replace with actual API call
-      await alert({
-        title: 'Friend Request Accepted',
-        message: 'You are now friends!',
-        variant: 'success',
-      });
-      loadFriends();
-      loadFriendRequests();
+      const response = await AuthService.acceptFriendRequest(requestId);
+      if (response.success) {
+        await alert({
+          title: 'Friend Request Accepted',
+          message: 'You are now friends!',
+          variant: 'success',
+        });
+        // Reload data
+        await loadAllData();
+      }
     } catch (error) {
       console.error('Error accepting request:', error);
+      await alert({
+        title: 'Error',
+        message: error.message || 'Failed to accept friend request',
+        variant: 'danger'
+      });
     }
   };
 
-  const handleRejectRequest = async (friendId) => {
+  const handleRejectRequest = async (requestId) => {
     const confirmed = await confirm({
       title: 'Reject Friend Request',
       message: 'Are you sure you want to reject this request?',
       variant: 'warning',
     });
-
-    if (confirmed) {
-      try {
-        // TODO: Replace with actual API call
-        loadFriendRequests();
-      } catch (error) {
-        console.error('Error rejecting request:', error);
+    
+    if (!confirmed) return;
+    
+    try {
+      const response = await AuthService.rejectFriendRequest(requestId);
+      if (response.success) {
+        await loadFriendRequests();
+        await loadFriendStats();
       }
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+      await alert({
+        title: 'Error',
+        message: error.message || 'Failed to reject friend request',
+        variant: 'danger'
+      });
     }
   };
 
@@ -179,17 +165,31 @@ export default function FriendsPage() {
       title: 'Send Friend Request',
       message: 'Add a personal message (optional):',
       placeholder: 'Hi! I would like to connect with you...',
+      variant: 'default'
     });
-
+    
+    if (message === null) return; // User cancelled
+    
     try {
-      // TODO: Replace with actual API call
-      await alert({
-        title: 'Request Sent',
-        message: 'Friend request sent successfully!',
-        variant: 'success',
-      });
+      const response = await AuthService.sendFriendRequest(userId, message);
+      if (response.success) {
+        await alert({
+          title: 'Request Sent',
+          message: 'Friend request sent successfully!',
+          variant: 'success',
+        });
+        // Update search results to reflect sent request
+        setSearchResults(prev => prev.map(user => 
+          user.id === userId ? { ...user, is_friend: 'pending' } : user
+        ));
+      }
     } catch (error) {
       console.error('Error sending request:', error);
+      await alert({
+        title: 'Error',
+        message: error.message || 'Failed to send friend request',
+        variant: 'danger'
+      });
     }
   };
 
@@ -199,41 +199,63 @@ export default function FriendsPage() {
       message: 'Are you sure you want to remove this friend?',
       variant: 'danger',
     });
-
-    if (confirmed) {
-      try {
-        // TODO: Replace with actual API call
-        loadFriends();
-      } catch (error) {
-        console.error('Error removing friend:', error);
+    
+    if (!confirmed) return;
+    
+    try {
+      const response = await AuthService.removeFriend(friendId);
+      if (response.success) {
+        await alert({
+          title: 'Friend Removed',
+          message: 'Friend removed successfully',
+          variant: 'success',
+        });
+        await loadFriends();
+        await loadFriendStats();
       }
+    } catch (error) {
+      console.error('Error removing friend:', error);
+      await alert({
+        title: 'Error',
+        message: error.message || 'Failed to remove friend',
+        variant: 'danger'
+      });
     }
   };
 
-  const getProfileImage = (friend) => {
-    if (friend.profile_image) {
-      return friend.profile_image;
+  const getProfileImage = (user) => {
+    if (user.profile_image) {
+      if (user.profile_image.startsWith('http://') || user.profile_image.startsWith('https://')) {
+        return user.profile_image;
+      }
+      return `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/storage/${user.profile_image}`;
     }
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name)}&background=3b82f6&color=fff&size=128`;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=fff&size=128`;
   };
 
   const formatLastActive = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+    if (!dateString) return 'Recently';
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 5) return 'Active now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${diffDays}d ago`;
+      if (diffMins < 5) return 'Active now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffDays < 7) return `${diffDays}d ago`;
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch (error) {
+      return 'Recently';
+    }
   };
 
   const tabs = [
-    { id: 'all', label: 'All Friends', icon: 'fas fa-users', count: friends.length },
-    { id: 'requests', label: 'Requests', icon: 'fas fa-user-plus', count: friendRequests.length },
+    { id: 'all', label: 'All Friends', icon: 'fas fa-users', count: stats.total_friends },
+    { id: 'requests', label: 'Requests', icon: 'fas fa-user-plus', count: stats.pending_requests },
     { id: 'search', label: 'Find', icon: 'fas fa-search', count: 0 },
   ];
 
@@ -289,10 +311,10 @@ export default function FriendsPage() {
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
               {[
-                { label: 'Friends', value: friends.length, icon: 'fas fa-users', color: 'from-blue-500 to-cyan-500' },
-                { label: 'Pending', value: friendRequests.length, icon: 'fas fa-clock', color: 'from-yellow-500 to-orange-500' },
-                { label: 'Colleagues', value: friends.filter(f => f.relationship_type === 'colleague').length, icon: 'fas fa-briefcase', color: 'from-green-500 to-emerald-500' },
-                { label: 'Mentors', value: friends.filter(f => f.relationship_type === 'mentor').length, icon: 'fas fa-graduation-cap', color: 'from-purple-500 to-pink-500' },
+                { label: 'Friends', value: stats.total_friends, icon: 'fas fa-users', color: 'from-blue-500 to-cyan-500' },
+                { label: 'Pending', value: stats.pending_requests, icon: 'fas fa-clock', color: 'from-yellow-500 to-orange-500' },
+                { label: 'Colleagues', value: stats.colleagues, icon: 'fas fa-briefcase', color: 'from-green-500 to-emerald-500' },
+                { label: 'Mentors', value: stats.mentors, icon: 'fas fa-graduation-cap', color: 'from-purple-500 to-pink-500' },
               ].map((stat, index) => (
                 <MobileCard key={index} className="p-3 md:p-4">
                   <div className="flex items-center justify-between">
@@ -332,30 +354,36 @@ export default function FriendsPage() {
                           {friend.name}
                         </h3>
                         <p className="text-xs md:text-sm text-gray-400 truncate">
-                          {friend.type === 'teacher' ? 'Professor' : 'Student'} • {friend.institution}
+                          {friend.type === 'teacher' ? 'Professor' : 'Student'} • {friend.institution || 'No institution'}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          {formatLastActive(friend.last_active)}
+                          {friend.relationship_type && (
+                            <span className="capitalize">{friend.relationship_type}</span>
+                          )}
+                          {friend.relationship_type && friend.accepted_at && ' • '}
+                          {friend.accepted_at && `Friends since ${new Date(friend.accepted_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`}
                         </p>
                       </div>
                     </div>
-
+                    
                     {/* Shared Interests */}
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {friend.shared_interests.slice(0, 3).map((interest, idx) => (
-                        <span
-                          key={idx}
-                          className="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded"
-                        >
-                          {interest}
-                        </span>
-                      ))}
-                    </div>
+                    {friend.shared_interests && friend.shared_interests.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {friend.shared_interests.slice(0, 3).map((interest, idx) => (
+                          <span
+                            key={idx}
+                            className="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded"
+                          >
+                            {interest}
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Actions */}
                     <div className="flex gap-2">
                       <button
-                        onClick={() => router.push(`/friends/${friend.id}`)}
+                        onClick={() => router.push(`/profile/${friend.id}`)}
                         className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-xs md:text-sm font-medium transition-colors min-h-[44px]"
                       >
                         <i className="fas fa-user mr-2"></i>
@@ -390,7 +418,12 @@ export default function FriendsPage() {
 
         {activeTab === 'requests' && (
           <div className="space-y-4">
-            {friendRequests.length > 0 ? (
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-400">Loading friend requests...</p>
+              </div>
+            ) : friendRequests.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 {friendRequests.map((request) => (
                   <MobileCard key={request.id} className="p-4">
@@ -405,14 +438,14 @@ export default function FriendsPage() {
                           {request.name}
                         </h3>
                         <p className="text-xs md:text-sm text-gray-400 truncate">
-                          {request.type === 'teacher' ? 'Professor' : 'Student'} • {request.institution}
+                          {request.type === 'teacher' ? 'Professor' : 'Student'} • {request.institution || 'No institution'}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
                           {new Date(request.sent_at).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
-
+                    
                     {/* Message */}
                     {request.message && (
                       <p className="text-xs md:text-sm text-gray-300 mb-3 p-2 bg-gray-800/30 rounded">
@@ -461,7 +494,7 @@ export default function FriendsPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search by name, email, or institution..."
-                  className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+                  className="w-full pl-10 pr-24 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
                 />
                 <button
                   type="submit"
@@ -474,7 +507,12 @@ export default function FriendsPage() {
             </form>
 
             {/* Search Results */}
-            {searchResults.length > 0 && (
+            {searching ? (
+              <div className="text-center py-12">
+                <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-400">Searching...</p>
+              </div>
+            ) : searchResults.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                 {searchResults.map((user) => (
                   <MobileCard key={user.id} className="p-4">
@@ -489,25 +527,25 @@ export default function FriendsPage() {
                           {user.name}
                         </h3>
                         <p className="text-xs md:text-sm text-gray-400 truncate">
-                          {user.type === 'teacher' ? 'Professor' : 'Student'} • {user.institution}
+                          {user.type === 'teacher' ? 'Professor' : 'Student'} • {user.institution || 'No institution'}
                         </p>
                         {user.mutual_friends > 0 && (
                           <p className="text-xs text-blue-400 mt-1">
-                            {user.mutual_friends} mutual friends
+                            {user.mutual_friends} mutual friend{user.mutual_friends !== 1 ? 's' : ''}
                           </p>
                         )}
                       </div>
                     </div>
-
+                    
                     <button
                       onClick={() => handleSendRequest(user.id)}
-                      disabled={user.is_friend}
+                      disabled={user.is_friend === 'pending'}
                       className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white py-2 rounded-lg text-xs md:text-sm font-medium transition-colors min-h-[44px]"
                     >
-                      {user.is_friend ? (
+                      {user.is_friend === 'pending' ? (
                         <>
-                          <i className="fas fa-check mr-2"></i>
-                          Already Friends
+                          <i className="fas fa-clock mr-2"></i>
+                          Request Pending
                         </>
                       ) : (
                         <>
@@ -518,6 +556,18 @@ export default function FriendsPage() {
                     </button>
                   </MobileCard>
                 ))}
+              </div>
+            ) : searchQuery ? (
+              <div className="text-center py-12 bg-gray-900/30 rounded-xl">
+                <i className="fas fa-search text-4xl text-gray-600 mb-4"></i>
+                <h3 className="text-xl font-bold text-white mb-2">No Users Found</h3>
+                <p className="text-gray-400">Try a different search term</p>
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-gray-900/30 rounded-xl">
+                <i className="fas fa-users text-4xl text-gray-600 mb-4"></i>
+                <h3 className="text-xl font-bold text-white mb-2">Find New Friends</h3>
+                <p className="text-gray-400 mb-6">Search for researchers by name, email, or institution</p>
               </div>
             )}
           </div>
