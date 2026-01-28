@@ -123,14 +123,16 @@ class AuthService {
     }
 
     // Generic request method - SIMPLIFIED
+    // client/src/lib/auth.js
+
+    // client/src/lib/auth.js
+
     async makeRequest(endpoint, options = {}) {
         const token = this.getToken();
-
         if (!token) {
-            console.error('❌ No token for request:', endpoint);
             this.clearAuthData();
-            window.location.href = '/login';
-            throw new Error('No authentication token');
+            if (typeof window !== 'undefined') window.location.href = '/login';
+            return { success: false, message: 'Session expired' };
         }
 
         const headers = {
@@ -140,39 +142,35 @@ class AuthService {
             ...options.headers,
         };
 
-        console.log('🌐 Making request to:', endpoint);
-
         try {
             const response = await fetch(`${API_URL}${endpoint}`, {
                 ...options,
                 headers,
             });
 
-            console.log('📡 Response status:', response.status, 'for:', endpoint);
+            const data = await response.json().catch(() => ({}));
 
+            if (response.ok) {
+                return data;
+            }
+
+            // 401: Token is invalid or modified
             if (response.status === 401) {
-                console.log('🔐 401 Unauthorized - Token expired');
                 this.clearAuthData();
-                window.location.href = '/login';
-                throw new Error('Session expired');
+                if (typeof window !== 'undefined') {
+                    const currentPath = window.location.pathname;
+                    window.location.href = `/login?callback=${currentPath}`;
+                }
+                throw new Error('Your session has ended. Please login again.');
             }
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.log('❌ Error response:', errorText);
-                throw new Error(`API error: ${response.status}`);
-            }
-
-            return response.json();
+            // For 404, 400, 422: Return the data so the component shows a Modal
+            // We THROW here so the "catch" block in your page.jsx handles it
+            throw new Error(data.message || `Error ${response.status}`);
 
         } catch (error) {
-            console.error(`💥 API Error (${endpoint}):`, error.message);
-
-            if (error.message.includes('Session expired') || error.message.includes('No authentication')) {
-                this.clearAuthData();
-                window.location.href = '/login';
-            }
-
+            // Log to console only for debugging, don't use console.error to keep logs clean
+            console.log(`ℹ️ API Response (${endpoint}):`, error.message);
             throw error;
         }
     }
@@ -875,6 +873,1057 @@ class AuthService {
             console.error('Error deleting search session:', error);
             throw error;
         }
+    }
+
+
+    // Ajoute ces méthodes à la fin de la classe AuthService :
+
+    // ============= DOCUMENTS API METHODS =============
+    async fetchUserDocuments(params = {}) {
+        return this.makeRequest('/documents', {
+            method: 'GET',
+            params
+        });
+    }
+
+    async fetchDocumentStats() {
+        return this.makeRequest('/documents/stats');
+    }
+
+    async createDocument(documentData) {
+        // Handle file upload with FormData
+        if (documentData.file) {
+            const formData = new FormData();
+            Object.keys(documentData).forEach(key => {
+                if (key === 'file') {
+                    formData.append('file', documentData.file);
+                } else if (key === 'categories' && Array.isArray(documentData[key])) {
+                    documentData[key].forEach(categoryId => {
+                        formData.append('categories[]', categoryId);
+                    });
+                } else {
+                    formData.append(key, documentData[key]);
+                }
+            });
+
+            const headers = this.getHeaders();
+            delete headers['Content-Type']; // Let browser set it for FormData
+
+            return this.makeRequest('/documents', {
+                method: 'POST',
+                headers,
+                body: formData
+            });
+        }
+
+        // Regular JSON request
+        return this.makeRequest('/documents', {
+            method: 'POST',
+            body: JSON.stringify(documentData)
+        });
+    }
+
+    // client/src/lib/auth.js
+    // Replace the saveSearchResultToDocuments method with this improved version:
+
+    async saveSearchResultToDocuments(data) {
+        console.log('🔄 saveSearchResultToDocuments called with:', data);
+
+        // Helper function to extract domain
+        const extractDomain = (url) => {
+            if (!url) return 'unknown.com';
+            try {
+                const domain = new URL(url).hostname.replace('www.', '');
+                return domain || 'unknown.com';
+            } catch {
+                return 'unknown.com';
+            }
+        };
+
+        // Format the data for the save-from-search endpoint
+        const formattedData = {
+            type: data.type, // This should be 'video', 'pdf', or 'article'
+            data: {
+                title: data.data?.title || `Untitled ${data.type}`,
+                description: data.data?.description || data.data?.snippet || '',
+                url: data.data?.url || data.data?.pdf_url || '',
+                // Type-specific fields
+                ...(data.type === 'video' && {
+                    channel: data.data?.channel || 'Unknown Channel',
+                    duration: data.data?.duration,
+                    thumbnail: data.data?.thumbnail,
+                    views: data.data?.views,
+                    published_at: data.data?.published_at,
+                }),
+                ...(data.type === 'pdf' && {
+                    authors: data.data?.authors || [data.data?.author || 'Unknown'],
+                    pdf_url: data.data?.pdf_url || data.data?.url,
+                    published_at: data.data?.published_at,
+                    page_count: data.data?.page_count,
+                    citation_count: data.data?.citation_count,
+                }),
+                ...(data.type === 'article' && {
+                    domain: data.data?.domain || extractDomain(data.data?.url),
+                    snippet: data.data?.snippet || data.data?.description || '',
+                    published_at: data.data?.published_at,
+                    reading_time: data.data?.reading_time,
+                }),
+            }
+        };
+
+        console.log('📤 Sending formatted data:', formattedData);
+
+        try {
+            const response = await this.makeRequest('/documents/save-from-search', {
+                method: 'POST',
+                body: JSON.stringify(formattedData)
+            });
+            console.log('✅ Response:', response);
+            return response;
+        } catch (error) {
+            console.error('❌ Error in saveSearchResultToDocuments:', error);
+            throw error;
+        }
+    }
+
+    extractDomain(url) {
+        if (!url) return 'unknown.com';
+        try {
+            const domain = new URL(url).hostname.replace('www.', '');
+            return domain || 'unknown.com';
+        } catch {
+            return 'unknown.com';
+        }
+    }
+
+    async getDocument(id) {
+        return this.makeRequest(`/documents/${id}`);
+    }
+
+    async updateDocument(id, updates) {
+        return this.makeRequest(`/documents/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(updates)
+        });
+    }
+
+    async deleteDocument(id) {
+        return this.makeRequest(`/documents/${id}`, {
+            method: 'DELETE'
+        });
+    }
+
+    async downloadDocument(id) {
+        return this.makeRequest(`/documents/${id}/download`);
+    }
+
+    // client/src/lib/auth.js - UPDATED WITH COMPLETE DOCUMENT METHODS
+
+    // Add these methods inside the AuthService class:
+
+    // ============= ENHANCED DOCUMENT METHODS =============
+    async fetchUserDocuments(params = {}) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            // Build query string from params
+            const queryString = new URLSearchParams();
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    if (Array.isArray(value)) {
+                        value.forEach(v => queryString.append(`${key}[]`, v));
+                    } else {
+                        queryString.append(key, value);
+                    }
+                }
+            });
+
+            const query = queryString.toString();
+            const endpoint = `/documents${query ? `?${query}` : ''}`;
+
+            return await this.makeRequest(endpoint, { method: 'GET' });
+        } catch (error) {
+            console.error('Error fetching documents:', error);
+            throw error;
+        }
+    }
+
+    async fetchDocumentStats() {
+        try {
+            return await this.makeRequest('/documents/stats');
+        } catch (error) {
+            console.error('Error fetching document stats:', error);
+            return {
+                success: false,
+                data: {
+                    total: 0,
+                    by_type: { pdf: 0, video: 0, article_link: 0, website: 0, image: 0, presentation: 0 },
+                    storage_used: '0 MB'
+                }
+            };
+        }
+    }
+
+    async createDocument(documentData) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            // Handle file upload with FormData
+            if (documentData.file) {
+                const formData = new FormData();
+
+                // Append all fields to FormData
+                Object.entries(documentData).forEach(([key, value]) => {
+                    if (key === 'file') {
+                        formData.append('file', value);
+                    } else if (key === 'categories' && Array.isArray(value)) {
+                        value.forEach(catId => formData.append('categories[]', catId));
+                    } else if (value !== undefined && value !== null) {
+                        formData.append(key, value);
+                    }
+                });
+
+                const response = await fetch(`${API_URL}/documents`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        // Don't set Content-Type for FormData, browser will set it with boundary
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to upload document');
+                }
+
+                return await response.json();
+            } else {
+                // Regular JSON request for URL-based documents
+                return await this.makeRequest('/documents', {
+                    method: 'POST',
+                    body: JSON.stringify(documentData)
+                });
+            }
+        } catch (error) {
+            console.error('Error creating document:', error);
+            throw error;
+        }
+    }
+
+
+
+    async getDocument(id) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/documents/${id}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error('Document not found');
+                }
+                throw new Error('Failed to fetch document');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error getting document:', error);
+            throw error;
+        }
+    }
+
+    async updateDocument(id, updates) {
+        try {
+            return await this.makeRequest(`/documents/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(updates)
+            });
+        } catch (error) {
+            console.error('Error updating document:', error);
+            throw error;
+        }
+    }
+
+    async deleteDocument(id) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/documents/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete document');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error deleting document:', error);
+            throw error;
+        }
+    }
+
+    async downloadDocument(id) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/documents/${id}/download`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to download document');
+            }
+
+            const data = await response.json();
+
+            // If we get a download URL, open it
+            if (data.data?.download_url) {
+                window.open(data.data.download_url, '_blank');
+            } else if (data.data?.file_url) {
+                window.open(data.data.file_url, '_blank');
+            } else if (data.data?.url) {
+                window.open(data.data.url, '_blank');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error downloading document:', error);
+            throw error;
+        }
+    }
+
+    // Profile methods
+    async getProfile() {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch profile');
+            }
+
+            const data = await response.json();
+            if (data.data) {
+                this.user = data.data;
+                localStorage.setItem('academvault_user', JSON.stringify(data.data));
+            }
+            return data;
+        } catch (error) {
+            console.error('Error fetching profile:', error);
+            throw error;
+        }
+    }
+
+    // Inside client/src/lib/auth.js
+
+    async updateProfile(profileData) {
+        try {
+            const token = this.getToken();
+            const formData = new FormData();
+
+            // 1. Append text fields, but skip the file field here
+            Object.keys(profileData).forEach(key => {
+                if (key !== 'profile_image') {
+                    const value = profileData[key];
+                    // Only append if it's not null/undefined to keep request clean
+                    if (value !== null && value !== undefined) {
+                        formData.append(key, value);
+                    }
+                }
+            });
+
+            // 2. Append the image ONLY if it is a real File object
+            if (profileData.profile_image && profileData.profile_image instanceof File) {
+                formData.append('profile_image', profileData.profile_image);
+            }
+
+            // Use the manual fetch to handle FormData correctly (no Content-Type header)
+            const response = await fetch(`${API_URL}/profile/update`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                },
+                body: formData
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                // Handle validation errors specifically
+                throw new Error(data.message || 'Validation failed');
+            }
+
+            // Update local user data if successful
+            if (data.success && data.data) {
+                this.user = { ...this.user, ...data.data };
+                localStorage.setItem('academvault_user', JSON.stringify(this.user));
+            }
+
+            return data;
+        } catch (error) {
+            console.log('ℹ️ Profile Update Error:', error.message);
+            throw error;
+        }
+    }
+
+    async changePassword(passwordData) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/change-password`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(passwordData)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to change password');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error changing password:', error);
+            throw error;
+        }
+    }
+
+    async getActivityHistory(params = {}) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const queryString = new URLSearchParams(params).toString();
+            const endpoint = `/profile/activity${queryString ? `?${queryString}` : ''}`;
+
+            return await this.makeRequest(endpoint);
+        } catch (error) {
+            console.error('Error fetching activity history:', error);
+            throw error;
+        }
+    }
+
+    async getPreferences() {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/preferences`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch preferences');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching preferences:', error);
+            throw error;
+        }
+    }
+
+    async updatePreferences(preferences) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/preferences`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(preferences)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update preferences');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error updating preferences:', error);
+            throw error;
+        }
+    }
+
+    async deleteAccount(confirmation) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/account`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ confirmation })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to delete account');
+            }
+
+            // Clear auth data after successful deletion
+            this.clearAuthData();
+            return await response.json();
+        } catch (error) {
+            console.error('Error deleting account:', error);
+            throw error;
+        }
+    }
+
+
+    // Profile methods
+    async getProfile() {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch profile');
+            }
+
+            const data = await response.json();
+            if (data.data) {
+                this.user = data.data;
+                localStorage.setItem('academvault_user', JSON.stringify(data.data));
+            }
+            return data;
+        } catch (error) {
+            console.error('Error fetching profile:', error);
+            throw error;
+        }
+    }
+
+    async updateProfile(profileData) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const formData = new FormData();
+
+            // Append text fields
+            Object.keys(profileData).forEach(key => {
+                if (key !== 'profile_image' && profileData[key] !== undefined) {
+                    formData.append(key, profileData[key]);
+                }
+            });
+
+            // Append file if exists
+            if (profileData.profile_image instanceof File) {
+                formData.append('profile_image', profileData.profile_image);
+            }
+
+            const response = await fetch(`${API_URL}/profile/update`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update profile');
+            }
+
+            const data = await response.json();
+            if (data.data) {
+                this.user = { ...this.user, ...data.data };
+                localStorage.setItem('academvault_user', JSON.stringify(this.user));
+            }
+            return data;
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            throw error;
+        }
+    }
+
+    async changePassword(passwordData) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/change-password`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(passwordData)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to change password');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error changing password:', error);
+            throw error;
+        }
+    }
+
+    async getActivityHistory(params = {}) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const queryString = new URLSearchParams(params).toString();
+            const endpoint = `/profile/activity${queryString ? `?${queryString}` : ''}`;
+
+            return await this.makeRequest(endpoint);
+        } catch (error) {
+            console.error('Error fetching activity history:', error);
+            throw error;
+        }
+    }
+
+    async getPreferences() {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/preferences`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch preferences');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching preferences:', error);
+            throw error;
+        }
+    }
+
+    async updatePreferences(preferences) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/preferences`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(preferences)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update preferences');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error updating preferences:', error);
+            throw error;
+        }
+    }
+
+    async deleteAccount(confirmation) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/account`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ confirmation })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to delete account');
+            }
+
+            // Clear auth data after successful deletion
+            this.clearAuthData();
+            return await response.json();
+        } catch (error) {
+            console.error('Error deleting account:', error);
+            throw error;
+        }
+    }
+
+    // Profile methods
+    async getProfile() {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch profile');
+            }
+
+            const data = await response.json();
+            if (data.data) {
+                this.user = data.data;
+                localStorage.setItem('academvault_user', JSON.stringify(data.data));
+            }
+            return data;
+        } catch (error) {
+            console.error('Error fetching profile:', error);
+            throw error;
+        }
+    }
+
+    async updateProfile(profileData) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const formData = new FormData();
+
+            // Append text fields
+            Object.keys(profileData).forEach(key => {
+                if (key !== 'profile_image' && profileData[key] !== undefined) {
+                    formData.append(key, profileData[key]);
+                }
+            });
+
+            // Append file if exists
+            if (profileData.profile_image instanceof File) {
+                formData.append('profile_image', profileData.profile_image);
+            }
+
+            const response = await fetch(`${API_URL}/profile/update`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update profile');
+            }
+
+            const data = await response.json();
+            if (data.data) {
+                this.user = { ...this.user, ...data.data };
+                localStorage.setItem('academvault_user', JSON.stringify(this.user));
+            }
+            return data;
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            throw error;
+        }
+    }
+
+    async changePassword(passwordData) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/change-password`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(passwordData)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to change password');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error changing password:', error);
+            throw error;
+        }
+    }
+
+    async getActivityHistory(params = {}) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const queryString = new URLSearchParams(params).toString();
+            const endpoint = `/profile/activity${queryString ? `?${queryString}` : ''}`;
+
+            return await this.makeRequest(endpoint);
+        } catch (error) {
+            console.error('Error fetching activity history:', error);
+            throw error;
+        }
+    }
+
+    async getPreferences() {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/preferences`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch preferences');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching preferences:', error);
+            throw error;
+        }
+    }
+
+    async updatePreferences(preferences) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/preferences`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(preferences)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to update preferences');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error updating preferences:', error);
+            throw error;
+        }
+    }
+
+    async deleteAccount(confirmation) {
+        try {
+            const token = this.getToken();
+            if (!token) throw new Error('No authentication token');
+
+            const response = await fetch(`${API_URL}/profile/account`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ confirmation })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to delete account');
+            }
+
+            // Clear auth data after successful deletion
+            this.clearAuthData();
+            return await response.json();
+        } catch (error) {
+            console.error('Error deleting account:', error);
+            throw error;
+        }
+    }
+
+
+
+    // ============= FRIENDS API METHODS =============
+    async fetchFriends() {
+        return this.makeRequest('/friends');
+    }
+
+    async fetchFriendRequests() {
+        return this.makeRequest('/friends/requests');
+    }
+
+    async sendFriendRequest(friendId, message = '') {
+        return this.makeRequest('/friends/send', {
+            method: 'POST',
+            body: JSON.stringify({ friend_id: friendId, message })
+        });
+    }
+
+    async acceptFriendRequest(requestId) {
+        return this.makeRequest(`/friends/requests/${requestId}/accept`, {
+            method: 'POST'
+        });
+    }
+
+    async rejectFriendRequest(requestId) {
+        return this.makeRequest(`/friends/requests/${requestId}/reject`, {
+            method: 'POST'
+        });
+    }
+
+    async removeFriend(friendId) {
+        return this.makeRequest(`/friends/${friendId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    // In the AuthService class, update the searchUsers method:
+
+    async searchUsers(query, exclude_friends = false) {
+        return this.makeRequest('/friends/search', {
+            method: 'POST',
+            body: JSON.stringify({ query, exclude_friends })
+        });
+    }
+
+    async getFriendStats() {
+        return this.makeRequest('/friends/stats');
+    }
+
+    // ============= DISCUSSIONS API METHODS =============
+    async fetchDiscussions() {
+        return this.makeRequest('/discussions');
+    }
+
+    async fetchDiscussion(id) {
+        return this.makeRequest(`/discussions/${id}`);
+    }
+
+    async createDiscussion(data) {
+        return this.makeRequest('/discussions', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async updateDiscussion(id, data) {
+        return this.makeRequest(`/discussions/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async deleteDiscussion(id) {
+        return this.makeRequest(`/discussions/${id}`, {
+            method: 'DELETE'
+        });
+    }
+
+    async sendMessage(discussionId, messageData) {
+        return this.makeRequest(`/discussions/${discussionId}/messages`, {
+            method: 'POST',
+            body: JSON.stringify(messageData)
+        });
+    }
+
+    async joinDiscussion(discussionId) {
+        return this.makeRequest(`/discussions/${discussionId}/join`, {
+            method: 'POST'
+        });
+    }
+
+    async leaveDiscussion(discussionId) {
+        return this.makeRequest(`/discussions/${discussionId}/leave`, {
+            method: 'POST'
+        });
+    }
+
+    async getDiscussionStats() {
+        return this.makeRequest('/discussions/stats');
+    }
+
+    // Add this method to ensure proper error handling for discussions
+    async fetchDiscussion(id) {
+        return this.makeRequest(`/discussions/${id}`);
+    }
+
+    // Add these to the end of the class in client/src/lib/auth.js
+
+    async joinDiscussionByCode(inviteCode) {
+        return this.makeRequest('/discussions/join-by-code', {
+            method: 'POST',
+            body: JSON.stringify({ invite_code: inviteCode })
+        });
+    }
+
+    async getDiscussionByCode(inviteCode) {
+        const response = await fetch(`${API_URL}/discussions/code/${inviteCode}`, {
+            headers: { 'Accept': 'application/json' }
+        });
+        return await response.json();
     }
 }
 
