@@ -27,20 +27,32 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # 5. Set working directory
 WORKDIR /var/www/html
+
+# 6. Copy ONLY composer files first (for better caching)
+COPY composer.json composer.lock* ./
+
+# 7. Install dependencies WITHOUT running any scripts/plugins
+# This is the "Safe Mode" install
+ENV COMPOSER_ALLOW_SUPERUSER=1
+RUN composer install --no-interaction --optimize-autoloader --no-dev --no-scripts --no-plugins
+
+# 8. Now copy the rest of the application
 COPY . .
 
-# 6. Install Laravel dependencies
-# ADDED --no-scripts to prevent the crash you saw
-RUN composer install --no-interaction --optimize-autoloader --no-dev --no-scripts
-
-# 7. Set correct permissions
+# 9. Set correct permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# 8. Render uses an environment variable for PORT
+# 10. Set dummy Environment Variables just for the build phase
+# This prevents Laravel from crashing if it tries to load config
+ENV APP_KEY=base64:Uww8vRnbEOrfl7DrYIoXky1/M7wSQCWuHpNHYXaAK+M=
+ENV APP_ENV=production
+ENV DB_CONNECTION=sqlite
+ENV DB_DATABASE=:memory:
+
 EXPOSE 80
 
-# 9. Optimized startup
-# We run package:discover HERE because the Env Vars are available at runtime
+# 11. Final Startup Command
+# We run package:discover and migrations HERE (at runtime), not during build.
 CMD php artisan package:discover --ansi && \
     php artisan config:cache && \
     php artisan route:cache && \
