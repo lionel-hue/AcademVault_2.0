@@ -148,5 +148,9 @@ Route::middleware(['auth:api'])->group(function () {
         Route::post('/{id}/messages', [DiscussionsController::class, 'sendMessage']);
         Route::post('/{id}/join', [DiscussionsController::class, 'joinDiscussion']);
         Route::post('/{id}/leave', [DiscussionsController::class, 'leaveDiscussion']);
+
+        // ADD THESE TWO LINES HERE
+        Route::post('/join-by-code', [DiscussionsController::class, 'joinByInviteCode']);
+        Route::get('/code/{code}', [DiscussionsController::class, 'getByInviteCode'])->withoutMiddleware(['auth:api']);
     });
 });
