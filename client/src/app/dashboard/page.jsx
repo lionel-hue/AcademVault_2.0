@@ -114,11 +114,16 @@ export default function DashboardPage() {
     }
   };
 
+  // Remplacer la fonction loadRecentDocuments :
   const loadRecentDocuments = async () => {
     try {
-      const response = await AuthService.fetchRecentDocuments();
+      const response = await AuthService.fetchUserDocuments({
+        per_page: 4,
+        sort_by: 'created_at',
+        sort_order: 'desc'
+      });
       if (response.success) {
-        setRecentDocuments(response.documents || []);
+        setRecentDocuments(response.data.data || []);
       }
     } catch (error) {
       console.error('Error loading recent documents:', error.message);
@@ -314,7 +319,7 @@ export default function DashboardPage() {
             <Link
               key={`stat-${index}`}
               href={stat.link}
-              className="bg-gray-900/50 backdrop-blur-sm rounded-lg md:rounded-xl p-2 md:p-3 border border-gray-800 hover:border-gray-700 hover:transform hover:-translate-y-1 transition-all duration-300"
+              className="bg-gray-900/50 backdrop-blur-sm rounded-lg md:rounded-xl p-2 md:p-3 border border-gray-800 hover:border-gray-700 hover:transform hover:-translate-y-1 transition-all duration-300 w-full"
             >
               <div className="flex items-center justify-between">
                 <div className={`w-7 h-7 md:w-9 md:h-9 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
