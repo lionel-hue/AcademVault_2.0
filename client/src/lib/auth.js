@@ -123,14 +123,16 @@ class AuthService {
     }
 
     // Generic request method - SIMPLIFIED
+    // client/src/lib/auth.js
+
+    // client/src/lib/auth.js
+
     async makeRequest(endpoint, options = {}) {
         const token = this.getToken();
-
         if (!token) {
-            console.error('❌ No token for request:', endpoint);
             this.clearAuthData();
-            window.location.href = '/login';
-            throw new Error('No authentication token');
+            if (typeof window !== 'undefined') window.location.href = '/login';
+            return { success: false, message: 'Session expired' };
         }
 
         const headers = {
@@ -140,39 +142,35 @@ class AuthService {
             ...options.headers,
         };
 
-        console.log('🌐 Making request to:', endpoint);
-
         try {
             const response = await fetch(`${API_URL}${endpoint}`, {
                 ...options,
                 headers,
             });
 
-            console.log('📡 Response status:', response.status, 'for:', endpoint);
+            const data = await response.json().catch(() => ({}));
 
+            if (response.ok) {
+                return data;
+            }
+
+            // 401: Token is invalid or modified
             if (response.status === 401) {
-                console.log('🔐 401 Unauthorized - Token expired');
                 this.clearAuthData();
-                window.location.href = '/login';
-                throw new Error('Session expired');
+                if (typeof window !== 'undefined') {
+                    const currentPath = window.location.pathname;
+                    window.location.href = `/login?callback=${currentPath}`;
+                }
+                throw new Error('Your session has ended. Please login again.');
             }
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.log('❌ Error response:', errorText);
-                throw new Error(`API error: ${response.status}`);
-            }
-
-            return response.json();
+            // For 404, 400, 422: Return the data so the component shows a Modal
+            // We THROW here so the "catch" block in your page.jsx handles it
+            throw new Error(data.message || `Error ${response.status}`);
 
         } catch (error) {
-            console.error(`💥 API Error (${endpoint}):`, error.message);
-
-            if (error.message.includes('Session expired') || error.message.includes('No authentication')) {
-                this.clearAuthData();
-                window.location.href = '/login';
-            }
-
+            // Log to console only for debugging, don't use console.error to keep logs clean
+            console.log(`ℹ️ API Response (${endpoint}):`, error.message);
             throw error;
         }
     }
@@ -1245,46 +1243,55 @@ class AuthService {
         }
     }
 
+    // Inside client/src/lib/auth.js
+
     async updateProfile(profileData) {
         try {
             const token = this.getToken();
-            if (!token) throw new Error('No authentication token');
-
             const formData = new FormData();
 
-            // Append text fields
+            // 1. Append text fields, but skip the file field here
             Object.keys(profileData).forEach(key => {
-                if (key !== 'profile_image' && profileData[key] !== undefined) {
-                    formData.append(key, profileData[key]);
+                if (key !== 'profile_image') {
+                    const value = profileData[key];
+                    // Only append if it's not null/undefined to keep request clean
+                    if (value !== null && value !== undefined) {
+                        formData.append(key, value);
+                    }
                 }
             });
 
-            // Append file if exists
-            if (profileData.profile_image instanceof File) {
+            // 2. Append the image ONLY if it is a real File object
+            if (profileData.profile_image && profileData.profile_image instanceof File) {
                 formData.append('profile_image', profileData.profile_image);
             }
 
+            // Use the manual fetch to handle FormData correctly (no Content-Type header)
             const response = await fetch(`${API_URL}/profile/update`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
                 },
                 body: formData
             });
 
+            const data = await response.json().catch(() => ({}));
+
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to update profile');
+                // Handle validation errors specifically
+                throw new Error(data.message || 'Validation failed');
             }
 
-            const data = await response.json();
-            if (data.data) {
+            // Update local user data if successful
+            if (data.success && data.data) {
                 this.user = { ...this.user, ...data.data };
                 localStorage.setItem('academvault_user', JSON.stringify(this.user));
             }
+
             return data;
         } catch (error) {
-            console.error('Error updating profile:', error);
+            console.log('ℹ️ Profile Update Error:', error.message);
             throw error;
         }
     }
@@ -1901,6 +1908,22 @@ class AuthService {
     // Add this method to ensure proper error handling for discussions
     async fetchDiscussion(id) {
         return this.makeRequest(`/discussions/${id}`);
+    }
+
+    // Add these to the end of the class in client/src/lib/auth.js
+
+    async joinDiscussionByCode(inviteCode) {
+        return this.makeRequest('/discussions/join-by-code', {
+            method: 'POST',
+            body: JSON.stringify({ invite_code: inviteCode })
+        });
+    }
+
+    async getDiscussionByCode(inviteCode) {
+        const response = await fetch(`${API_URL}/discussions/code/${inviteCode}`, {
+            headers: { 'Accept': 'application/json' }
+        });
+        return await response.json();
     }
 }
 

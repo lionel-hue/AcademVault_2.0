@@ -10,7 +10,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const { alert, confirm, prompt } = useModal();
   const isMobile = useIsMobile();
-  
+
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
@@ -28,13 +28,13 @@ export default function ProfilePage() {
     phone: '',
     profile_image: null
   });
-  
+
   const [passwordData, setPasswordData] = useState({
     current_password: '',
     new_password: '',
     new_password_confirmation: ''
   });
-  
+
   const [uploadingImage, setUploadingImage] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
 
@@ -118,23 +118,22 @@ export default function ProfilePage() {
   };
 
   const handleSaveProfile = async () => {
+    setUploadingImage(true);
     try {
-      setUploadingImage(true);
       const response = await AuthService.updateProfile(formData);
       if (response.success) {
+        setEditMode(false);
         await alert({
-          title: 'Success',
-          message: 'Profile updated successfully',
+          title: 'Profile Updated',
+          message: 'Your changes have been saved successfully.',
           variant: 'success'
         });
-        setEditMode(false);
-        await loadProfile();
+        await loadProfile(); // Refresh UI
       }
     } catch (error) {
-      console.error('Error updating profile:', error);
       await alert({
-        title: 'Error',
-        message: error.message || 'Failed to update profile',
+        title: 'Update Failed',
+        message: error.message, // Shows "The profile image must be an image" etc.
         variant: 'danger'
       });
     } finally {
@@ -198,16 +197,16 @@ export default function ProfilePage() {
       confirmText: 'Delete Account',
       cancelText: 'Cancel'
     });
-    
+
     if (!confirmed) return;
-    
+
     const confirmationText = await prompt({
       title: 'Confirm Deletion',
       message: 'Please type "DELETE MY ACCOUNT" to confirm',
       placeholder: 'DELETE MY ACCOUNT',
       variant: 'danger'
     });
-    
+
     if (confirmationText === 'DELETE MY ACCOUNT') {
       try {
         const response = await AuthService.deleteAccount(confirmationText);
@@ -246,18 +245,18 @@ export default function ProfilePage() {
     if (formData.profile_image instanceof File) {
       return URL.createObjectURL(formData.profile_image);
     }
-    
+
     if (profile?.profile_image) {
-      if (profile.profile_image.startsWith('http://') || 
-          profile.profile_image.startsWith('https://')) {
+      if (profile.profile_image.startsWith('http://') ||
+        profile.profile_image.startsWith('https://')) {
         return profile.profile_image;
       }
-      
+
       if (profile.profile_image.startsWith('storage/')) {
         return `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/${profile.profile_image}`;
       }
     }
-    
+
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || 'User')}&background=3b82f6&color=fff&size=${isMobile ? '80' : '128'}`;
   };
 
@@ -301,11 +300,10 @@ export default function ProfilePage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-3 md:px-4 py-2 md:py-3 rounded-lg font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-2 min-h-[44px] ${
-                  activeTab === tab.id 
-                    ? 'bg-blue-600 text-white shadow-lg' 
+                className={`px-3 md:px-4 py-2 md:py-3 rounded-lg font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-2 min-h-[44px] ${activeTab === tab.id
+                    ? 'bg-blue-600 text-white shadow-lg'
                     : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                }`}
+                  }`}
               >
                 <i className={`${tab.icon} ${isMobile ? 'text-sm' : 'text-base'}`}></i>
                 <span className="text-xs md:text-sm lg:text-base">{tab.label}</span>
@@ -327,25 +325,25 @@ export default function ProfilePage() {
                     {/* Profile Image - Mobile Optimized */}
                     <div className="relative mx-auto sm:mx-0">
                       <div className="w-20 h-20 md:w-24 md:h-24 lg:w-32 lg:h-32 rounded-full overflow-hidden border-4 border-gray-800">
-                        <img 
-                          src={getProfileImageUrl()} 
-                          alt="Profile" 
+                        <img
+                          src={getProfileImageUrl()}
+                          alt="Profile"
                           className="w-full h-full object-cover"
                         />
                       </div>
                       {editMode && (
                         <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-1.5 md:p-2 rounded-full cursor-pointer hover:bg-blue-700 transition-colors">
                           <i className="fas fa-camera text-xs md:text-sm"></i>
-                          <input 
-                            type="file" 
-                            accept="image/*" 
-                            onChange={handleImageChange} 
-                            className="hidden" 
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageChange}
+                            className="hidden"
                           />
                         </label>
                       )}
                     </div>
-                    
+
                     {/* Profile Info */}
                     <div className="flex-1 w-full text-center sm:text-left">
                       {editMode ? (
@@ -624,11 +622,10 @@ export default function ProfilePage() {
                               onChange={(e) => setPreferences(prev => ({ ...prev, theme: e.target.value }))}
                               className="sr-only"
                             />
-                            <div className={`p-3 rounded-lg text-center capitalize text-sm md:text-base ${
-                              preferences.theme === theme 
-                                ? 'bg-blue-600 text-white' 
+                            <div className={`p-3 rounded-lg text-center capitalize text-sm md:text-base ${preferences.theme === theme
+                                ? 'bg-blue-600 text-white'
                                 : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                            }`}>
+                              }`}>
                               {theme}
                             </div>
                           </label>
@@ -735,9 +732,9 @@ export default function ProfilePage() {
                     <MobileButton
                       onClick={handleChangePassword}
                       disabled={
-                        changingPassword || 
-                        !passwordData.current_password || 
-                        !passwordData.new_password || 
+                        changingPassword ||
+                        !passwordData.current_password ||
+                        !passwordData.new_password ||
                         passwordData.new_password !== passwordData.new_password_confirmation
                       }
                       variant="primary"
@@ -810,17 +807,16 @@ export default function ProfilePage() {
                   <div className="flex justify-between items-center">
                     <span className="text-gray-400 text-sm md:text-base">Member Since</span>
                     <span className="text-white text-sm md:text-base">
-                      {profile?.registration_date 
-                        ? new Date(profile.registration_date).toLocaleDateString() 
+                      {profile?.registration_date
+                        ? new Date(profile.registration_date).toLocaleDateString()
                         : 'N/A'
                       }
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-400 text-sm md:text-base">Email Verified</span>
-                    <span className={`text-sm md:text-base ${
-                      profile?.email_verified_at ? 'text-green-400' : 'text-red-400'
-                    }`}>
+                    <span className={`text-sm md:text-base ${profile?.email_verified_at ? 'text-green-400' : 'text-red-400'
+                      }`}>
                       {profile?.email_verified_at ? 'Yes' : 'No'}
                     </span>
                   </div>
@@ -839,8 +835,8 @@ export default function ProfilePage() {
                       <span className="text-white">{stats?.storage_used || '0 MB'}</span>
                     </div>
                     <div className="w-full h-1.5 md:h-2 bg-gray-800 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-blue-500 to-cyan-500" 
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-500 to-cyan-500"
                         style={{ width: '45%' }}
                       ></div>
                     </div>

@@ -133,37 +133,33 @@ export default function DiscussionsPage() {
         }
     };
 
+    // Inside client/src/app/discussions/page.jsx
+
     const handleJoinByCode = async () => {
         if (!joinCode.trim()) {
-            await alert({
-                title: 'Validation Error',
-                message: 'Please enter an invite code',
-                variant: 'warning'
-            });
+            await alert({ title: 'Input Required', message: 'Please enter an invite code', variant: 'warning' });
             return;
         }
 
         setJoiningDiscussion(true);
         try {
             const response = await AuthService.joinDiscussionByCode(joinCode.trim());
+
             if (response.success) {
                 await alert({
-                    title: 'Joined Discussion',
+                    title: 'Welcome!',
                     message: `Successfully joined: ${response.data.title}`,
                     variant: 'success'
                 });
                 setShowJoinModal(false);
                 setJoinCode('');
-                await loadDiscussions();
-                await loadStats();
-                // Navigate to the discussion
                 router.push(`/discussions/${response.data.discussion_id}`);
             }
         } catch (error) {
-            console.error('Error joining discussion by code:', error);
+            // This is where we catch the error from auth.js and show a Modal
             await alert({
-                title: 'Error',
-                message: error.message || 'Failed to join discussion. Invalid code or you may not have permission.',
+                title: 'Invite Code Error',
+                message: error.message || 'That code is invalid or has expired.',
                 variant: 'danger'
             });
         } finally {
@@ -270,11 +266,10 @@ export default function DiscussionsPage() {
                     <button
                         key={tab.id}
                         onClick={() => onChange(tab.id)}
-                        className={`px-4 py-3 rounded-xl font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-2 min-h-[44px] ${
-                            activeTab === tab.id
-                                ? `bg-${tab.color}-600 text-white shadow-lg`
-                                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                        }`}
+                        className={`px-4 py-3 rounded-xl font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-2 min-h-[44px] ${activeTab === tab.id
+                            ? `bg-${tab.color}-600 text-white shadow-lg`
+                            : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                            }`}
                     >
                         <i className={tab.icon}></i>
                         <span>{tab.label}</span>
@@ -385,11 +380,10 @@ export default function DiscussionsPage() {
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 ${
-                                        activeTab === tab.id
-                                            ? `bg-${tab.color}-600 text-white shadow-lg`
-                                            : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                                    }`}
+                                    className={`px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 ${activeTab === tab.id
+                                        ? `bg-${tab.color}-600 text-white shadow-lg`
+                                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                                        }`}
                                 >
                                     <i className={tab.icon}></i>
                                     <span>{tab.label}</span>
@@ -410,19 +404,18 @@ export default function DiscussionsPage() {
                         {filteredDiscussions.map((discussion) => (
                             <MobileCard key={discussion.id} className="p-4">
                                 <div className="flex items-start gap-3 mb-3">
-                                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg ${
-                                        getDiscussionColor(discussion.type).replace('text-', 'bg-').replace('-400', '-500/20')
-                                    } flex items-center justify-center`}>
-                                        <i className={`${getDiscussionIcon(discussion.type)} ${
-                                            getDiscussionColor(discussion.type)
-                                        } text-sm md:text-base`}></i>
+                                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg ${getDiscussionColor(discussion.type).replace('text-', 'bg-').replace('-400', '-500/20')
+                                        } flex items-center justify-center`}>
+                                        <i className={`${getDiscussionIcon(discussion.type)} ${getDiscussionColor(discussion.type)
+                                            } text-sm md:text-base`}></i>
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-start justify-between">
                                             <h3 className="font-semibold text-white text-sm md:text-base truncate">
                                                 {discussion.title}
                                             </h3>
-                                            {discussion.is_pinned && (
+                                            {/* To this */}
+                                            {!!discussion.is_pinned && (
                                                 <i className="fas fa-thumbtack text-yellow-400 ml-2 flex-shrink-0"></i>
                                             )}
                                         </div>
@@ -470,7 +463,7 @@ export default function DiscussionsPage() {
                                         <i className="fas fa-door-open mr-2"></i>
                                         Open
                                     </button>
-                                    
+
                                     {discussion.is_member ? (
                                         <button
                                             onClick={() => handleLeaveDiscussion(discussion.id, discussion.title)}
@@ -486,7 +479,7 @@ export default function DiscussionsPage() {
                                             <i className="fas fa-plus"></i>
                                         </button>
                                     ) : null}
-                                    
+
                                     {discussion.admin_name === AuthService.getCurrentUser()?.name && (
                                         <button
                                             onClick={() => handleDeleteDiscussion(discussion.id, discussion.title)}
@@ -504,13 +497,13 @@ export default function DiscussionsPage() {
                         <i className="fas fa-comments text-4xl text-gray-600 mb-4"></i>
                         <h3 className="text-xl font-bold text-white mb-2">
                             {activeTab === 'my-discussions' ? 'No Discussions Yet' :
-                             activeTab === 'public' ? 'No Public Discussions' :
-                             'No Archived Discussions'}
+                                activeTab === 'public' ? 'No Public Discussions' :
+                                    'No Archived Discussions'}
                         </h3>
                         <p className="text-gray-400 mb-6">
                             {activeTab === 'my-discussions' ? 'Create your first discussion to start collaborating' :
-                             activeTab === 'public' ? 'No public discussions available at the moment' :
-                             'No archived discussions'}
+                                activeTab === 'public' ? 'No public discussions available at the moment' :
+                                    'No archived discussions'}
                         </p>
                         {activeTab === 'my-discussions' && (
                             <div className="flex gap-3 justify-center">
@@ -558,7 +551,7 @@ export default function DiscussionsPage() {
                                     <input
                                         type="text"
                                         value={newDiscussion.title}
-                                        onChange={(e) => setNewDiscussion({...newDiscussion, title: e.target.value})}
+                                        onChange={(e) => setNewDiscussion({ ...newDiscussion, title: e.target.value })}
                                         placeholder="Enter discussion title"
                                         className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 md:px-4 py-2 md:py-3 text-white text-sm md:text-base"
                                     />
@@ -569,7 +562,7 @@ export default function DiscussionsPage() {
                                     </label>
                                     <textarea
                                         value={newDiscussion.description}
-                                        onChange={(e) => setNewDiscussion({...newDiscussion, description: e.target.value})}
+                                        onChange={(e) => setNewDiscussion({ ...newDiscussion, description: e.target.value })}
                                         placeholder="What is this discussion about?"
                                         rows="3"
                                         className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 md:px-4 py-2 md:py-3 text-white text-sm md:text-base resize-none"
@@ -582,7 +575,7 @@ export default function DiscussionsPage() {
                                         </label>
                                         <select
                                             value={newDiscussion.type}
-                                            onChange={(e) => setNewDiscussion({...newDiscussion, type: e.target.value})}
+                                            onChange={(e) => setNewDiscussion({ ...newDiscussion, type: e.target.value })}
                                             className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 md:px-4 py-2 md:py-3 text-white text-sm md:text-base"
                                         >
                                             <option value="general">General</option>
@@ -597,7 +590,7 @@ export default function DiscussionsPage() {
                                         </label>
                                         <select
                                             value={newDiscussion.privacy}
-                                            onChange={(e) => setNewDiscussion({...newDiscussion, privacy: e.target.value})}
+                                            onChange={(e) => setNewDiscussion({ ...newDiscussion, privacy: e.target.value })}
                                             className="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 md:px-4 py-2 md:py-3 text-white text-sm md:text-base"
                                         >
                                             <option value="private">Private</option>

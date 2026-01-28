@@ -339,34 +339,32 @@ class DiscussionsController extends Controller
     public function joinByInviteCode(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'invite_code' => 'required|string|max:32'
+            'invite_code' => 'required|string'
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $validator->errors()
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'Invite code is required'], 422);
         }
 
         $user = Auth::user();
-        $inviteCode = $request->input('invite_code');
+        $inviteCode = trim($request->input('invite_code'));
 
         try {
+            // 1. Find the discussion (case-insensitive for better mobile experience)
             $discussion = DB::table('discussions')
                 ->where('invite_code', $inviteCode)
+                ->whereNull('deleted_at')
                 ->where('is_archived', false)
                 ->first();
 
             if (!$discussion) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Invalid invite code or discussion is archived'
+                    'message' => 'Invalid invite code or discussion no longer exists'
                 ], 404);
             }
 
-            // Check if already a member
+            // 2. Check if already a member
             $isMember = DB::table('group_members')
                 ->where('discussion_id', $discussion->id)
                 ->where('user_id', $user->id)
@@ -375,31 +373,19 @@ class DiscussionsController extends Controller
 
             if ($isMember) {
                 return response()->json([
-                    'success' => false,
-                    'message' => 'Already a member of this discussion'
-                ], 400);
+                    'success' => true, // Return success so frontend can redirect
+                    'data' => [
+                        'discussion_id' => $discussion->id,
+                        'title' => $discussion->title,
+                        'already_member' => true
+                    ],
+                    'message' => 'You are already a member of this discussion'
+                ], 200); // Changed from 400 to 200
             }
 
-            // Check if discussion is private and user is not invited
-            if ($discussion->privacy === 'private' || $discussion->privacy === 'invite_only') {
-                // Check if user was specifically invited
-                $isInvited = DB::table('group_invitations')
-                    ->where('discussion_id', $discussion->id)
-                    ->where('invitee_id', $user->id)
-                    ->where('status', 'pending')
-                    ->exists();
-
-                if (!$isInvited) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'This discussion is private. You need an invitation to join.'
-                    ], 403);
-                }
-            }
-
+            // 3. Join the discussion
             DB::beginTransaction();
 
-            // Add user as member
             DB::table('group_members')->insert([
                 'user_id' => $user->id,
                 'discussion_id' => $discussion->id,
@@ -410,7 +396,6 @@ class DiscussionsController extends Controller
                 'updated_at' => now()
             ]);
 
-            // Update member count
             DB::table('discussions')
                 ->where('id', $discussion->id)
                 ->update([
@@ -418,26 +403,14 @@ class DiscussionsController extends Controller
                     'updated_at' => now()
                 ]);
 
-            // Create system message for new member
             DB::table('messages')->insert([
                 'discussion_id' => $discussion->id,
                 'user_id' => $user->id,
-                'content' => $user->name . ' joined the discussion using invite code.',
+                'content' => $user->name . ' joined the discussion.',
                 'message_type' => 'system',
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
-
-            // Mark invitation as accepted if exists
-            DB::table('group_invitations')
-                ->where('discussion_id', $discussion->id)
-                ->where('invitee_id', $user->id)
-                ->where('status', 'pending')
-                ->update([
-                    'status' => 'accepted',
-                    'accepted_at' => now(),
-                    'updated_at' => now()
-                ]);
 
             DB::commit();
 
@@ -445,18 +418,14 @@ class DiscussionsController extends Controller
                 'success' => true,
                 'data' => [
                     'discussion_id' => $discussion->id,
-                    'title' => $discussion->title,
-                    'invite_code' => $discussion->invite_code
+                    'title' => $discussion->title
                 ],
-                'message' => 'Successfully joined the discussion'
+                'message' => 'Successfully joined!'
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error joining discussion by invite code: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to join discussion'
-            ], 500);
+            Log::error('Join Error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Server error while joining'], 500);
         }
     }
 
@@ -787,76 +756,67 @@ class DiscussionsController extends Controller
             'is_archived' => 'sometimes|boolean',
             'is_pinned' => 'sometimes|boolean',
             'tags' => 'nullable|array',
-            'regenerate_invite_code' => 'sometimes|boolean'
+            'regenerate_invite_code' => 'sometimes|boolean',
+            'invite_code' => 'sometimes|nullable|string|min:4|max:12'
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $validator->errors()
-            ], 422);
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
         $user = Auth::user();
 
-        // Check if user is admin of the discussion
-        $isAdmin = DB::table('discussions')
-            ->where('id', $id)
-            ->where('admin_id', $user->id)
-            ->exists();
-
-        if (!$isAdmin) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Only discussion admin can update'
-            ], 403);
+        // 1. Fetch discussion and verify Admin
+        $discussion = DB::table('discussions')->where('id', $id)->first();
+        if (!$discussion || $discussion->admin_id != $user->id) {
+            return response()->json(['success' => false, 'message' => 'Not authorized'], 403);
         }
 
         try {
-            $updateData = [
-                'updated_at' => now()
-            ];
+            $updateData = ['updated_at' => now()];
 
-            if ($request->has('title')) {
-                $updateData['title'] = $request->input('title');
-            }
-            if ($request->has('description')) {
-                $updateData['description'] = $request->input('description');
-            }
-            if ($request->has('privacy')) {
-                $updateData['privacy'] = $request->input('privacy');
-            }
-            if ($request->has('is_archived')) {
-                $updateData['is_archived'] = $request->input('is_archived');
-            }
-            if ($request->has('is_pinned')) {
-                $updateData['is_pinned'] = $request->input('is_pinned');
-            }
+            if ($request->has('title')) $updateData['title'] = $request->input('title');
+            if ($request->has('description')) $updateData['description'] = $request->input('description');
+            if ($request->has('privacy')) $updateData['privacy'] = $request->input('privacy');
+            if ($request->has('is_archived')) $updateData['is_archived'] = $request->input('is_archived');
+            if ($request->has('is_pinned')) $updateData['is_pinned'] = $request->input('is_pinned');
+
             if ($request->has('tags')) {
                 $updateData['tags'] = json_encode($request->input('tags'));
             }
+
+            // 2. Logic for regenerating the code
             if ($request->input('regenerate_invite_code')) {
-                $updateData['invite_code'] = $this->generateInviteCode();
+                $newCode = trim($request->input('invite_code'));
+
+                // Generate random if input was empty
+                if (empty($newCode)) {
+                    $newCode = Str::random(8);
+                }
+
+                // Check if code is already used by another chat
+                $exists = DB::table('discussions')
+                    ->where('invite_code', $newCode)
+                    ->where('id', '!=', $id)
+                    ->exists();
+
+                if ($exists) {
+                    return response()->json(['success' => false, 'message' => 'Code already taken'], 422);
+                }
+
+                $updateData['invite_code'] = $newCode;
             }
 
-            DB::table('discussions')
-                ->where('id', $id)
-                ->update($updateData);
+            DB::table('discussions')->where('id', $id)->update($updateData);
 
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'invite_code' => $updateData['invite_code'] ?? null
-                ],
-                'message' => 'Discussion updated successfully'
+                'data' => ['invite_code' => $updateData['invite_code'] ?? $discussion->invite_code],
+                'message' => 'Discussion updated'
             ]);
         } catch (\Exception $e) {
-            Log::error('Error updating discussion: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update discussion'
-            ], 500);
+            Log::error('Update Discussion Error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Server error'], 500);
         }
     }
 

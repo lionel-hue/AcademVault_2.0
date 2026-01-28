@@ -1,41 +1,27 @@
 // client/middleware.js
+
 import { NextResponse } from 'next/server';
 
 export function middleware(request) {
-  const { pathname } = request.nextUrl;
-  
-  // Get token from cookies
-  const token = request.cookies.get('academvault_token')?.value;
-  
-  // Protected routes that require login
-  const protectedRoutes = ['/dashboard'];
-  
-  // Routes that should redirect to dashboard if already logged in
-  const authRoutes = ['/login', '/signup'];
+    const { pathname } = request.nextUrl;
+    const token = request.cookies.get('academvault_token')?.value;
 
-  // Check if current path is protected
-  const isProtectedRoute = protectedRoutes.some(route => 
-    pathname.startsWith(route)
-  );
-  
-  // Check if current path is auth route
-  const isAuthRoute = authRoutes.includes(pathname);
+    const protectedPaths = ['/dashboard', '/documents', '/discussions', '/friends', '/profile', '/search-sessions'];
+    const isProtectedRoute = protectedPaths.some(path => pathname.startsWith(path));
 
-  // If accessing protected route without token, redirect to login
-  if (isProtectedRoute && !token) {
-    const loginUrl = new URL('/login', request.url);
-    return NextResponse.redirect(loginUrl);
-  }
-  
-  // If accessing auth route with token, redirect to dashboard
-  if (isAuthRoute && token) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
-  
-  return NextResponse.next();
+    // If accessing a protected route without a token
+    if (isProtectedRoute && !token) {
+        // Exception for the join page
+        if (pathname === '/discussions/join') return NextResponse.next();
+
+        const url = new URL('/login', request.url);
+        url.searchParams.set('callback', pathname);
+        return NextResponse.redirect(url);
+    }
+
+    return NextResponse.next();
 }
 
-// Only run middleware on specific routes
 export const config = {
-  matcher: ['/dashboard/:path*', '/login', '/signup']
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)']
 };

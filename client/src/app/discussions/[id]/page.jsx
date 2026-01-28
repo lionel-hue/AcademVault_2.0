@@ -12,7 +12,7 @@ export default function DiscussionDetailPage() {
   const params = useParams();
   const { alert, confirm, prompt } = useModal();
   const isMobile = useIsMobile();
-  
+
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [discussion, setDiscussion] = useState(null);
@@ -77,18 +77,18 @@ export default function DiscussionDetailPage() {
     try {
       setLoading(true);
       const response = await AuthService.fetchDiscussion(params.id);
-      
+
       if (response.success) {
         const { discussion, messages, members, is_admin } = response.data;
-        
+
         setDiscussion(discussion);
         setMessages(messages || []);
         setMembers(members || []);
         setIsAdmin(is_admin || false);
-        
+
         // Set last message ID for polling
         if (messages && messages.length > 0) {
-          const latestMsg = messages.reduce((latest, current) => 
+          const latestMsg = messages.reduce((latest, current) =>
             new Date(current.created_at) > new Date(latest.created_at) ? current : latest
           );
           setLastMessageId(latestMsg.id || 0);
@@ -119,10 +119,10 @@ export default function DiscussionDetailPage() {
 
     try {
       const response = await AuthService.makeRequest(`/discussions/${params.id}/recent-messages?last_message_id=${lastMessageId}`);
-      
+
       if (response.success) {
         const { messages: newMessages, new_members, member_count, message_count, last_message_at } = response.data;
-        
+
         if (newMessages && newMessages.length > 0) {
           // Add new messages to existing messages
           setMessages(prev => {
@@ -133,7 +133,7 @@ export default function DiscussionDetailPage() {
 
           // Update last message ID
           if (newMessages.length > 0) {
-            const latestNewMsg = newMessages.reduce((latest, current) => 
+            const latestNewMsg = newMessages.reduce((latest, current) =>
               current.id > latest.id ? current : latest
             );
             setLastMessageId(latestNewMsg.id);
@@ -168,14 +168,14 @@ export default function DiscussionDetailPage() {
           } else {
             setNewMembers(new_members.slice(0, 3)); // Show first 3 new members
           }
-          
+
           setShowNewMemberNotification(true);
-          
+
           // Auto-hide notification after 5 seconds
           if (newMemberTimeoutRef.current) {
             clearTimeout(newMemberTimeoutRef.current);
           }
-          
+
           newMemberTimeoutRef.current = setTimeout(() => {
             setShowNewMemberNotification(false);
             setNewMembers([]);
@@ -195,18 +195,18 @@ export default function DiscussionDetailPage() {
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
-    
+
     setSendingMessage(true);
     try {
       const response = await AuthService.sendMessage(params.id, {
         content: newMessage.trim()
       });
-      
+
       if (response.success) {
         setNewMessage('');
         // Add new message to the beginning of the list (since messages are displayed reversed)
         setMessages(prev => [response.data, ...prev]);
-        
+
         // Update discussion last message time
         if (discussion) {
           setDiscussion(prev => ({
@@ -215,15 +215,15 @@ export default function DiscussionDetailPage() {
             message_count: prev.message_count + 1
           }));
         }
-        
+
         // Update last message ID
         if (response.data.id) {
           setLastMessageId(response.data.id);
         }
-        
+
         // Clear unread count since user just sent a message
         setUnreadMessageCount(0);
-        
+
         // Scroll to bottom after sending
         setTimeout(scrollToBottom, 100);
       }
@@ -241,15 +241,15 @@ export default function DiscussionDetailPage() {
 
   const handleLeaveDiscussion = async () => {
     if (!discussion) return;
-    
+
     const confirmed = await confirm({
       title: 'Leave Discussion',
       message: `Are you sure you want to leave "${discussion.title}"?`,
       variant: 'warning'
     });
-    
+
     if (!confirmed) return;
-    
+
     try {
       const response = await AuthService.leaveDiscussion(params.id);
       if (response.success) {
@@ -272,15 +272,15 @@ export default function DiscussionDetailPage() {
 
   const handleDeleteDiscussion = async () => {
     if (!discussion || !isAdmin) return;
-    
+
     const confirmed = await confirm({
       title: 'Delete Discussion',
       message: `Are you sure you want to delete "${discussion.title}"? This action cannot be undone.`,
       variant: 'danger'
     });
-    
+
     if (!confirmed) return;
-    
+
     try {
       const response = await AuthService.deleteDiscussion(params.id);
       if (response.success) {
@@ -309,22 +309,22 @@ export default function DiscussionDetailPage() {
       variant: 'default',
       type: 'email'
     });
-    
+
     if (!email) return;
-    
+
     try {
       // First search for user
       const searchResponse = await AuthService.searchUsers(email);
-      
+
       if (searchResponse.success && searchResponse.data.length > 0) {
         const user = searchResponse.data[0];
-        
+
         const confirmInvite = await confirm({
           title: 'Send Invitation',
           message: `Send invitation to ${user.name} (${user.email})?`,
           variant: 'default'
         });
-        
+
         if (confirmInvite) {
           // Here you would call an invite endpoint
           // For now, we'll show success message
@@ -375,7 +375,7 @@ export default function DiscussionDetailPage() {
 
   const handleEditDiscussion = async () => {
     if (!discussion || !isAdmin) return;
-    
+
     const newTitle = await prompt({
       title: 'Edit Discussion',
       message: 'Enter new title:',
@@ -383,13 +383,13 @@ export default function DiscussionDetailPage() {
       defaultValue: discussion.title,
       variant: 'default'
     });
-    
+
     if (newTitle && newTitle !== discussion.title) {
       try {
         const response = await AuthService.updateDiscussion(params.id, {
           title: newTitle
         });
-        
+
         if (response.success) {
           setDiscussion(prev => ({ ...prev, title: newTitle }));
           await alert({
@@ -425,13 +425,13 @@ export default function DiscussionDetailPage() {
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
-    
+
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
-    
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
+
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
@@ -444,7 +444,7 @@ export default function DiscussionDetailPage() {
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
-    
+
     if (diffMins < 5) return 'Online now';
     if (diffMins < 60) return `${diffMins}m ago`;
     return formatMessageTime(dateString);
@@ -508,9 +508,7 @@ export default function DiscussionDetailPage() {
                 <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-white">
                   {discussion.title}
                 </h1>
-                {discussion.is_pinned && (
-                  <i className="fas fa-thumbtack text-yellow-400"></i>
-                )}
+                {!!discussion.is_pinned && (<i className="fas fa-thumbtack text-yellow-400"></i>)}
               </div>
               <p className="text-gray-400 text-sm md:text-base mb-3">
                 {discussion.description || 'No description'}
@@ -575,7 +573,7 @@ export default function DiscussionDetailPage() {
                 <div className="flex items-center gap-2">
                   <i className="fas fa-user-plus text-green-400"></i>
                   <span className="text-white text-sm">
-                    {newMembers.length === 1 
+                    {newMembers.length === 1
                       ? `${newMembers[0].name} joined the discussion`
                       : `${newMembers.length} new members joined`}
                   </span>
@@ -633,9 +631,9 @@ export default function DiscussionDetailPage() {
                   [...messages].reverse().map((message) => (
                     <div key={message.id} className="flex gap-3">
                       <img
-                        src={getProfileImage({ 
-                          name: message.user_name, 
-                          profile_image: message.user_profile_image 
+                        src={getProfileImage({
+                          name: !!message.user_name,
+                          profile_image: message.user_profile_image
                         })}
                         alt={message.user_name}
                         className="w-8 h-8 rounded-full flex-shrink-0"
@@ -648,7 +646,7 @@ export default function DiscussionDetailPage() {
                           <span className="text-xs text-gray-500">
                             {formatMessageTime(message.created_at)}
                           </span>
-                          {message.is_edited && (
+                          {!!message.is_edited && (
                             <span className="text-xs text-gray-500">(edited)</span>
                           )}
                           {message.message_type === 'system' && (
@@ -758,13 +756,40 @@ export default function DiscussionDetailPage() {
                     <i className="fas fa-users mr-1"></i>
                     {discussion.member_count}
                   </span>
+                  {/* Look for "Quick Actions" section in client/src/app/discussions/[id]/page.jsx */}
                   {isAdmin && (
-                    <button
-                      onClick={handleInviteMember}
-                      className="text-xs bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded"
-                    >
-                      <i className="fas fa-user-plus"></i>
-                    </button>
+                    <>
+                      <button onClick={handleEditDiscussion} className="w-full flex items-center gap-2 p-2 bg-gray-800/50 hover:bg-gray-800 rounded-lg text-sm text-gray-300 hover:text-white" >
+                        <i className="fas fa-edit"></i> Edit Discussion
+                      </button>
+
+                      {/* REPLACE THE REGENERATE BUTTON WITH THIS BLOCK */}
+                      <button onClick={async () => {
+                        const result = await prompt({
+                          title: 'Update Invite Code',
+                          message: 'Enter a custom code (4-12 chars) or leave empty to generate random:',
+                          placeholder: 'e.g. MYCHAT01',
+                          variant: 'warning'
+                        });
+
+                        if (result !== null) { // result is null if user clicks Cancel
+                          try {
+                            const response = await AuthService.updateDiscussion(params.id, {
+                              regenerate_invite_code: true,
+                              invite_code: result // This sends the text you typed in the prompt
+                            });
+                            if (response.success) {
+                              await alert({ title: 'Code Updated', message: `New invite code: ${response.data.invite_code}`, variant: 'success' });
+                              loadDiscussion(); // This refreshes the page data
+                            }
+                          } catch (error) {
+                            alert({ title: 'Error', message: error.message, variant: 'danger' });
+                          }
+                        }
+                      }} className="w-full flex items-center gap-2 p-2 bg-gray-800/50 hover:bg-gray-800 rounded-lg text-sm text-gray-300 hover:text-white" >
+                        <i className="fas fa-key"></i> Regenerate Invite Code
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -872,7 +897,7 @@ export default function DiscussionDetailPage() {
                       export_date: new Date().toISOString()
                     };
                     const dataStr = JSON.stringify(exportData, null, 2);
-                    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
                     const exportFileDefaultName = `${discussion.title.replace(/[^a-z0-9]/gi, '_')}_export.json`;
                     const linkElement = document.createElement('a');
                     linkElement.setAttribute('href', dataUri);

@@ -89,37 +89,39 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
 
+        // Improved validation for mobile devices
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255',
             'bio' => 'nullable|string|max:1000',
             'institution' => 'nullable|string|max:255',
             'department' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:20',
-            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            // Increased to 5MB (5120) and added webp/heic
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,heic|max:5120',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Validation error',
+                'message' => $validator->errors()->first(), // Give the specific reason
                 'errors' => $validator->errors()
             ], 422);
         }
 
         try {
-            // Get update data
             $updateData = [];
             $fields = ['name', 'bio', 'institution', 'department', 'phone'];
 
             foreach ($fields as $field) {
-                if ($request->has($field) && $request->input($field) !== null) {
-                    $updateData[$field] = $request->input($field);
+                if ($request->has($field)) {
+                    $val = $request->input($field);
+                    // Convert string "null" or "undefined" from frontend to actual null
+                    $updateData[$field] = ($val === 'null' || $val === 'undefined') ? null : $val;
                 }
             }
 
-            // Handle profile image upload
             if ($request->hasFile('profile_image')) {
-                // Delete old profile image if exists
+                // Delete old image
                 if ($user->profile_image && Storage::disk('public')->exists($user->profile_image)) {
                     Storage::disk('public')->delete($user->profile_image);
                 }
@@ -130,37 +132,19 @@ class ProfileController extends Controller
                 $updateData['profile_image'] = $path;
             }
 
-            // Update user using DB query (more reliable)
             if (!empty($updateData)) {
-                DB::table('users')
-                    ->where('id', $user->id)
-                    ->update($updateData);
-
-                // Refresh user data
+                DB::table('users')->where('id', $user->id)->update($updateData);
                 $user = User::find($user->id);
             }
 
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'type' => $user->type,
-                    'institution' => $user->institution,
-                    'department' => $user->department,
-                    'profile_image' => $this->getProfileImageUrl($user->profile_image),
-                    'bio' => $user->bio,
-                    'phone' => $user->phone
-                ],
-                'message' => 'Profile updated successfully'
+                'data' => $user,
+                'message' => 'Profile updated'
             ]);
         } catch (\Exception $e) {
-            Log::error('Error updating profile: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update profile: ' . $e->getMessage()
-            ], 500);
+            Log::error('Profile Update Error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Server error'], 500);
         }
     }
 
